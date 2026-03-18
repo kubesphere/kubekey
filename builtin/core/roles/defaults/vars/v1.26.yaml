@@ -46,7 +46,7 @@ cni:
   ipv6_support: false
   multus:
     image:
-      tag: v4.0.2
+      tag: v4.2.4
   # ========== cni ==========
   # cni_plugins binary (optional)
   # cni_plugins_version: v1.2.0

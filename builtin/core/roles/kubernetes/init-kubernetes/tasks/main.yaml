@@ -1,6 +1,7 @@
 ---
 - name: InitKubernetes | Configure control_plane_endpoint in local DNS files
   when: 
+    - or (.kubernetes.control_plane_endpoint.type | ne "local") (.kubernetes.control_plane_endpoint.local.address | empty)
     - or (.kubernetes.control_plane_endpoint.type | eq "local") (.kubernetes.control_plane_endpoint.type | eq "haproxy")
     - .inventory_hostname | eq .init_kubernetes_node | not
   loop: "{{ .native.localDNS | toJson }}"
@@ -36,7 +37,7 @@
       fetch:
         src: /etc/kubernetes/admin.conf
         dest: >-
-          {{ .work_dir }}/kubekey/kubeconfig
+          {{ .binary_dir }}/kubeconfig
     - name: InitKubernetes | Generate certificate key using kubeadm
       command: |
         /usr/local/bin/kubeadm init phase upload-certs --upload-certs --config=/etc/kubernetes/kubeadm-config.yaml 2>&1 \

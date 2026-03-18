@@ -46,7 +46,7 @@ cni:
   ipv6_support: false
   multus:
     image:
-      tag: v4.3.0
+      tag: v4.2.4
   # ========== cni ==========
   # cni_plugins binary (optional)
   # cni_plugins_version: v1.2.0
@@ -55,7 +55,7 @@ cni:
   calico_version: v3.31.3
   # ========== cni: cilium ==========
   # cilium helm
-  cilium_version: 1.18.5
+  cilium_version: 1.19.1
   # ========== cni: flannel ==========
   flannel_version: v0.27.4
   # ========== cni: kubeovn ==========

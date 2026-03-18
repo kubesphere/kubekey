@@ -1,0 +1,16 @@
+---
+- name: ISO | Copy ISO files for packaging
+  loop: >
+    {{- $result := list -}}
+    {{- range $arch := .download.arch }}
+      {{- range $iso := $.download.iso }}
+        {{- $result = append $result (dict "arch" $arch "iso" $iso) -}}
+      {{- end }}
+    {{- end }}
+    {{- $result | toJson }}
+  when: 
+    - .download.iso | empty | not
+    - printf "%s/repository/%s-%s.iso" .artifact_dir .item.iso .item.arch | fileExists | not
+  copy:
+    src: "{{ .binary_dir }}/repository/{{ .item.iso }}-{{ .item.arch }}.iso"
+    dest: "{{ .artifact_dir }}/repository/{{ .item.iso }}-{{ .item.arch }}.iso"

@@ -3,6 +3,8 @@ binary_dir: >-
   {{ .work_dir }}/kubekey
 scripts_dir: >-
   {{ .work_dir }}/scripts
+artifact_dir: >-
+  {{ .work_dir }}/artifact
 tmp_dir: /tmp/kubekey
 
 # Mapping of common machine architecture names to their standard forms

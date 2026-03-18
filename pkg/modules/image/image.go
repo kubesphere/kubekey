@@ -22,6 +22,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"path/filepath"
 	"regexp"
 	"slices"
@@ -38,6 +39,7 @@ import (
 	"oras.land/oras-go/v2/registry"
 	"oras.land/oras-go/v2/registry/remote"
 
+	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 	"github.com/kubesphere/kubekey/v4/pkg/modules/internal"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
@@ -154,7 +156,8 @@ type imageArgs struct {
 	auths     []imageAuth    // optional: image registry authentication information
 	src       string         // optional: source image reference (remote or local)
 	dest      string         // optional: destination image reference (local or remote)
-	policy    string         // optional: policy for image copy
+	policy    string         // optional: policy for image copy, default is strict
+	logOutput io.Writer      // optional: output writer for module logs
 }
 
 // newImageArgs creates a new imageArgs instance from raw configuration.
@@ -163,27 +166,39 @@ type imageArgs struct {
 // - pull: src=remote registry, dest=local directory
 // - push: src=local directory, dest=remote registry
 // - copy: src=local directory, dest=local directory
-func newImageArgs(_ context.Context, raw runtime.RawExtension, vars map[string]any) (*imageArgs, error) {
+func newImageArgs(_ context.Context, raw runtime.RawExtension, vars map[string]any, logOutput io.Writer) (*imageArgs, error) {
 	args := variable.Extension2Variables(raw)
 
 	if pull, ok := args["pull"]; ok {
-		return transferPull(pull, vars)
+		return transferPull(pull, vars, logOutput)
 	}
 	if push, ok := args["push"]; ok {
-		return transferPush(push, vars)
+		return transferPush(push, vars, logOutput)
 	}
 	if copy, ok := args["copy"]; ok {
-		return transferCopy(copy, vars)
+		return transferCopy(copy, vars, logOutput)
 	}
 
 	// New format: parse directly
 	ia := &imageArgs{
 		manifests: make([]string, 0),
 		auths:     make([]imageAuth, 0),
+		logOutput: logOutput,
 	}
 
 	// Parse manifests
 	ia.manifests, _ = variable.StringSliceVar(vars, args, "manifests")
+
+	// Parse policy
+	ia.policy, _ = variable.StringVar(vars, args, "policy")
+	if ia.policy == "" {
+		ia.policy = PolicyStrict
+	}
+	// Validate policy
+	if ia.policy != PolicyStrict && ia.policy != PolicyWarn {
+		klog.InfoS("DEBUG returning error", "policy", ia.policy)
+		return nil, errors.Errorf("invalid policy: %s", ia.policy)
+	}
 
 	// Parse platform
 	ia.platform, _ = variable.StringSliceVar(vars, args, "platform")
@@ -204,39 +219,26 @@ func newImageArgs(_ context.Context, raw runtime.RawExtension, vars map[string]a
 	ia.auths = append(ia.auths, auths...)
 
 	// Parse src
-	ia.src, _ = variable.StringVar(vars, args, "src")
+	src, _ := variable.PrintVar(args, "src")
+	if src, ok := src.(string); !ok {
+		return nil, errors.New("\"src\" must be a string")
+	} else if src == "" {
+		return nil, errors.New("\"src\" should not be empty")
+	} else {
+		ia.src = src
+	}
 
 	// Parse dest
-	ia.dest, _ = variable.StringVar(vars, args, "dest")
+	dest, _ := variable.PrintVar(args, "dest")
+	if dest, ok := dest.(string); !ok {
+		return nil, errors.New("\"dest\" must be a string")
+	} else if dest == "" {
+		return nil, errors.New("\"dest\" should not be empty")
+	} else {
+		ia.dest = dest
+	}
 
 	return ia, nil
-}
-
-// complete validates and finalizes the imageArgs instance.
-// This includes converting local paths to absolute paths and validating required fields.
-func (ia *imageArgs) complete() error {
-	// Validate and convert local paths to absolute paths
-	if ia.src != "" && strings.HasPrefix(ia.src, "local://") {
-		localPath := strings.TrimPrefix(ia.src, "local://")
-		if !filepath.IsAbs(localPath) {
-			return errors.New("local path must be an absolute path (e.g., local:///var/lib/kubekey/images)")
-		}
-		ia.src = "local://" + localPath
-	}
-	if ia.dest != "" && strings.HasPrefix(ia.dest, "local://") {
-		localPath := strings.TrimPrefix(ia.dest, "local://")
-		if !filepath.IsAbs(localPath) {
-			return errors.New("local path must be an absolute path (e.g., local:///var/lib/kubekey/images)")
-		}
-		ia.dest = "local://" + localPath
-	}
-
-	// Validate required fields
-	if len(ia.manifests) == 0 && ia.src == "" && ia.dest == "" {
-		return errors.New("either \"manifests\" or \"src\"/\"dest\" must be specified")
-	}
-
-	return nil
 }
 
 func (i *imageArgs) copy(ctx context.Context, hostVars map[string]any) error {
@@ -269,24 +271,32 @@ func (i *imageArgs) copy(ctx context.Context, hostVars map[string]any) error {
 		_ = unstructured.SetNestedField(hostVars, reference.Repository, "module", "image", "reference", "repository")
 		_ = unstructured.SetNestedField(hostVars, reference.Reference, "module", "image", "reference", "reference")
 
+		src, err := tmpl.ParseFunc(hostVars, i.src, tmpl.StringFunc)
+		if err != nil {
+			return errors.Wrapf(err, "failed to parse src %q", i.src)
+		}
+		dest, err := tmpl.ParseFunc(hostVars, i.dest, tmpl.StringFunc)
+		if err != nil {
+			return errors.Wrapf(err, "failed to parse dest %q", i.dest)
+		}
+		klog.V(4).InfoS("copy image", "src", src, "dst", dest)
 		// Create source repository
-		src, err := newRepository(i.src, img, i.auths)
+		srcRepo, err := newRepository(src, img, i.auths)
 		if err != nil {
 			return err
 		}
-		dst, err := newRepository(i.dest, img, i.auths)
+		dstRepo, err := newRepository(dest, img, i.auths)
 		if err != nil {
 			return err
 		}
-
 		// Handle multi-platform copy with filtering
 		if len(i.platform) > 0 && !slices.Contains(i.platform, "all") {
-			if err := i.copyWithPlatformFilter(ctx, src, dst, img, i.platform); err != nil {
+			if err := i.copyWithPlatformFilter(ctx, srcRepo, dstRepo, img, i.platform, i.logOutput); err != nil {
 				return err
 			}
 		} else {
 			// Original copy (all platforms)
-			if _, err := oras.Copy(ctx, src, img, dst, "", oras.DefaultCopyOptions); err != nil {
+			if _, err := oras.Copy(ctx, srcRepo, srcRepo.Reference.Reference, dstRepo, dstRepo.Reference.Reference, oras.DefaultCopyOptions); err != nil {
 				return errors.Wrapf(err, "failed to copy image %q", img)
 			}
 		}
@@ -295,7 +305,7 @@ func (i *imageArgs) copy(ctx context.Context, hostVars map[string]any) error {
 	return nil
 }
 
-func (i *imageArgs) copyWithPlatformFilter(ctx context.Context, src, dst *remote.Repository, ref string, platform []string) error {
+func (i *imageArgs) copyWithPlatformFilter(ctx context.Context, src, dst *remote.Repository, img string, platform []string, logOutput io.Writer) error {
 	// Build a set of requested platforms
 	requestedPlatforms := make(map[string]bool)
 	for _, p := range platform {
@@ -306,22 +316,22 @@ func (i *imageArgs) copyWithPlatformFilter(ctx context.Context, src, dst *remote
 	manifests := src.Manifests()
 
 	// Resolve the reference to get the descriptor
-	desc, err := manifests.Resolve(ctx, ref)
+	desc, err := manifests.Resolve(ctx, src.Reference.Reference)
 	if err != nil {
-		return errors.Wrapf(err, "failed to resolve manifest for %s", ref)
+		return errors.Wrapf(err, "failed to resolve manifest for %s", img)
 	}
 
 	// Fetch the manifest content
 	manifestRC, err := manifests.Fetch(ctx, desc)
 	if err != nil {
-		return errors.Wrapf(err, "failed to fetch manifest for %s", ref)
+		return errors.Wrapf(err, "failed to fetch manifest for %s", img)
 	}
 	defer manifestRC.Close()
 
 	// Parse the manifest
 	var manifest map[string]interface{}
 	if err := json.NewDecoder(manifestRC).Decode(&manifest); err != nil {
-		return errors.Wrapf(err, "failed to parse manifest for %s", ref)
+		return errors.Wrapf(err, "failed to parse manifest for %s", img)
 	}
 
 	// Check if it's a manifest list (multi-arch)
@@ -331,7 +341,7 @@ func (i *imageArgs) copyWithPlatformFilter(ctx context.Context, src, dst *remote
 		// It's a manifest list, filter platforms
 		manifestsList, ok := manifest["manifests"].([]interface{})
 		if !ok {
-			return errors.Errorf("failed to parse manifest list for %s", ref)
+			return errors.Errorf("failed to parse manifest list for %s", img)
 		}
 
 		// Build a map of available platforms in the image
@@ -367,32 +377,27 @@ func (i *imageArgs) copyWithPlatformFilter(ctx context.Context, src, dst *remote
 		switch i.policy {
 		case PolicyStrict:
 			if len(filteredManifests) == 0 {
-				return errors.Errorf("no matching platforms found for %s in %v", ref, platform)
+				return errors.Errorf("no matching platforms found for %s in %v", img, platform)
 			}
 			if len(missingPlatforms) > 0 {
-				return errors.Errorf("image %s missing requested platforms: %v", ref, missingPlatforms)
+				return errors.Errorf("image %s missing requested platforms: %v", img, missingPlatforms)
 			}
 		case PolicyWarn:
 			if len(filteredManifests) == 0 {
-				klog.V(2).InfoS("no matching platforms found for image, skipping",
-					"image", ref,
-					"requestedPlatforms", platform)
+				msg := fmt.Sprintf("no matching platforms found for image, skipping: image=%s, requestedPlatforms=%v", img, platform)
+				if logOutput != nil {
+					_, _ = fmt.Fprintln(logOutput, "WARNING: \n"+msg)
+				}
 				return nil
 			}
 			if len(missingPlatforms) > 0 {
-				klog.V(2).InfoS("image missing some requested platforms, proceeding with available ones",
-					"image", ref,
-					"requestedPlatforms", platform,
-					"missingPlatforms", missingPlatforms)
+				msg := fmt.Sprintf("image %s missing some requested platforms, proceeding with available ones: requestedPlatforms=%v, missingPlatforms=%v", img, platform, missingPlatforms)
+				if logOutput != nil {
+					_, _ = fmt.Fprintln(logOutput, "WARNING: \n"+msg)
+				}
 			}
 		default:
-			// Default to strict behavior
-			if len(filteredManifests) == 0 {
-				return errors.Errorf("no matching platforms found for %s in %v", ref, platform)
-			}
-			if len(missingPlatforms) > 0 {
-				return errors.Errorf("image %s missing requested platforms: %v", ref, missingPlatforms)
-			}
+			return errors.Errorf("invalid policy: %s", i.policy)
 		}
 
 		// Step 3: Create new manifest list (index)
@@ -415,13 +420,9 @@ func (i *imageArgs) copyWithPlatformFilter(ctx context.Context, src, dst *remote
 			Digest:    digest.Digest(computeDigest(indexBytes)),
 		}
 
-		// Step 4: Push the filtered manifest list
-		err = dst.Manifests().Push(ctx, indexDesc, strings.NewReader(string(indexBytes)))
-		if err != nil {
-			return errors.Wrapf(err, "failed to push filtered manifest index")
-		}
-
-		// Step 5: Copy the actual image content for each filtered platform
+		// Step 4: Copy the actual image content for each filtered platform first
+		// This ensures the blobs exist in the destination before we push the manifest index
+		// that references them.
 		for _, m := range filteredManifests {
 			m, ok := m.(map[string]interface{})
 			if !ok {
@@ -434,23 +435,31 @@ func (i *imageArgs) copyWithPlatformFilter(ctx context.Context, src, dst *remote
 			}
 
 			// Copy this platform's image content
-			_, err = oras.Copy(ctx, src, digestStr, dst, "", oras.DefaultCopyOptions)
+			// oras.Copy will push the manifest for this platform as well
+			_, err = oras.Copy(ctx, src, digestStr, dst, digestStr, oras.DefaultCopyOptions)
 			if err != nil {
 				return errors.Wrapf(err, "failed to copy platform image")
 			}
 		}
-	case "application/vnd.docker.distribution.manifest.v2+json", "application/vnd.oci.image.manifest.v1+json":
+
+		// Step 5: Push the filtered manifest list with tag reference
+		// Use PushReference instead of Push to create tag reference for later lookup
+		err = dst.Manifests().PushReference(ctx, indexDesc, strings.NewReader(string(indexBytes)), dst.Reference.Reference)
+		if err != nil {
+			return errors.Wrapf(err, "failed to push filtered manifest index with reference %q", img)
+		}
+	case "application/vnd.docker.distribution.manifest.v2+json", ocispec.MediaTypeImageManifest:
 		// This is a single-platform image, check if it matches the requested platform
 		// Get config from manifest
 		config, ok := manifest["config"].(map[string]interface{})
 		if !ok {
-			return errors.Errorf("failed to get config from manifest for %s", ref)
+			return errors.Errorf("failed to get config from manifest for %s", img)
 		}
 
 		// Get config digest and mediaType
 		configDigest, ok := config["digest"].(string)
 		if !ok {
-			return errors.Errorf("failed to get config digest from manifest for %s", ref)
+			return errors.Errorf("failed to get config digest from manifest for %s", img)
 		}
 		configMediaType, _ := config["mediaType"].(string)
 
@@ -461,13 +470,13 @@ func (i *imageArgs) copyWithPlatformFilter(ctx context.Context, src, dst *remote
 		}
 		configRC, err := src.Blobs().Fetch(ctx, configDesc)
 		if err != nil {
-			return errors.Wrapf(err, "failed to fetch config for %s", ref)
+			return errors.Wrapf(err, "failed to fetch config for %s", img)
 		}
 		defer configRC.Close()
 
 		var configContent map[string]interface{}
 		if err := json.NewDecoder(configRC).Decode(&configContent); err != nil {
-			return errors.Wrapf(err, "failed to parse config for %s", ref)
+			return errors.Wrapf(err, "failed to parse config for %s", img)
 		}
 
 		// Get platform from config
@@ -476,7 +485,7 @@ func (i *imageArgs) copyWithPlatformFilter(ctx context.Context, src, dst *remote
 		os, _ := configContent["os"].(string)
 		arch, _ := configContent["architecture"].(string)
 		if os == "" || arch == "" {
-			return errors.Errorf("failed to get platform info from config for %s", ref)
+			return errors.Errorf("failed to get platform info from config for %s", img)
 		}
 
 		platformKey := os + "/" + arch
@@ -493,22 +502,22 @@ func (i *imageArgs) copyWithPlatformFilter(ctx context.Context, src, dst *remote
 			// No matching platform found, handle based on policy
 			switch i.policy {
 			case PolicyStrict:
-				return errors.Errorf("image %s platform %q does not match any of the requested platforms %v", ref, platformKey, platform)
+				return errors.Errorf("image %s platform %q does not match any of the requested platforms %v", img, platformKey, platform)
 			case PolicyWarn:
 				klog.V(2).InfoS("image platform does not match any of the requested platforms, proceeding",
-					"image", ref,
+					"image", img,
 					"imagePlatform", platformKey,
 					"requestedPlatforms", platform)
 			default:
 				// Default to strict behavior
-				return errors.Errorf("image %s platform %q does not match any of the requested platforms %v", ref, platformKey, platform)
+				return errors.Errorf("image %s platform %q does not match any of the requested platforms %v", img, platformKey, platform)
 			}
 		}
 
 		// Copy the single platform image
-		_, err = oras.Copy(ctx, src, ref, dst, "", oras.DefaultCopyOptions)
+		_, err = oras.Copy(ctx, src, src.Reference.Reference, dst, dst.Reference.Reference, oras.DefaultCopyOptions)
 		if err != nil {
-			return errors.Wrapf(err, "failed to copy image %q", ref)
+			return errors.Wrapf(err, "failed to copy image %q", img)
 		}
 
 	default:
@@ -527,19 +536,14 @@ func ModuleImage(ctx context.Context, opts internal.ExecOptions) (string, string
 		return internal.StdoutFailed, internal.StderrGetHostVariable, err
 	}
 
-	ia, err := newImageArgs(ctx, opts.Args, ha)
+	ia, err := newImageArgs(ctx, opts.Args, ha, opts.LogOutput)
 	if err != nil {
-		return internal.StdoutFailed, internal.StderrParseArgument, err
-	}
-
-	// Validate and finalize imageArgs
-	if err := ia.complete(); err != nil {
 		return internal.StdoutFailed, internal.StderrParseArgument, err
 	}
 
 	if err := ia.copy(ctx, ha); err != nil {
 		if errors.Is(err, filepath.SkipDir) {
-			return internal.StdoutSkip, "", nil
+			return internal.StdoutSkip, "image manifest is empty", nil
 		}
 		return internal.StdoutFailed, "failed to transfer image", err
 	}

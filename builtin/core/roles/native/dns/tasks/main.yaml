@@ -37,16 +37,14 @@
     {{ index $.hostvars . "internal_ipv6" }} {{ index $.hostvars . "hostname" }}
       {{- end }}
     {{- end }}
-    {{- if and (.image_registry.auth.registry | empty | not) (.groups.image_registry | empty | not) }}
-      {{- if .image_registry.ha_vip | empty | not }}
-    {{ .image_registry.ha_vip }} {{ .image_registry.auth.registry }}
-      {{- else }}
-        {{- if (index .hostvars (.groups.image_registry | first) "internal_ipv4") | empty | not }}
-    {{ index .hostvars (.groups.image_registry | first) "internal_ipv4" }} {{ .image_registry.auth.registry }}
-        {{- end }}
-        {{- if (index .hostvars (.groups.image_registry | first) "internal_ipv6") | empty | not }}
-    {{ index .hostvars (.groups.image_registry | first) "internal_ipv6" }} {{ .image_registry.auth.registry }}
-        {{- end }}
+    {{- if and (.image_registry.auth.registry | empty | not) (.image_registry.ha_vip | empty | not) }}
+    {{ .image_registry.ha_vip }} {{ .image_registry.auth.registry | splitList "/" | first }}
+    {{- else }}
+      {- if (index .hostvars (.groups.image_registry | first) "internal_ipv4") | empty | not }}
+    {{ index .hostvars (.groups.image_registry | first) "internal_ipv4" }} {{ .image_registry.auth.registry | splitList "/" | first }}
+      {{- end }}
+      {{- if (index .hostvars (.groups.image_registry | first) "internal_ipv6") | empty | not }}
+    {{ index .hostvars (.groups.image_registry | first) "internal_ipv6" }} {{ .image_registry.auth.registry | splitList "/" | first }}
       {{- end }}
     {{- end }}
     # NFS server nodes
@@ -70,16 +68,14 @@
     # Write the latest Kubekey image registry control plane endpoint DNS configuration
     cat >> {{ .item }} <<EOF
     # kubekey image_registry control_plane_endpoint BEGIN
-    {{- if and (.image_registry.auth.registry | empty | not) (.groups.image_registry | empty | not) }}
-      {{- if .image_registry.ha_vip | empty | not }}
-    {{ .image_registry.ha_vip }} {{ .image_registry.auth.registry }}
-      {{- else }}
-        {{- if (index .hostvars (.groups.image_registry | first) "internal_ipv4") | empty | not }}
-    {{ index .hostvars (.groups.image_registry | first) "internal_ipv4" }} {{ .image_registry.auth.registry }}
-        {{- end }}
-        {{- if (index .hostvars (.groups.image_registry | first) "internal_ipv6") | empty | not }}
-    {{ index .hostvars (.groups.image_registry | first) "internal_ipv6" }} {{ .image_registry.auth.registry }}
-        {{- end }}
+    {{- if and (.image_registry.auth.registry | empty | not) (.image_registry.ha_vip | empty | not) }}
+    {{ .image_registry.ha_vip }} {{ .image_registry.auth.registry | splitList "/" | first }}
+    {{- else }}
+      {- if (index .hostvars (.groups.image_registry | first) "internal_ipv4") | empty | not }}
+    {{ index .hostvars (.groups.image_registry | first) "internal_ipv4" }} {{ .image_registry.auth.registry | splitList "/" | first }}
+      {{- end }}
+      {{- if (index .hostvars (.groups.image_registry | first) "internal_ipv6") | empty | not }}
+    {{ index .hostvars (.groups.image_registry | first) "internal_ipv6" }} {{ .image_registry.auth.registry | splitList "/" | first }}
       {{- end }}
     {{- end }}
     # kubekey image_registry control_plane_endpoint END
@@ -89,6 +85,10 @@
 # High Availability: Local DNS configuration for each .kubernetes.control_plane_endpoint.type
 #
 # For 'local' endpoint type:
+#   When local.address is not empty (external load balancer address):
+#     - Control plane: {{ .kubernetes.control_plane_endpoint.local.address }} {{ .kubernetes.control_plane_endpoint.host }}
+#     - Worker:        {{ .kubernetes.control_plane_endpoint.local.address }} {{ .kubernetes.control_plane_endpoint.host }}
+#
 #   Before cluster initialization:
 #     - Control plane: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
 #     - Worker:        127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
@@ -129,6 +129,7 @@
 #   After joining cluster:
 #     - Control plane: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
 #     - Worker:        127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
+#
 
 - name: DNS | Set local DNS for kubernetes control plane endpoint
   loop: "{{ .native.localDNS | toJson }}"
@@ -145,6 +146,9 @@
     {{- else }}
     127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
     ::1 {{ .kubernetes.control_plane_endpoint.host }}
+    {{- end }}
+    {{- if and (.kubernetes.control_plane_endpoint.type | eq "local") (.kubernetes.control_plane_endpoint.local.address | empty | not) }}
+    {{ .kubernetes.control_plane_endpoint.local.address }} {{ .kubernetes.control_plane_endpoint.host }}
     {{- end }}
     # kubekey kubernetes control_plane_endpoint END
     EOF

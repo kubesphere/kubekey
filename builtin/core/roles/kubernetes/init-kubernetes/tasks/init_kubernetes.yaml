@@ -38,6 +38,7 @@
 # preventing failures for tasks that execute kubectl apply on the current node.
 - name: Init | Reset local DNS for control_plane_endpoint
   loop: "{{ .native.localDNS | toJson }}"
+  when: or (.kubernetes.control_plane_endpoint.type | ne "local") (.kubernetes.control_plane_endpoint.local.address | empty)
   command: |
     sed -i ':a;$!{N;ba};s@# kubekey kubernetes control_plane_endpoint BEGIN.*# kubekey kubernetes control_plane_endpoint END@@' {{ .item }}
     cat >> {{ .item }} <<EOF

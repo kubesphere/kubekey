@@ -29,7 +29,7 @@ imageRepository: {{ .kubernetes.image_repository }}
 kubernetesVersion: {{ .kubernetes.kube_version }}
 certificatesDir: /etc/kubernetes/pki
 clusterName: {{ .kubernetes.cluster_name }}
-controlPlaneEndpoint: {{ .kubernetes.control_plane_endpoint.host }}
+controlPlaneEndpoint: {{ .kubernetes.control_plane_endpoint.host }}:{{ .kubernetes.control_plane_endpoint.port }}
 networking:
   dnsDomain: {{ .dns.dns_domain }}
   podSubnet: {{ .cni.pod_cidr }}

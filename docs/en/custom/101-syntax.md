@@ -58,5 +58,5 @@ Array difference: returns a new list containing elements that exist in the first
 Checks if a file exists at the given path.
 
 ```yaml
-{{ .file_path | fileExist }}
+{{ .file_path | fileExists }}
 ```

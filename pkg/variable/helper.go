@@ -273,6 +273,40 @@ func StringSliceVar(ctx map[string]any, args map[string]any, keys ...string) ([]
 	}
 }
 
+// SliceVar retrieves a generic slice value by key.
+// It supports both direct arrays and JSON array strings (after template rendering).
+func SliceVar(ctx map[string]any, args map[string]any, keys ...string) ([]any, error) {
+	val, found, err := unstructured.NestedFieldNoCopy(args, keys...)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	if !found {
+		return nil, errors.Errorf("cannot find variable %q", strings.Join(keys, "."))
+	}
+
+	switch valv := val.(type) {
+	case []any:
+		// Directly return the slice if it's already an array
+		return valv, nil
+	case string:
+		// Render template and try to parse as a JSON array
+		as, err := tmpl.Parse(ctx, valv)
+		if err != nil {
+			return nil, err
+		}
+
+		var arr []any
+		if err := json.Unmarshal(as, &arr); err == nil {
+			return arr, nil
+		}
+
+		// If not a JSON array, return as a single-element slice
+		return []any{string(as)}, nil
+	default:
+		return nil, errors.Errorf("unsupported variable %q type", strings.Join(keys, "."))
+	}
+}
+
 // IntVar get int value by key
 func IntVar(ctx map[string]any, args map[string]any, keys ...string) (*int, error) {
 	val, found, err := unstructured.NestedFieldNoCopy(args, keys...)
@@ -381,43 +415,42 @@ func AnyVar(ctx, args map[string]any, dest any, keys ...string) error {
 	return nil
 }
 
-// Extension2Variables convert runtime.RawExtension to variables
+// Extension2Variables converts a runtime.RawExtension to a map[string]any variables structure.
+// It first tries to unmarshal the extension as a map[string]any. If that fails, it tries to unmarshal as a []any (array).
+// If that also fails, it tries to unmarshal as a string (useful for template strings encoded as JSON).
+// If all attempts fail, it logs an error and returns the raw bytes as a string under the "raw" key.
 func Extension2Variables(ext runtime.RawExtension) map[string]any {
 	if len(ext.Raw) == 0 {
 		return make(map[string]any)
 	}
 
+	// Try to unmarshal as map[string]any
 	var data map[string]any
-	if err := json.Unmarshal(ext.Raw, &data); err != nil {
-		klog.V(4).ErrorS(err, "failed to unmarshal extension to variables")
-	}
-
-	return data
-}
-
-// Extension2Slice convert runtime.RawExtension to slice
-// if runtime.RawExtension contains tmpl syntax, parse it.
-func Extension2Slice(ctx map[string]any, ext runtime.RawExtension) []any {
-	if len(ext.Raw) == 0 {
-		return nil
-	}
-
-	var data []any
-	// try parse yaml string which defined  by single value or multi value
 	if err := json.Unmarshal(ext.Raw, &data); err == nil {
 		return data
 	}
-	// try converter template string
-	val, err := Extension2String(ctx, ext)
-	if err != nil {
-		klog.ErrorS(err, "failed to parse extension to string", "input", string(ext.Raw))
+
+	// If failed, try to unmarshal as []any (array)
+	var arr []any
+	if err := json.Unmarshal(ext.Raw, &arr); err == nil {
+		return map[string]any{
+			"raw": arr,
+		}
 	}
 
-	if err := json.Unmarshal(val, &data); err == nil {
-		return data
+	// If still failed, try to unmarshal as string (e.g., a marshaled template string)
+	var str string
+	if err2 := json.Unmarshal(ext.Raw, &str); err2 == nil {
+		return map[string]any{
+			"raw": str,
+		}
 	}
 
-	return []any{val}
+	// If still failed, log error and return raw bytes as string
+	klog.V(4).ErrorS(nil, "failed to unmarshal extension to variables", "raw", string(ext.Raw))
+	return map[string]any{
+		"raw": string(ext.Raw),
+	}
 }
 
 // Extension2String converts a runtime.RawExtension to a string, optionally parsing it as a template.

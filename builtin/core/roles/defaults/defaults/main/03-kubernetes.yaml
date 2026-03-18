@@ -4,13 +4,15 @@ kubernetes:
 
   # Image repository for built-in Kubernetes images
   image_repository: >-
-    {{ .image_registry.k8sio_registry }}
+    {{ .image_registry.k8sio_registry }}{{ if .image_registry.auth.registry | empty | not }}/kubernetes{{ end }}
 
   # Pause/sandbox image configuration
   sandbox_image: 
     registry: >-
       {{ .image_registry.k8sio_registry }}
-    repository: pause
+    repository: >
+      {{ if .image_registry.auth.registry | empty | not }}kubernetes/{{ end }}pause
+      
 
   # Kubernetes network configuration
   # kube-apiserver pod parameters
@@ -76,6 +78,10 @@ kubernetes:
     #   - On control-plane nodes: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
     #   - On worker nodes: {{ .init_kubernetes_node }} {{ .kubernetes.control_plane_endpoint.host }}
     type: local
+    local:
+      # When using 'local' as load balancing, you can specify an external load balancer address here.
+      # Note: You must set up the actual load balancing yourself; this setting is only for DNS resolution.
+      address: ""
     kube_vip:
       # The IP address of the node's network interface (e.g., "eth0").
       address: ""
@@ -114,4 +120,4 @@ kubernetes:
     front_proxy_cert: ""
     front_proxy_key: ""
     # Automatically renew service certificates (Note: CA certificates cannot be renewed automatically)
-    renew: false
+    renew: true

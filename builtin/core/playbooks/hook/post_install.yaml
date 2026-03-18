@@ -11,7 +11,7 @@
     - all
   tasks:
     - name: Post | Copy post-installation scripts to remote hosts
-      when: (print "%s/scripts/post_install_%s.sh" .scripts_dir .inventory_hostname) | fileExist
+      when: (print "%s/scripts/post_install_%s.sh" .scripts_dir .inventory_hostname) | fileExists
       copy:
         src: >-
           {{ .scripts_dir }}/post_install_{{ .inventory_hostname }}.sh
@@ -29,7 +29,7 @@
       loop: "{{ .post_install | toJson }}"
       when:
         - (getStringSlice .groups .item.group) | default list | has .inventory_hostname
-        - (print "%s/%s" .scripts_dir .item.script) | fileExist
+        - (print "%s/%s" .scripts_dir .item.script) | fileExists
 
     - name: Post | Execute post-installation scripts on remote hosts
       command: |
