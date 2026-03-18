@@ -42,6 +42,10 @@
     - image_registry
   roles:
     - image-registry
+- hosts:
+    - localhost
+  roles:
+    - image-registry/push
 
 # Install the Kubernetes cluster
 - hosts:

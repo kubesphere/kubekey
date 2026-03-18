@@ -73,15 +73,15 @@ if [ "x${VERSION}" = "x" ]; then
   exit
 fi
 
-DOWNLOAD_URL="https://github.com/kubesphere/kubekey/releases/download/${VERSION}/kubekey-${VERSION}-${OSTYPE}-${ARCH}.tar.gz"
-
+DOWNLOAD_PREFIX="https://github.com/kubesphere/kubekey"
 if [ "x${KKZONE}" = "xcn" ] && check_version "${VERSION}"; then
   if echo "$VERSION" | grep -E '^v3\.[0-9]+\.[0-9]+$' >/dev/null; then
-    DOWNLOAD_URL="https://kubernetes.pek3b.qingstor.com/kubekey/releases/download/${VERSION}/kubekey-${VERSION}-${OSTYPE}-${ARCH}.tar.gz"
+    DOWNLOAD_PREFIX="https://kubernetes.pek3b.qingstor.com/kubekey"
   else
-    DOWNLOAD_URL="https://kubekey.pek3b.qingstor.com/github.com/kubesphere/kubekey/releases/download/${VERSION}/kubekey-${VERSION}-${OSTYPE}-${ARCH}.tar.gz"
+    DOWNLOAD_PREFIX="https://kubekey.pek3b.qingstor.com/github.com/kubesphere/kubekey"
   fi
 fi
+DOWNLOAD_URL="${DOWNLOAD_PREFIX}/releases/download/${VERSION}/kubekey-${VERSION}-${OSTYPE}-${ARCH}.tar.gz"
 
 echo ""
 echo "Downloading kubekey ${VERSION} from ${DOWNLOAD_URL} ..."
@@ -152,31 +152,21 @@ if [ ! -f "$CONFIG_FILE" ]; then
 fi
 
 echo "Exporting artifact with kk..."
-./kk artifact export -c "$CONFIG_FILE" --workdir prepare -a $(pwd)/artifact.tgz
+./kk artifact export -c "$CONFIG_FILE" --workdir prepare --set download.tools.kubekey="$DOWNLOAD_PREFIX"/releases/download/"$VERSION"/kubekey-"$VERSION"-linux-{{ "{{ \"{{ .arch }}\" }}" }}.tar.gz
 if [ $? -ne 0 ]; then
   echo "Failed to export artifact with kk. Please check the command output above."
   exit 1
 fi
 
-echo "Preparing offline package directory..."
-mkdir -p offline/
+if [ -f "web-installer.tgz" ]; then
+  echo "Extracting web-installer.tgz to artifacts/web-installer/ ..."
+  tar -xzf web-installer.tgz -C prepare/artifacts --no-same-owner
+fi
 
-echo "Extracting artifact.tgz to offline/ ..."
-tar -xzf artifact.tgz -C offline/ --no-same-owner
+cd prepare/ && tar -czf ../artifact.tgz artifact
 
-echo "Extracting web-installer.tgz to offline/ ..."
-tar -xzf web-installer.tgz -C offline/ --no-same-owner
-
-echo "Copying config.yaml and kk to offline/ ..."
-cp "$CONFIG_FILE" offline/
-cp kk offline/
-
-echo "Creating offline.tgz package ..."
-tar -czf offline.tgz offline
-
-echo "Offline package offline.tgz has been created successfully."
+echo "Offline package artifact.tgz has been created successfully."
 EOF
-
   chmod +x package.sh
 fi
 

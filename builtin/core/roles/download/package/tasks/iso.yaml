@@ -13,4 +13,4 @@
     - printf "%s/repository/%s-%s.iso" .artifact_dir .item.iso .item.arch | fileExists | not
   copy:
     src: "{{ .binary_dir }}/repository/{{ .item.iso }}-{{ .item.arch }}.iso"
-    dest: "{{ .artifact_dir }}/repository/{{ .item.iso }}-{{ .item.arch }}.iso"
+    dest: "{{ .artifact_dir }}/kubekey/repository/{{ .item.iso }}-{{ .item.arch }}.iso"

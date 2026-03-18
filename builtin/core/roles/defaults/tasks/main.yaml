@@ -14,12 +14,11 @@
       include_vars: >-
         {{ slice (.kubernetes.kube_version | splitList ".") 0 2 | join "." }}.yaml
     - name: Defaults | Load default templates download
+      when: .download.kubernetes.kube_version | empty | not
       template:
         src: manifests.yaml
         dest: >-
-          {{ .work_dir }}/manifests.yaml
-    - name: Defaults | Load architecture-specific download URLs for each artifact version
-      include_vars: "{{ .work_dir }}/manifests.yaml"
+          {{ .binary_dir }}/manifests.yaml
 
 - name: Defaults | Determine operating system architecture for each node
   tags: ["always"]

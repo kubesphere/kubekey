@@ -247,8 +247,8 @@ func (o *CommonOptions) completeConfig() error {
 	}
 	if o.Artifact != "" {
 		// override artifact_file in config
-		if err := unstructured.SetNestedField(o.Config.Value(), o.Artifact, "artifact_file"); err != nil {
-			return errors.Wrapf(err, "failed to set %q to config", "artifact_file")
+		if err := unstructured.SetNestedField(o.Config.Value(), o.Artifact, "download", "artifact_file"); err != nil {
+			return errors.Wrapf(err, "failed to set %q to config", "download.artifact_file")
 		}
 	}
 	for _, s := range o.Set {

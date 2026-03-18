@@ -49,10 +49,10 @@ download:
       {{- end }}
     cridockerd: >-
       {{- .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
-      github.com/Mirantis/cri-dockerd/releases/download/{{ "{{ .version }}" }}/cri-dockerd-{{ "{{ .version | trimPrefix \"v\" }}" }}.{{ "{{ .arch }}" }}.tgz
+      github.com/Mirantis/cri-dockerd/releases/download/{{ "{{ .version }}" }}/cri-dockerd-{{ "{{ .version | default \"\" | trimPrefix \"v\" }}" }}.{{ "{{ .arch }}" }}.tgz
     containerd: >-
       {{- .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
-      github.com/containerd/containerd/releases/download/{{ "{{ .version }}" }}/containerd-{{ "{{ .version | trimPrefix \"v\" }}" }}-linux-{{ "{{ .arch }}" }}.tar.gz
+      github.com/containerd/containerd/releases/download/{{ "{{ .version }}" }}/containerd-{{ "{{ .version | default \"\" | trimPrefix \"v\" }}" }}-linux-{{ "{{ .arch }}" }}.tar.gz
     runc: >-
       {{- .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
       github.com/opencontainers/runc/releases/download/{{ "{{ .version }}" }}/runc.{{ "{{ .arch }}" }}
@@ -105,6 +105,7 @@ download:
     nerdctl: >-
       {{- .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
       github.com/containerd/nerdctl/releases/download/v2.2.1/nerdctl-2.2.1-linux-{{ "{{ \"{{ .arch }}\" }}" }}.tar.gz
+  charts: []
   iso: 
     - "almalinux-9.0-rpms" 
     - "centos-8-rpms" 
@@ -133,6 +134,7 @@ download:
       {{- $container_manager | toJson }}
 
   images:
+    manifests: []
     # Architectures for which images should be downloaded.
     registry: ""
     # Determines the image pull policy. support strict, warn

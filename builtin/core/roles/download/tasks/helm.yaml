@@ -1,9 +1,10 @@
 ---
 - name: Helm | Ensure the Calico binary is available
-  loop: "{{ .download.cni.calico_version | default (list .cni.calico_version) | toJson }}"
+  loop: >
+    {{ index (.download.cni) "calico_version" | default (list .cni.calico_version) | toJson }}
   when: 
-    - or (.download.cni.calico_version | empty | not) (.cni.calico_version | empty | not)
-    - (.download.cni.type | default (list .cni.type)) | has "calico"
+    - .item | empty | not
+    - (index (.download.cni | default dict) "type" | default (list .cni.type)) | has "calico"
     - printf "%s/cni/calico/tigera-operator-%s.tgz" .binary_dir .item | fileExists | not
   http_get_file:
     url: "{{ tpl .download.artifact_url.calico (dict \"version\" .item) }}"
@@ -11,10 +12,11 @@
     timeout: "{{ .download.timeout }}"
 
 - name: Helm | Ensure the Cilium binary is available
-  loop: "{{ .download.cni.cilium_version | default (list .cni.cilium_version) | toJson }}"
+  loop: >
+    {{ index (.download.cni) "cilium_version" | default (list .cni.cilium_version) | toJson }}
   when: 
-    - or (.download.cni.cilium_version | empty | not) (.cni.cilium_version | empty | not)
-    - (.download.cni.type | default (list .cni.type)) | has "cilium"
+    - .item | empty | not
+    - (index (.download.cni | default dict) "type" | default (list .cni.type)) | has "cilium"
     - printf "%s/cni/cilium/cilium-%s.tgz" .binary_dir .item | fileExists | not
   http_get_file:
     url: "{{ tpl .download.artifact_url.cilium (dict \"version\" .item) }}"
@@ -22,10 +24,11 @@
     timeout: "{{ .download.timeout }}"
 
 - name: Helm | Ensure the Flannel binary is available
-  loop: "{{ .download.cni.flannel_version | default (list .cni.flannel_version) | toJson }}"
+  loop: >
+    {{ index (.download.cni) "flannel_version" | default (list .cni.flannel_version) | toJson }}
   when: 
-    - or (.download.cni.flannel_version | empty | not) (.cni.flannel_version | empty | not)
-    - (.download.cni.type | default (list .cni.type)) | has "flannel"
+    - .item | empty | not
+    - (index (.download.cni | default dict) "type" | default (list .cni.type)) | has "flannel"
     - printf "%s/cni/flannel/flannel-%s.tgz" .binary_dir .item | fileExists | not
   http_get_file:
     url: "{{ tpl .download.artifact_url.flannel (dict \"version\" .item) }}"
@@ -33,10 +36,11 @@
     timeout: "{{ .download.timeout }}"
 
 - name: Helm | Ensure the Kube-OVN binary is available
-  loop: "{{ .download.cni.kubeovn_version | default (list .cni.kubeovn_version) | toJson }}"
+  loop: >
+    {{ index (.download.cni) "kubeovn_version" | default (list .cni.kubeovn_version) | toJson }}
   when: 
-    - or (.download.cni.kubeovn_version | empty | not) (.cni.kubeovn_version | empty | not)
-    - (.download.cni.type | default (list .cni.type)) | has "kubeovn"
+    - .item | empty | not
+    - (index (.download.cni | default dict) "type" | default (list .cni.type)) | has "kubeovn"
     - printf "%s/cni/kubeovn/kube-ovn-%s.tgz" .binary_dir .item | fileExists | not
   http_get_file:
     url: "{{ tpl .download.artifact_url.kubeovn (dict \"version\" .item) }}"
@@ -44,10 +48,11 @@
     timeout: "{{ .download.timeout }}"
 
 - name: Helm | Ensure the Hybridnet binary is available
-  loop: "{{ .download.cni.hybridnet_version | default (list .cni.hybridnet_version) | toJson }}"
+  loop: >
+    {{ index (.download.cni) "hybridnet_version" | default (list .cni.hybridnet_version) | toJson }}
   when: 
-    - or (.download.cni.hybridnet_version | empty | not) (.cni.hybridnet_version | empty | not)
-    - (.download.cni.type | default (list .cni.type)) | has "hybridnet"
+    - .item | empty | not
+    - (index (.download.cni | default dict) "type" | default (list .cni.type)) | has "hybridnet"
     - printf "%s/cni/hybridnet/hybridnet-%s.tgz" .binary_dir .item | fileExists | not
   http_get_file:
     url: "{{ tpl .download.artifact_url.hybridnet (dict \"version\" .item) }}"
@@ -55,10 +60,11 @@
     timeout: "{{ .download.timeout }}"
 
 - name: Helm | Ensure the localpv Provisioner binary is available
-  loop: "{{ .download.storage_class.localpv_provisioner_version | default (list .storage_class.localpv_provisioner_version) | toJson }}"
+  loop: >
+    {{ index (.download.storage_class | default dict) "localpv_provisioner_version" | default (list .storage_class.localpv_provisioner_version) | toJson }}
   when: 
-    - or (.download.storage_class.localpv_provisioner_version | empty | not) (.storage_class.localpv_provisioner_version | empty | not)
-    - .download.storage_class.local.enabled | default true
+    - .item | empty | not
+    - index ((index (.download.storage_class | default dict) "local") | default dict) "enabled" | default true
     - printf "%s/storageclass/local/localpv-provisioner-%s.tgz" .binary_dir .item | fileExists | not
   http_get_file:
     url: "{{ tpl .download.artifact_url.localpv_provisioner (dict \"version\" .item) }}"
@@ -66,10 +72,11 @@
     timeout: "{{ .download.timeout }}"
 
 - name: Helm | Ensure the NFS Provisioner binary is available
-  loop: "{{ .download.storage_class.nfs_provisioner_version | default (list .storage_class.nfs_provisioner_version) | toJson }}"
+  loop: >
+    {{ index (.download.storage_class | default dict) "nfs_provisioner_version" | default (list .storage_class.nfs_provisioner_version) | toJson }}
   when: 
-    - or (.download.storage_class.nfs_provisioner_version | empty | not) (.storage_class.nfs_provisioner_version | empty | not)
-    - .download.storage_class.nfs.enabled | default false
+    - .item | empty | not
+    - index ((index (.download.storage_class | default dict) "nfs") | default dict) "enabled" | default false
     - printf "%s/storageclass/nfs/nfs-subdir-external-provisioner-%s.tgz" .binary_dir .item | fileExists | not
   http_get_file:
     url: "{{ tpl .download.artifact_url.nfs_subdir_external_provisioner (dict \"version\" .item) }}"

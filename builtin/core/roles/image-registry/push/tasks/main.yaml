@@ -1,5 +1,4 @@
 ---
-
 - name: ImageRegistry | Ensure Harbor project exists for each image
   when: .image_registry.type | eq "harbor"
   command: |
@@ -56,7 +55,7 @@
         username: "{{ .image_registry.auth.username }}"
         password: "{{ .image_registry.auth.password }}"
         skip_tls_verify: true
-    manifests: "{{ .image_manifests | toJson }}"
+    manifests: "{{ .download.images.manifests | toJson }}"
     src: "local://{{ .binary_dir }}/images/"
     dest: >-
       {{- if and (eq .module.image.reference.registry "registry.k8s.io") (.module.image.reference.repository | contains "/" | not) -}}

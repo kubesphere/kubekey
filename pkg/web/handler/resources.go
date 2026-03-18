@@ -171,7 +171,7 @@ func (h ResourceHandler) PostConfig(request *restful.Request, response *restful.
 	}
 
 	// Write new config to file.
-	if err := os.WriteFile(filepath.Join(h.rootPath, api.SchemaConfigFile), bodyBytes, 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(h.rootPath, api.SchemaConfigFile), bodyBytes, _const.PermFilePublic); err != nil {
 		_ = response.WriteError(http.StatusInternalServerError, err)
 		return
 	}

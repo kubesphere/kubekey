@@ -33,6 +33,7 @@ import (
 	cliflag "k8s.io/component-base/cli/flag"
 
 	"github.com/kubesphere/kubekey/v4/cmd/kk/app/options"
+	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 )
 
 // ======================================================================================
@@ -101,6 +102,13 @@ func (o *CreateClusterOptions) completeConfig() error {
 			return errors.Wrapf(err, "failed to set %q to config", "kube_version")
 		}
 	}
+	if o.Artifact != "" { // change default value to false
+		if _, ok, _ := unstructured.NestedFieldNoCopy(o.Config.Value(), "download", "fetch"); !ok {
+			if err := unstructured.SetNestedField(o.Config.Value(), false, "download", "fetch"); err != nil {
+				return errors.Wrapf(err, "failed to set %q to config", "download.fetch")
+			}
+		}
+	}
 
 	return nil
 }
@@ -150,7 +158,7 @@ func (o *CreateConfigOptions) Run() error {
 		if err != nil {
 			return err
 		}
-		if err := os.WriteFile(filename, data, 0644); err != nil {
+		if err := os.WriteFile(filename, data, _const.PermFilePublic); err != nil {
 			return errors.Wrapf(err, "failed to write config file to %s", filename)
 		}
 		fmt.Printf("write config file to %s success.\n", filename)
@@ -200,7 +208,7 @@ func (o *CreateInventoryOptions) Run() error {
 		if err != nil {
 			return err
 		}
-		if err := os.WriteFile(filename, data, 0644); err != nil {
+		if err := os.WriteFile(filename, data, _const.PermFilePublic); err != nil {
 			return errors.Wrapf(err, "failed to write inventory file to %s", filename)
 		}
 		fmt.Printf("write inventory file to %s success.\n", filename)

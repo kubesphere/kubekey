@@ -1,70 +1,70 @@
 ---
 - name: Helm | Ensure the Calico binary is available
   loop: "{{ .download.cni.calico_version | toJson }}"
-  when: 
-    - .download.cni.calico_version | empty | not
+  when:
+    - .item | empty | not
     - .download.cni.type | has "calico"
     - printf "%s/cni/calico/tigera-operator-%s.tgz" .artifact_dir .item | fileExists | not
   copy:
     src: "{{ .binary_dir }}/cni/calico/tigera-operator-{{ .item }}.tgz"
-    dest: "{{ .artifact_dir }}/cni/calico/tigera-operator-{{ .item }}.tgz"
+    dest: "{{ .artifact_dir }}/kubekey/cni/calico/tigera-operator-{{ .item }}.tgz"
 
 - name: Helm | Ensure the Cilium binary is available
   loop: "{{ .download.cni.cilium_version | toJson }}"
-  when: 
-    - .download.cni.cilium_version | empty | not
+  when:
+    - .item | empty | not
     - .download.cni.type | has "cilium"
     - printf "%s/cni/cilium/cilium-%s.tgz" .artifact_dir .item | fileExists | not
   copy:
     src: "{{ .binary_dir }}/cni/cilium/cilium-{{ .item }}.tgz"
-    dest: "{{ .artifact_dir }}/cni/cilium/cilium-{{ .item }}.tgz"
+    dest: "{{ .artifact_dir }}/kubekey/cni/cilium/cilium-{{ .item }}.tgz"
   
 - name: Helm | Ensure the Flannel binary is available
   loop: "{{ .download.cni.flannel_version | toJson }}"
-  when: 
-    - .download.cni.flannel_version | empty | not
+  when:
+    - .item | empty | not
     - .download.cni.type | has "flannel"
     - printf "%s/cni/flannel/flannel-%s.tgz" .artifact_dir .item | fileExists | not
   copy:
     src: "{{ .binary_dir }}/cni/flannel/flannel-{{ .item }}.tgz"
-    dest: "{{ .artifact_dir }}/cni/flannel/flannel-{{ .item }}.tgz"
+    dest: "{{ .artifact_dir }}/kubekey/cni/flannel/flannel-{{ .item }}.tgz"
 
 - name: Helm | Ensure the Kube-OVN binary is available
   loop: "{{ .download.cni.kubeovn_version | toJson }}"
-  when: 
-    - .download.cni.kubeovn_version | empty | not
+  when:
+    - .item | empty | not
     - .download.cni.type | has "kubeovn"
     - printf "%s/cni/kubeovn/kube-ovn-%s.tgz" .artifact_dir .item | fileExists | not
   copy:
     src: "{{ .binary_dir }}/cni/kubeovn/kube-ovn-{{ .item }}.tgz"
-    dest: "{{ .artifact_dir }}/cni/kubeovn/kube-ovn-{{ .item }}.tgz"
+    dest: "{{ .artifact_dir }}/kubekey/cni/kubeovn/kube-ovn-{{ .item }}.tgz"
 
 - name: Helm | Ensure the Hybridnet binary is available
   loop: "{{ .download.cni.hybridnet_version | toJson }}"
-  when: 
-    - .download.cni.hybridnet_version | empty | not
+  when:
+    - .item | empty | not
     - .download.cni.type | has "hybridnet"
     - printf "%s/cni/hybridnet/hybridnet-%s.tgz" .artifact_dir .item | fileExists | not
   copy:
     src: "{{ .binary_dir }}/cni/hybridnet/hybridnet-{{ .item }}.tgz"
-    dest: "{{ .artifact_dir }}/cni/hybridnet/hybridnet-{{ .item }}.tgz"
+    dest: "{{ .artifact_dir }}/kubekey/cni/hybridnet/hybridnet-{{ .item }}.tgz"
 
 - name: Helm | Ensure the localpv Provisioner binary is available
   loop: "{{ .download.storage_class.localpv_provisioner_version | default (list .storage_class.localpv_provisioner_version) | toJson }}"
-  when: 
-    - .download.storage_class.localpv_provisioner_version | default (list .storage_class.localpv_provisioner_version) | empty | not
+  when:
+    - .item | empty | not
     - .download.storage_class.local.enabled | default true
     - printf "%s/storageclass/local/localpv-provisioner-%s.tgz" .artifact_dir .item | fileExists | not
   copy:
     src: "{{ .binary_dir }}/storageclass/local/localpv-provisioner-{{ .item }}.tgz"
-    dest: "{{ .artifact_dir }}/storageclass/local/localpv-provisioner-{{ .item }}.tgz"
+    dest: "{{ .artifact_dir }}/kubekey/storageclass/local/localpv-provisioner-{{ .item }}.tgz"
 
 - name: Helm | Ensure the NFS Provisioner binary is available
   loop: "{{ .download.storage_class.nfs_provisioner_version | default (list .storage_class.nfs_provisioner_version) | toJson }}"
-  when: 
-    - .download.storage_class.nfs_provisioner_version | default (list .storage_class.nfs_provisioner_version) | empty | not
+  when:
+    - .item | empty | not
     - .download.storage_class.nfs.enabled | default false
     - printf "%s/storageclass/nfs/nfs-subdir-external-provisioner-%s.tgz" .artifact_dir .item | fileExists | not
   copy:
     src: "{{ .binary_dir }}/storageclass/nfs/nfs-subdir-external-provisioner-{{ .item }}.tgz"
-    dest: "{{ .artifact_dir }}/storageclass/nfs/nfs-subdir-external-provisioner-{{ .item }}.tgz"
+    dest: "{{ .artifact_dir }}/kubekey/storageclass/nfs/nfs-subdir-external-provisioner-{{ .item }}.tgz"
