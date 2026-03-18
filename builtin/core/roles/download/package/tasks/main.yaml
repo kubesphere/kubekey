@@ -18,6 +18,5 @@
 
 - name: Package | Export artifact
   command: |
-    artifact_file={{ .download.artifact_file | default (printf "%s/kubekey-artifact.tgz" .work_dir) }}
     # package binary directory
-    cd {{ .artifact_dir }}/kubekey && tar -czvf {{ .artifact_dir }}/artifact.tgz . && rm -rf {{ .artifact_dir }}/kubekey
+    cd {{ .artifact_dir }}/kubekey && tar -czvf {{ .artifact_dir }}/kubekey-artifact.tgz . && rm -rf {{ .artifact_dir }}/kubekey
