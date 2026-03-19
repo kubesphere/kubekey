@@ -578,6 +578,11 @@ download:
   iso: {{ .download.iso | default list | toJson }}
   images:
     manifests:
+{{- if .download.images.manifests | empty | not }}
+  {{- range .download.images.manifests }}
+      - {{ . }}
+  {{- end }}
+{{- else }}
       # kubernetes
       ## kubernetes/dns
       - {{ if .download.images.registry | empty | not }}{{ .download.images.registry }}/coredns/coredns:v1.8.6{{ else }}registry.k8s.io/coredns/coredns:v1.8.6{{ end }}
@@ -691,4 +696,5 @@ download:
     {{- range .image_manifests }}
       - {{ . }}
     {{- end }}
+{{- end }}
 {{- end }}
