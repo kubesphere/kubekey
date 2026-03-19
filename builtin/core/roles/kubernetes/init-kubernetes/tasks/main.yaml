@@ -60,3 +60,14 @@
             vars:
               kubeadm_token: >-
                 {{ .kubeadm_token_result.stdout }}
+
+        - name: InitKubernetes | Deploy kube-proxy
+          when: .kubernetes.kube_proxy.manage.enabled | default false
+          block:
+            - name: InitKubernetes | Generate kube-proxy yaml
+              template:
+                src: addons/kube-proxy.yaml
+                dest: /etc/kubernetes/addons/kube-proxy.yaml
+            - name: InitKubernetes | Deploy kube-proxy
+              command: |
+                kubectl apply -f /etc/kubernetes/addons/kube-proxy.yaml

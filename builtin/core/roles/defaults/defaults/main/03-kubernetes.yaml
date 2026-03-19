@@ -35,9 +35,21 @@ kubernetes:
 
   # kube-proxy pod parameters
   kube_proxy:
-    enabled: true
+    # Take over the deployment of kube-proxy
+    manage:
+      enabled: false
+      # affinity:
+      #   nodeAffinity:
+      #     requiredDuringSchedulingIgnoredDuringExecution:
+      #       nodeSelectorTerms:
+      #         - matchExpressions:
+      #             - key: kubernetes.io/os
+      #               operator: In
+      #               values:
+      #                 - linux
     # Supported proxy modes: ipvs, iptables
     mode: "ipvs"
+    # kube-proxy config
     config:
       iptables:
         masqueradeAll: false
@@ -47,7 +59,7 @@ kubernetes:
 
   # kubelet service parameters
   kubelet:
-    max_pod: 110
+    max_pods: 110
     pod_pids_limit: 10000
 #    feature_gates:
     container_log_max_size: 5Mi
@@ -122,14 +134,33 @@ kubernetes:
     # Automatically renew service certificates (Note: CA certificates cannot be renewed automatically)
     renew: true
 
-  # patches for kubeadm init and join
-  # 'name' is the file name that kubeadm will patch (it will be saved to /etc/kubernetes/{{ .name }})
-  # 'path' is the source file path for the patch (if provided)
-  # 'content' is the YAML content of the patch file (either 'path' or 'content' can be specified)
   patches: []
-    # - name: kubeadm-init.yaml
-    #   path: /etc/kubernetes/kubeadm-init.yaml
+    # Patches applied via a directory containing patch files.
+    # - name: kube-apiserver0+merge.yaml
+    #   path: /etc/kubernetes/kube-apiserver-patch.yaml
     #   content: |
-    #     apiVersion: kubeadm.k8s.io/v1beta3
-    #     kind: ClusterConfiguration
-    #     controlPlaneEndpoint: {{ .kubernetes.control_plane_endpoint.host }}:{{ .kubernetes.control_plane_endpoint.port }}
+    #     apiVersion: v1
+    #     kind: Pod
+    #     spec:
+    #       containers:
+    #         - name: kube-apiserver
+    #           command:
+    #             - kube-apiserver
+    #             - --service-account-issuer=https://kubernetes.default.svc.cluster.local
+    #             - --service-account-jwks-uri=https://kubernetes.default.svc.cluster.local/openid/v1/jwks
+    #   # The directory contains files named "target[suffix][+patchtype].extension".
+    #   # "target" can be one of: kube-apiserver, kube-controller-manager, kube-scheduler,
+    #   #                       etcd, kubeletconfiguration, corednsdeployment
+    #   # "patchtype" can be: strategic (default), merge, json
+    #   # "extension" can be: yaml or json
+    #   # "suffix" (optional) determines apply order (alpha-numeric).
+    #   # Examples:
+    #   #   kube-apiserver+merge.yaml          # merge patch for kube-apiserver
+    #   #   kube-apiserver001+strategic.yaml   # strategic patch with ordering suffix
+    #   #   kube-controller-manager+merge.yaml
+    #   #   kube-scheduler+json.yaml
+    #   #   kubeletconfiguration+merge.yaml
+
+  # skip phases for kubeadm init
+  skip_phases: []
+    # - addon/kube-proxy

@@ -38,15 +38,9 @@ download:
       {{- .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
       github.com/kubernetes-sigs/cri-tools/releases/download/{{ "{{ .version }}" }}/crictl-{{ "{{ .version }}" }}-linux-{{ "{{ .arch }}" }}.tar.gz
     docker: >-
-      {{- if .download.zone | eq "cn" -}}
       https://mirrors.aliyun.com/docker-ce/linux/static/stable/
       {{- "{{ if eq .arch \"amd64\" }}x86_64{{ else if eq .arch \"arm64\" }}aarch64{{ end }}" -}}
       /docker-{{ "{{ .version }}" }}.tgz
-      {{- else -}}
-      https://download.docker.com/linux/static/stable/
-      {{- "{{ if eq .arch \"amd64\" }}x86_64{{ else if eq .arch \"arm64\" }}aarch64{{ end }}" -}}
-      /docker-{{ "{{ .version }}" }}.tgz
-      {{- end }}
     cridockerd: >-
       {{- .download.zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
       github.com/Mirantis/cri-dockerd/releases/download/{{ "{{ .version }}" }}/cri-dockerd-{{ "{{ .version | default \"\" | trimPrefix \"v\" }}" }}.{{ "{{ .arch }}" }}.tgz

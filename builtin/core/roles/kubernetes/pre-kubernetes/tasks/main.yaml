@@ -84,14 +84,14 @@
         dest: /etc/kubernetes/pki/front-proxy-ca.key
 
 - name: PreKubernetes | Add patches to kubeadm init and join
-  loop: .kubernetes.patches
+  loop: "{{ .kubernetes.patches | toJson }}"
   when: 
     - .item | empty | not
-    - printf "/etc/kubernetes/patches/%s" .item.name | fileExists | not
+    - printf "/etc/kubernetes/patches/%s" (index (.item | default dict) "name") | fileExists | not
   copy:
     src: >-
       {{- if .item.path | empty | not }}
-      {{ .kubernetes.patches.name }}
+      {{ .item.path }}
       {{- end }}
     content: >-
       {{- if .item.content | empty | not }}
