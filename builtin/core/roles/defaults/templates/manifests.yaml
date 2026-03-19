@@ -578,6 +578,11 @@ download:
   iso: {{ .download.iso | default list | toJson }}
   images:
     manifests:
+{{- if .download.images.manifests | empty | not }}
+  {{- range .download.images.manifests }}
+      - {{ . }}
+  {{- end }}
+{{- else }}
       # kubernetes
       ## kubernetes/dns
       - {{ if .download.images.registry | empty | not }}{{ .download.images.registry }}/coredns/coredns:v1.8.6{{ else }}registry.k8s.io/coredns/coredns:v1.8.6{{ end }}
@@ -685,6 +690,7 @@ download:
   {{- range .download.cni.multus.image.tag | default (list "v4.2.4") }}
       - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}{{ else }}ghcr.io{{ end }}/{{ $.download.cni.multus.image.repository | default "k8snetworkplumbingwg/multus-cni" }}:{{ . }}
   {{- end }}
+{{- end }}
 {{- end }}
 {{- if .image_manifests | empty | not }}
       # External images
