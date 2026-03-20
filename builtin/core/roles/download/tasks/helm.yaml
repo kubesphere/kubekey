@@ -82,3 +82,15 @@
     url: "{{ tpl .download.artifact_url.nfs_subdir_external_provisioner (dict \"version\" .item) }}"
     dest: "{{ .binary_dir }}/storageclass/nfs/nfs-subdir-external-provisioner-{{ .item }}.tgz"
     timeout: "{{ .download.timeout }}"
+
+- name: Helm | Ensure the Spiderpool binary is available
+  loop: >
+    {{ index (.download.cni) "spiderpool_version" | default (list .cni.spiderpool_version) | toJson }}
+  when: 
+    - .item | empty | not
+    - (index (.download.cni | default dict) "multi_cni" | default (list .cni.multi_cni)) | has "spiderpool"
+    - printf "%s/cni/spiderpool/spiderpool-%s.tgz" .binary_dir .item | fileExists | not
+  http_get_file:
+    url: "{{ tpl .download.artifact_url.spiderpool (dict \"version\" .item) }}"
+    dest: "{{ .binary_dir }}/cni/spiderpool/spiderpool-{{ .item }}.tgz"
+    timeout: "{{ .download.timeout }}"

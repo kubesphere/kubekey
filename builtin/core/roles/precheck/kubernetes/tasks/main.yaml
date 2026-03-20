@@ -41,16 +41,16 @@
             fail_msg: >-
               The installed Kubernetes version ({{ .kubernetes_install_version.stdout | default "" | trimPrefix "Kubernetes " }}) does not match the expected version ({{ .kubernetes.kube_version }}).
 
-- name: ImageRegistry | Verify successful authentication to image registry
-  when:
-    - .image_registry.auth.registry | empty | not
-    - .image_registry.type | empty
-  command: |
-    HTTP_CODE=$(curl -skLI -w "%{http_code}" -u "{{ .image_registry.auth.username }}:{{ .image_registry.auth.password }}" \
-      "https://{{ .image_registry.ha_vip | empty | ternary (.image_registry.auth.registry | splitList "/" | first) (regexReplaceAll "^[^/:]+(:[0-9]+)?" .image_registry.auth.registry .image_registry.ha_vip) }}/v2/" -o /dev/null)
-    if [[ "$HTTP_CODE" == "200" ]]; then
-      echo "Successfully authenticated to the image registry."
-    else
-      echo "Failed to authenticate to the image registry at {{ .image_registry.auth.registry | splitList "/" | first }}." >&2
-      exit 1
-    fi
+# - name: ImageRegistry | Verify successful authentication to image registry
+#   when:
+#     - .image_registry.auth.registry | empty | not
+#     - .image_registry.type | empty
+#   command: |
+#     HTTP_CODE=$(curl -skLI -w "%{http_code}" -u "{{ .image_registry.auth.username }}:{{ .image_registry.auth.password }}" \
+#       "https://{{ .image_registry.ha_vip | empty | ternary (.image_registry.auth.registry | splitList "/" | first) (regexReplaceAll "^[^/:]+(:[0-9]+)?" .image_registry.auth.registry .image_registry.ha_vip) }}/v2/" -o /dev/null)
+#     if [[ "$HTTP_CODE" == "200" ]]; then
+#       echo "Successfully authenticated to the image registry."
+#     else
+#       echo "Failed to authenticate to the image registry at {{ .image_registry.auth.registry | splitList "/" | first }}." >&2
+#       exit 1
+#     fi

@@ -40,11 +40,13 @@
     {{- if and (.image_registry.auth.registry | empty | not) (.image_registry.ha_vip | empty | not) }}
     {{ .image_registry.ha_vip }} {{ .image_registry.auth.registry | splitList "/" | first }}
     {{- else }}
-      {{- if (index .hostvars (.groups.image_registry | first) "internal_ipv4") | empty | not }}
+      {{- if .groups.image_registry | empty | not }}
+        {{- if (index .hostvars (.groups.image_registry | first) "internal_ipv4") | empty | not }}
     {{ index .hostvars (.groups.image_registry | first) "internal_ipv4" }} {{ .image_registry.auth.registry | splitList "/" | first }}
-      {{- end }}
-      {{- if (index .hostvars (.groups.image_registry | first) "internal_ipv6") | empty | not }}
+        {{- end }}
+        {{- if (index .hostvars (.groups.image_registry | first) "internal_ipv6") | empty | not }}
     {{ index .hostvars (.groups.image_registry | first) "internal_ipv6" }} {{ .image_registry.auth.registry | splitList "/" | first }}
+        {{- end }}
       {{- end }}
     {{- end }}
     # NFS server nodes
@@ -71,11 +73,13 @@
     {{- if and (.image_registry.auth.registry | empty | not) (.image_registry.ha_vip | empty | not) }}
     {{ .image_registry.ha_vip }} {{ .image_registry.auth.registry | splitList "/" | first }}
     {{- else }}
-      {{- if (index .hostvars (.groups.image_registry | first) "internal_ipv4") | empty | not }}
+      {{- if .groups.image_registry | empty | not }}
+        {{- if (index .hostvars (.groups.image_registry | first) "internal_ipv4") | empty | not }}
     {{ index .hostvars (.groups.image_registry | first) "internal_ipv4" }} {{ .image_registry.auth.registry | splitList "/" | first }}
-      {{- end }}
-      {{- if (index .hostvars (.groups.image_registry | first) "internal_ipv6") | empty | not }}
+        {{- end }}
+        {{- if (index .hostvars (.groups.image_registry | first) "internal_ipv6") | empty | not }}
     {{ index .hostvars (.groups.image_registry | first) "internal_ipv6" }} {{ .image_registry.auth.registry | splitList "/" | first }}
+        {{- end }}
       {{- end }}
     {{- end }}
     # kubekey image_registry control_plane_endpoint END

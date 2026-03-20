@@ -15,5 +15,8 @@ dependencies:
   - role: cni/hybridnet
     when: .cni.type | eq "hybridnet"
 
-  - role: cni/multus
+  - role: cni/multi-cni/multus
     when: .cni.multi_cni | eq "multus"
+
+  - role: cni/multi-cni/spiderpool
+    when: .cni.multi_cni | eq "spiderpool"
