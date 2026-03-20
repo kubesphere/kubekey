@@ -691,6 +691,14 @@ download:
       - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}{{ else }}ghcr.io{{ end }}/{{ $.download.cni.multus.image.repository | default "k8snetworkplumbingwg/multus-cni" }}:{{ . }}
   {{- end }}
 {{- end }}
+{{- if .download.cni.multi_cni | has "spiderpool" }}
+  {{- range .download.cni.spiderpool_version | default $default_spiderpool_version }}
+      ##  CNI/spiderpool-{{ . }}
+    {{- range index $.download.images "spiderpool/spiderpool" . }}
+      - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/{{ slice (. | splitList "/") 1 | join "/" }}{{ else }}{{ . }}{{ end }}
+    {{- end }}
+  {{- end }}
+{{- end }}
 {{- if .image_manifests | empty | not }}
       # External images
     {{- range .image_manifests }}

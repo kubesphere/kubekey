@@ -6,7 +6,7 @@
     - .inventory_hostname | eq .init_kubernetes_node | not
   loop: "{{ .native.localDNS | toJson }}"
   command: |
-    sed -i ':a;$!{N;ba};s@# kubekey kubernetes control_plane_endpoint BEGIN.*# kubekey kubernetes control_plane_endpoint END@@' {{ .item }}
+    sed -i '/# kubekey kubernetes control_plane_endpoint BEGIN/,/# kubekey kubernetes control_plane_endpoint END/d' {{ .item }}
     cat >> {{ .item }} <<EOF
     # kubekey kubernetes control_plane_endpoint BEGIN
     {{- if and (index .hostvars .init_kubernetes_node "internal_ipv4") (ne (index .hostvars .init_kubernetes_node "internal_ipv4") "") }}

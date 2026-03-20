@@ -24,9 +24,9 @@
       ignore_errors: true
       loop: "{{ .native.localDNS | toJson }}"
       command: |
-        sed -i ':a;$!{N;ba};s@# kubekey hosts BEGIN.*# kubekey hosts END@@' {{ .item }}
-        sed -i ':a;$!{N;ba};s@# kubekey kubernetes control_plane_endpoint BEGIN.*# kubekey kubernetes control_plane_endpoint END@@' {{ .item }}
-        sed -i ':a;$!{N;ba};s@# kubekey image_registry control_plane_endpoint BEGIN.*# kubekey image_registry control_plane_endpoint END@@' {{ .item }}
+        sed -i '/# kubekey hosts BEGIN/,/# kubekey hosts END/d' {{ .item }}
+        sed -i '/# kubekey kubernetes control_plane_endpoint BEGIN/,/# kubekey kubernetes control_plane_endpoint END/d' {{ .item }}
+        sed -i '/# kubekey image_registry control_plane_endpoint BEGIN/,/# kubekey image_registry control_plane_endpoint END/d' {{ .item }}
       when: .delete.dns
 
 - hosts:

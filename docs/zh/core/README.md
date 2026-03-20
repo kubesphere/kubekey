@@ -206,6 +206,47 @@
 | 1.29\~1.34 | 1.14, 1.15 | v1.15.0 | https://kubeovn.github.io/docs/v1.14.x/en/start/prepare/<br>https://kubeovn.github.io/docs/v1.15.x/en/start/prepare/ |
 
 
+### 多容器网络插件
+
+> **说明**：多容器网络插件（Multi-CNI）用于配合主 CNI 插件工作，提供高级网络功能，例如为 Pod 配置多个网络接口。它需要在主 CNI 插件安装完成后再进行部署。
+
+> **重要提示**：
+> - 多容器网络插件必须与主 CNI 插件（如 Calico、Flannel、Cilium 等）配合使用
+> - 主 CNI 负责默认网络，多容器网络插件提供额外的网络接口
+> - KubeKey 支持 `multus` 和 `spiderpool` 作为多容器网络插件
+
+#### [multus](https://github.com/k8snetworkplumbingwg/multus-cni)
+
+> **说明**：Multus CNI 是一个元 CNI 插件，能够为 Kubernetes Pod 启用多个网络接口。它作为"元插件"将其他 CNI 插件串联起来，为需要多个网络接口的 Pod 提供高级网络功能。
+
+> **安装方式**：
+> - 通过 `--set cni.multi_cni="multus"` 开启 Multus 作为多容器网络插件
+> - 通过 `--set cni.multus.image.tag="v4.3.0"` 指定 Multus 版本（不指定则使用默认版本）
+
+> **前置条件**：Multus 需要先安装主 CNI 插件（如 Calico、Flannel、Cilium 等）。Multus 将与主 CNI 配合工作，为 Pod 提供额外的网络接口。
+
+> **主要特性**：Pod 多网络接口支持、CNI 链式调用、支持多种 CNI 插件（macvlan、ipvlan、SR-IOV 等）、NetworkAttachmentDefinition CRD 支持
+
+| kubernetes 版本 | 推荐 multus 版本 | kubekey 默认版本 | 来源 |
+|---|---|---|---|
+| 1.23\~1.34 | v4.0.0+ | v4.2.4 | https://github.com/k8snetworkplumbingwg/multus-cni/releases |
+
+#### [spiderpool](https://github.com/spidernet-io/spiderpool)
+
+> **说明**：Spiderpool 是 Kubernetes 的 Underlay 和 RDMA 网络解决方案，支持 macvlan CNI、ipvlan CNI 和 SR-IOV CNI。它适用于裸金属、虚拟机和公共云环境。Spiderpool 是 CNCF 沙箱项目，提供卓越的网络性能，特别有利于存储、中间件和 AI 等网络 I/O 密集型和低延迟应用。
+
+> **安装方式**：
+> - 通过 `--set cni.multi_cni="spiderpool"` 开启 Spiderpool 作为多容器网络插件
+> - 通过 `--set cni.spiderpool_version="v1.1.x"` 指定 Spiderpool 版本（不指定则使用默认版本）
+
+> **前置条件**：Spiderpool 需要先安装主 CNI 插件（Spiderpool 将作为额外的 CNI 与主 CNI 一起部署）。
+
+> **主要特性**：简化安装流程、基于 CRD 的双栈 IPAM 管理、RDMA 网络加速（RoCE、InfiniBand）、卓越的网络性能（低延迟、高吞吐）、多集群网络互通
+
+| kubernetes 版本 | 推荐 spiderpool 版本 | kubekey 默认版本 | 来源 |
+|---|---|---|---|
+| 1.21\~1.34 | v1.0.x, v1.1.x | v1.1.x | https://spidernet-io.github.io/spiderpool/v1.1/usage/install/system-requirements/#node-requirements |
+
 ### 存储
 
 > **说明**：存储插件为 Kubernetes 集群提供持久化存储能力，允许 Pod 挂载持久卷（PV）来保存数据。KubeKey 支持安装多个存储插件，以满足不同的存储需求。
