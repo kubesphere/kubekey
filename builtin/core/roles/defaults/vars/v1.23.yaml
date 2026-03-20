@@ -41,9 +41,6 @@ cri:
   # runc binary
   runc_version: v1.1.5
 cni:
-  multus:
-    image:
-      tag: v4.2.4
   # ========== cni ==========
   # cni_plugins binary (optional)
   # cni_plugins_version: v1.1.1
@@ -61,6 +58,12 @@ cni:
   # ========== cni: hybridnet ==========
   # hybridnet helm
   hybridnet_version: 0.6.8
+  # ========== multi-cni: multus ==========
+  multus:
+    image:
+      tag: v4.2.4
+  # ========== multi-cni: spiderpool ==========
+  spiderpool_version: v1.1.1
 storage_class:
   # ========== storageclass ==========
   # ========== storageclass: local ==========

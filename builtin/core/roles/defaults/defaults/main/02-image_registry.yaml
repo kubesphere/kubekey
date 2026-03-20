@@ -25,6 +25,10 @@ image_registry:
       {{ $internalIPv6 }}
           {{- end -}}
         {{- end -}}
+      {{- else -}}
+        {{- if .zone | eq "cn" -}}
+      hub.kubesphere.com.cn
+        {{- end -}}
       {{- end -}}
     username: admin
     password: Harbor12345

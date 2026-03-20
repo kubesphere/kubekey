@@ -16,6 +16,8 @@ transform_architectures:
     - arm64
     - aarch64
 
+# if set as "cn", so that online downloads will try to use available domestic sources whenever possible.
+zone: ""
 
 # Enable enhanced security features for stricter cluster security requirements.
 security_enhancement: false
