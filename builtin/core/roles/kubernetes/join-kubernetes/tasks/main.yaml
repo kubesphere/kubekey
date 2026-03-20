@@ -4,10 +4,8 @@
     src: >-
       {{- if .kubernetes.kube_version | semverCompare ">=v1.31.0" -}}
       kubeadm/kubeadm-join.v1beta4
-      {{- else if .kubernetes.kube_version | semverCompare ">=v1.24.0" -}}
-      kubeadm/kubeadm-join.v1beta3
       {{- else -}}
-      kubeadm/kubeadm-join.v1beta2
+      kubeadm/kubeadm-join.v1beta3
       {{- end -}}
     dest: /etc/kubernetes/kubeadm-config.yaml
 

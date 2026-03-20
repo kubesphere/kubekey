@@ -2,8 +2,6 @@ cni:
   # CNI plugin to use
   # Specify the network plugin to install for the cluster. Supported: calico, cilium, flannel, hybridnet, kubeovn, other
   type: calico
-  # Maximum number of pods supported per node
-  max_pods: 110
   # The complete Pod IP pool for the cluster. Supports IPv4, IPv6, and dual-stack.
   pod_cidr: 10.233.64.0/18
   # IPv4 subnet mask length for pod allocation per node. Determines the size of each node's pod IP pool.

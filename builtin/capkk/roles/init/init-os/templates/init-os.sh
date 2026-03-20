@@ -212,6 +212,8 @@ sysctl -p
 # ------------------------ 8. Local Host DNS Configuration ---------------------
 
 sed -i ':a;$!{N;ba};s@# kubekey hosts BEGIN.*# kubekey hosts END@@' /etc/hosts
+sed -i ':a;$!{N;ba};s@# kubekey kubernetes control_plane_endpoint BEGIN.*# kubekey kubernetes control_plane_endpoint END@@' {{ .item }}
+sed -i ':a;$!{N;ba};s@# kubekey image_registry control_plane_endpoint BEGIN.*# kubekey image_registry control_plane_endpoint END@@' {{ .item }}
 sed -i '/^$/N;/\n$/N;//D' /etc/hosts
 
 cat >>/etc/hosts<<EOF

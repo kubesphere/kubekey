@@ -63,8 +63,3 @@ ipam:
       - {{ .cni.ipv6_pods_cidr }}
     clusterPoolIPv6MaskSize: {{ .cni.ipv6_mask_size }}
 {{- end }}
-{{- if not (.kubernetes.kube_proxy.enabled | default true) }}
-kubeProxyReplacement: "true"
-k8sServiceHost: {{ .kubernetes.control_plane_endpoint.host }}
-k8sServicePort: {{ .kubernetes.control_plane_endpoint.port }}
-{{- end }}
