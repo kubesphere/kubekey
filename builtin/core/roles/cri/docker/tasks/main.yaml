@@ -37,7 +37,7 @@
 - name: Docker | Synchronize image registry TLS certificates to the remote node
   block:
     - name: Docker | Copy image registry CA certificate to the remote node
-      when: .image_registry.auth.ca_file | empty | not
+      when: .image_registry.auth.ca_file | fileExists
       copy:
         src: >-
           {{ .image_registry.auth.ca_file }}
@@ -45,7 +45,6 @@
           /etc/docker/certs.d/{{ .image_registry.auth.registry | splitList "/" | first }}/ca.crt
     - name: Docker | Copy image registry server certificate to the remote node
       when:
-      - .image_registry.auth.cert_file | empty | not
       - .image_registry.auth.cert_file | fileExists
       copy:
         src: >-
@@ -54,7 +53,6 @@
           /etc/docker/certs.d/{{ .image_registry.auth.registry | splitList "/" | first }}/client.cert
     - name: Docker | Copy image registry server key to the remote node
       when:
-      - .image_registry.auth.key_file | empty | not
       - .image_registry.auth.key_file | fileExists
       copy:
         src: >-

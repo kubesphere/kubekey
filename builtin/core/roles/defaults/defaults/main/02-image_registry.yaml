@@ -33,15 +33,15 @@ image_registry:
       true
       {{- end -}}
     ca_file: >-
-      {{- if .image_registry.type | empty | not -}}
+      {{- if .groups.image_registry | default list | empty | not -}}
       {{ .binary_dir }}/pki/root.crt
       {{- end -}}
     cert_file: >-
-      {{- if .image_registry.type | empty | not -}}
+      {{- if .groups.image_registry | default list | empty | not -}}
       {{ .binary_dir }}/pki/image_registry.crt
       {{- end -}}
     key_file: >-
-      {{- if .image_registry.type | empty | not -}}
+      {{- if .groups.image_registry | default list | empty | not -}}
       {{ .binary_dir }}/pki/image_registry.key
       {{- end -}}
   # Registry endpoint for images from docker.io
