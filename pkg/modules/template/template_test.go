@@ -26,6 +26,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 
+	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
+	"github.com/kubesphere/kubekey/v4/pkg/utils"
+
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/modules/internal"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
@@ -100,7 +103,7 @@ func TestTemplateArgsModule(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			ctx, cancel := context.WithTimeout(context.WithValue(context.Background(), utils.TplKey, tmpl.NewTmplAddFuncs()), 2*time.Second)
 			defer cancel()
 			stdout, stderr, err := ModuleTemplate(ctx, tc.opt)
 			require.Equal(t, tc.expectStdout, stdout, tc.description)
@@ -176,7 +179,7 @@ func TestTemplateArgsParse(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx := context.Background()
+			ctx := context.WithValue(context.Background(), utils.TplKey, tmpl.NewTmplAddFuncs())
 			raw := createRawArgs(tc.args)
 			result, err := newTemplateArgs(ctx, raw, nil)
 			if tc.expectParseError {
@@ -224,7 +227,7 @@ func TestTemplateArgsTemplate(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx := context.Background()
+			ctx := context.WithValue(context.Background(), utils.TplKey, tmpl.NewTmplAddFuncs())
 			raw := createRawArgs(tc.args)
 			_, err := newTemplateArgs(ctx, raw, tc.vars)
 			if tc.expectError {

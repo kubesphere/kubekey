@@ -22,6 +22,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/kubesphere/kubekey/v4/pkg/modules/internal"
+	"github.com/kubesphere/kubekey/v4/pkg/utils"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
@@ -60,13 +61,13 @@ Return Values:
 */
 
 // ModuleSetFact handles the "set_fact" module, setting variables during playbook execution
-func ModuleSetFact(_ context.Context, opts internal.ExecOptions) (string, string, error) {
+func ModuleSetFact(ctx context.Context, opts internal.ExecOptions) (string, string, error) {
 	var node yaml.Node
 	// Unmarshal the YAML document into a root node.
 	if err := yaml.Unmarshal(opts.Args.Raw, &node); err != nil {
 		return internal.StdoutFailed, "failed to unmarshal YAML", err
 	}
-	if err := opts.Merge(variable.MergeRuntimeVariable([]yaml.Node{node}, opts.Host)); err != nil {
+	if err := opts.Merge(variable.MergeRuntimeVariable(utils.GetTmpl(ctx), []yaml.Node{node}, opts.Host)); err != nil {
 		return internal.StdoutFailed, "failed to merge set_fact variable", err
 	}
 

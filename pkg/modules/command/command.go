@@ -20,6 +20,7 @@ import (
 	"context"
 
 	"github.com/kubesphere/kubekey/v4/pkg/modules/internal"
+	"github.com/kubesphere/kubekey/v4/pkg/utils"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
@@ -73,7 +74,7 @@ func ModuleCommand(ctx context.Context, opts internal.ExecOptions) (string, stri
 	}
 	defer conn.Close(ctx)
 	// command string
-	command, err := variable.Extension2String(ha, opts.Args)
+	command, err := variable.Extension2String(utils.GetTmpl(ctx), ha, opts.Args)
 	if err != nil {
 		return internal.StdoutFailed, internal.StderrParseArgument, err
 	}

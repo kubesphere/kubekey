@@ -24,6 +24,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"text/template"
 
 	"github.com/cockroachdb/errors"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
@@ -43,7 +44,7 @@ var builtinProjectFunc func(kkcorev1.Playbook) (Project, error)
 // get project file should base on it
 type Project interface {
 	// MarshalPlaybook project file to playbook.
-	MarshalPlaybook() (*kkprojectv1.Playbook, error)
+	MarshalPlaybook(tpl *template.Template) (*kkprojectv1.Playbook, error)
 	// Stat file or dir in project
 	Stat(path string) (os.FileInfo, error)
 	// WalkDir dir in project
@@ -103,10 +104,15 @@ func (f *project) WalkDir(path string, fn fs.WalkDirFunc) error {
 }
 
 // MarshalPlaybook converts a playbook file into a kkprojectv1.Playbook
-func (f *project) MarshalPlaybook() (*kkprojectv1.Playbook, error) {
+func (f *project) MarshalPlaybook(tpl *template.Template) (*kkprojectv1.Playbook, error) {
+	if tplDir, err := f.Stat("includes"); err == nil && tplDir.IsDir() {
+		if _, err = tpl.ParseFS(f.FS, "includes/*.tpl"); err != nil {
+			return nil, errors.Wrapf(err, "failed to parse include template %q", "includes/*.tpl")
+		}
+	}
 	f.Playbook = &kkprojectv1.Playbook{}
 	// convert playbook to kkprojectv1.Playbook
-	if err := f.loadPlaybook("", f.basePlaybook); err != nil {
+	if err := f.loadPlaybook(tpl, "", f.basePlaybook); err != nil {
 		return nil, err
 	}
 	// validate playbook
@@ -118,7 +124,7 @@ func (f *project) MarshalPlaybook() (*kkprojectv1.Playbook, error) {
 }
 
 // loadPlaybook loads a playbook and all its included playbooks into a single playbook
-func (f *project) loadPlaybook(fromPlayBook, basePlaybook string) error {
+func (f *project) loadPlaybook(tpl *template.Template, fromPlayBook, basePlaybook string) error {
 	// baseDir is the local ansible project dir which playbook belong to
 	if f.playbookGraph.AddEdgeAndCheckCycle(fromPlayBook, basePlaybook) {
 		// play book cycle imported
@@ -135,11 +141,11 @@ func (f *project) loadPlaybook(fromPlayBook, basePlaybook string) error {
 	}
 
 	for _, p := range plays {
-		if err := f.dealImportPlaybook(p, basePlaybook); err != nil {
+		if err := f.dealImportPlaybook(tpl, p, basePlaybook); err != nil {
 			return err
 		}
 
-		if err := f.dealVarsFiles(&p, basePlaybook); err != nil {
+		if err := f.dealVarsFiles(tpl, &p, basePlaybook); err != nil {
 			return err
 		}
 		// deal "pre_tasks"
@@ -173,7 +179,7 @@ func (f *project) loadPlaybook(fromPlayBook, basePlaybook string) error {
 }
 
 // dealImportPlaybook handles the "import_playbook" argument in a play
-func (f *project) dealImportPlaybook(p kkprojectv1.Play, basePlaybook string) error {
+func (f *project) dealImportPlaybook(tpl *template.Template, p kkprojectv1.Play, basePlaybook string) error {
 	if p.ImportPlaybook != "" {
 		importPlaybook, _ := f.getPath(GetImportPlaybookRelPath(basePlaybook, p.ImportPlaybook))
 		if importPlaybook == "" {
@@ -183,7 +189,7 @@ func (f *project) dealImportPlaybook(p kkprojectv1.Play, basePlaybook string) er
 			// play book import self
 			return errors.Errorf("failed to import %s because it is already imported", p.ImportPlaybook)
 		}
-		if err := f.loadPlaybook(basePlaybook, importPlaybook); err != nil {
+		if err := f.loadPlaybook(tpl, basePlaybook, importPlaybook); err != nil {
 			return err
 		}
 	}
@@ -192,10 +198,10 @@ func (f *project) dealImportPlaybook(p kkprojectv1.Play, basePlaybook string) er
 }
 
 // dealVarsFiles handles the "vars_files" argument in a play
-func (f *project) dealVarsFiles(p *kkprojectv1.Play, basePlaybook string) error {
+func (f *project) dealVarsFiles(tpl *template.Template, p *kkprojectv1.Play, basePlaybook string) error {
 	for _, varsFileStr := range p.VarsFiles {
 		// load vars from vars_files
-		varsFile, err := tmpl.ParseFunc(f.config, varsFileStr, tmpl.StringFunc)
+		varsFile, err := tmpl.ParseFunc(tpl, f.config, varsFileStr, tmpl.StringFunc)
 		if err != nil {
 			return errors.Errorf("failed to parse varFile %q", varsFileStr)
 		}

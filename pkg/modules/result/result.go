@@ -6,6 +6,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/kubesphere/kubekey/v4/pkg/modules/internal"
+	"github.com/kubesphere/kubekey/v4/pkg/utils"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
@@ -51,7 +52,7 @@ func ModuleResult(ctx context.Context, opts internal.ExecOptions) (string, strin
 	if err != nil {
 		return internal.StdoutFailed, internal.StderrGetHostVariable, err
 	}
-	arg, err := variable.Extension2String(ha, opts.Args)
+	arg, err := variable.Extension2String(utils.GetTmpl(ctx), ha, opts.Args)
 	if err != nil {
 		return internal.StdoutFailed, internal.StderrParseArgument, err
 	}

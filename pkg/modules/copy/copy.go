@@ -35,6 +35,7 @@ import (
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/modules/internal"
 	"github.com/kubesphere/kubekey/v4/pkg/project"
+	"github.com/kubesphere/kubekey/v4/pkg/utils"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
@@ -96,17 +97,18 @@ type copyArgs struct {
 }
 
 // newCopyArgs parses and validates the arguments for the copy module.
-func newCopyArgs(_ context.Context, raw runtime.RawExtension, vars map[string]any) (*copyArgs, error) {
+func newCopyArgs(ctx context.Context, raw runtime.RawExtension, vars map[string]any) (*copyArgs, error) {
 	var err error
 	ca := &copyArgs{}
 	args := variable.Extension2Variables(raw)
-	ca.src, _ = variable.StringVar(vars, args, "src")
-	ca.content, _ = variable.StringVar(vars, args, "content")
-	ca.dest, err = variable.StringVar(vars, args, "dest")
+	tpl := utils.GetTmpl(ctx)
+	ca.src, _ = variable.StringVar(tpl, vars, args, "src")
+	ca.content, _ = variable.StringVar(tpl, vars, args, "content")
+	ca.dest, err = variable.StringVar(tpl, vars, args, "dest")
 	if err != nil {
 		return nil, errors.New("\"dest\" in args should be string")
 	}
-	mode, err := variable.IntVar(vars, args, "mode")
+	mode, err := variable.IntVar(tpl, vars, args, "mode")
 	if err != nil {
 		klog.V(4).InfoS("get mode error", "error", err)
 	} else {

@@ -24,6 +24,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"text/template"
 
 	"github.com/cockroachdb/errors"
 	"k8s.io/klog/v2"
@@ -36,12 +37,12 @@ import (
 var _ Connector = &localConnector{}
 var _ GatherFacts = &localConnector{}
 
-func newLocalConnector(workdir string, hostVars map[string]any) *localConnector {
-	password, err := variable.StringVar(nil, hostVars, _const.VariableConnector, _const.VariableConnectorPassword)
+func newLocalConnector(tpl *template.Template, workdir string, hostVars map[string]any) *localConnector {
+	password, err := variable.StringVar(tpl, nil, hostVars, _const.VariableConnector, _const.VariableConnectorPassword)
 	if err != nil { // password is not necessary when execute with root user.
 		klog.V(4).Info("Warning: Failed to obtain local connector password when executing command with sudo. Please ensure the 'kk' process is run by a root-privileged user.")
 	}
-	cacheType, _ := variable.StringVar(nil, hostVars, _const.VariableGatherFactsCache)
+	cacheType, _ := variable.StringVar(tpl, nil, hostVars, _const.VariableGatherFactsCache)
 	connector := &localConnector{
 		Password: password,
 		Cmd:      exec.New(),
@@ -137,48 +138,7 @@ func (c *localConnector) HostInfo(ctx context.Context) (map[string]any, error) {
 func (c *localConnector) getHostInfo(ctx context.Context) (map[string]any, error) {
 	switch runtime.GOOS {
 	case "linux":
-		// os information
-		osVars := make(map[string]any)
-		var osRelease bytes.Buffer
-		if err := c.FetchFile(ctx, "/etc/os-release", &osRelease); err != nil {
-			return nil, err
-		}
-		osVars[_const.VariableOSRelease] = convertBytesToMap(osRelease.Bytes(), "=")
-		kernel, stderr, err := c.ExecuteCommand(ctx, "uname -r")
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get kernel: %v, stderr: %q", err, string(stderr))
-		}
-		osVars[_const.VariableOSKernelVersion] = string(bytes.TrimSpace(kernel))
-
-		hn, hnStderr, err := c.ExecuteCommand(ctx, "hostname")
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get hostname: %v, stderr: %q", err, string(hnStderr))
-		}
-		osVars[_const.VariableOSHostName] = string(bytes.TrimSpace(hn))
-
-		arch, archStderr, err := c.ExecuteCommand(ctx, "arch")
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get arch: %v, stderr: %q", err, string(archStderr))
-		}
-		osVars[_const.VariableOSArchitecture] = string(bytes.TrimSpace(arch))
-
-		// process information
-		procVars := make(map[string]any)
-		var cpu bytes.Buffer
-		if err := c.FetchFile(ctx, "/proc/cpuinfo", &cpu); err != nil {
-			return nil, err
-		}
-		procVars[_const.VariableProcessCPU] = convertBytesToSlice(cpu.Bytes(), ":")
-		var mem bytes.Buffer
-		if err := c.FetchFile(ctx, "/proc/meminfo", &mem); err != nil {
-			return nil, err
-		}
-		procVars[_const.VariableProcessMemory] = convertBytesToMap(mem.Bytes(), ":")
-
-		return map[string]any{
-			_const.VariableOS:      osVars,
-			_const.VariableProcess: procVars,
-		}, nil
+		return parseHostInfo(c, ctx)
 	default:
 		klog.V(4).ErrorS(nil, "Unsupported platform", "platform", runtime.GOOS)
 	}

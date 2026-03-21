@@ -38,7 +38,7 @@ func (e blockExecutor) Exec(ctx context.Context) error {
 		ignoreErrors := e.dealIgnoreErrors(block.IgnoreErrors)
 		when := e.dealWhen(block.When)
 		// merge variable which defined in block
-		if err := e.variable.Merge(variable.MergeRuntimeVariable(block.Vars.Nodes, hosts...)); err != nil {
+		if err := e.variable.Merge(variable.MergeRuntimeVariable(e.tplEngine, block.Vars.Nodes, hosts...)); err != nil {
 			return err
 		}
 

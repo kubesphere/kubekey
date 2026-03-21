@@ -8,6 +8,8 @@ import (
 	kkprojectv1 "github.com/kubesphere/kubekey/api/project/v1"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
+
+	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 )
 
 func TestMarshalPlaybook(t *testing.T) {
@@ -599,7 +601,7 @@ func TestMarshalPlaybook(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			actual, err := project.MarshalPlaybook()
+			actual, err := project.MarshalPlaybook(tmpl.NewTmplAddFuncs())
 			if err != nil {
 				t.Fatal(err)
 			}

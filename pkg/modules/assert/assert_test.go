@@ -25,7 +25,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/runtime"
 
+	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 	"github.com/kubesphere/kubekey/v4/pkg/modules/internal"
+	"github.com/kubesphere/kubekey/v4/pkg/utils"
 )
 
 // createRawArgs creates a runtime.RawExtension from a map (simulating JSON/YAML parsing)
@@ -80,7 +82,7 @@ func TestAssertArgsModule(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			ctx, cancel := context.WithTimeout(context.WithValue(context.Background(), utils.TplKey, tmpl.NewTmplAddFuncs()), 2*time.Second)
 			defer cancel()
 			stdout, stderr, err := ModuleAssert(ctx, tc.opt)
 			require.Equal(t, tc.expectStdout, stdout, tc.description)
@@ -135,7 +137,7 @@ func TestAssertArgsParse(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx := context.Background()
+			ctx := context.WithValue(context.Background(), utils.TplKey, tmpl.NewTmplAddFuncs())
 			raw := createRawArgs(tc.args)
 			aa, err := newAssertArgs(ctx, raw, nil)
 			if tc.expectParseError {
@@ -234,7 +236,7 @@ func TestAssertModule(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			ctx, cancel := context.WithTimeout(context.WithValue(context.Background(), utils.TplKey, tmpl.NewTmplAddFuncs()), 2*time.Second)
 			defer cancel()
 
 			testVar := internal.NewTestVariable(tc.hosts, nil)

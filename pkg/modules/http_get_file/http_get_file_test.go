@@ -26,7 +26,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
+	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 	"github.com/kubesphere/kubekey/v4/pkg/modules/internal"
+	"github.com/kubesphere/kubekey/v4/pkg/utils"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 	"github.com/kubesphere/kubekey/v4/pkg/variable/source"
 )
@@ -86,7 +88,7 @@ func TestHttpGetFileArgsModule(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			ctx, cancel := context.WithTimeout(context.WithValue(context.Background(), utils.TplKey, tmpl.NewTmplAddFuncs()), 2*time.Second)
 			defer cancel()
 			stdout, stderr, err := ModuleHttpGetFile(ctx, tc.opt)
 			require.Equal(t, tc.expectStdout, stdout, tc.description)
@@ -154,7 +156,7 @@ func TestHttpGetFileArgsParse(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx := context.Background()
+			ctx := context.WithValue(context.Background(), utils.TplKey, tmpl.NewTmplAddFuncs())
 			args := variable.Extension2Variables(createRawArgs(tc.args))
 			_, err := newHttpArgs(ctx, args, nil)
 			if tc.expectParseError {
@@ -200,7 +202,7 @@ func TestHttpGetFileArgsTemplate(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx := context.Background()
+			ctx := context.WithValue(context.Background(), utils.TplKey, tmpl.NewTmplAddFuncs())
 			args := variable.Extension2Variables(createRawArgs(tc.args))
 			_, err := newHttpArgs(ctx, args, tc.vars)
 			if tc.expectError {

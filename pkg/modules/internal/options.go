@@ -27,6 +27,7 @@ import (
 
 	"github.com/kubesphere/kubekey/v4/pkg/connector"
 	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
+	"github.com/kubesphere/kubekey/v4/pkg/utils"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
@@ -73,8 +74,9 @@ func (o ExecOptions) GetConnector(ctx context.Context) (connector.Connector, err
 	}
 
 	host := o.Host
+	tpl := utils.GetTmpl(ctx)
 	if o.Task.Spec.DelegateTo != "" {
-		host, err = tmpl.ParseFunc(ha, o.Task.Spec.DelegateTo, tmpl.StringFunc)
+		host, err = tmpl.ParseFunc(tpl, ha, o.Task.Spec.DelegateTo, tmpl.StringFunc)
 		if err != nil {
 			return nil, errors.Errorf("failed to delegate %q to %q", o.Host, o.Task.Spec.DelegateTo)
 		}
@@ -84,7 +86,7 @@ func (o ExecOptions) GetConnector(ctx context.Context) (connector.Connector, err
 			conn = vd
 		}
 	} else {
-		conn, err = connector.NewConnector(host, o.Variable)
+		conn, err = connector.NewConnector(tpl, host, o.Variable)
 		if err != nil {
 			return conn, err
 		}

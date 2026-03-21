@@ -32,7 +32,9 @@ import (
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kubesphere/kubekey/v4/pkg/converter"
+	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 	"github.com/kubesphere/kubekey/v4/pkg/project"
+	"github.com/kubesphere/kubekey/v4/pkg/utils"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 	"github.com/kubesphere/kubekey/v4/pkg/variable/source"
 )
@@ -47,11 +49,14 @@ func NewPlaybookExecutor(ctx context.Context, client ctrlclient.Client, playbook
 		return nil
 	}
 
+	tplEngine := tmpl.NewTmplAddFuncs()
+
 	return &playbookExecutor{
 		option: &option{
 			client:    client,
 			playbook:  playbook,
 			variable:  v,
+			tplEngine: tplEngine,
 			logOutput: logOutput,
 		},
 	}
@@ -64,6 +69,8 @@ type playbookExecutor struct {
 
 // Exec playbook. covert playbook to block and executor it.
 func (e playbookExecutor) Exec(ctx context.Context) (retErr error) {
+
+	ctx = context.WithValue(ctx, utils.TplKey, e.tplEngine)
 	old := e.playbook.DeepCopy()
 	defer func() {
 		e.syncStatus(ctx, old, retErr)
@@ -87,7 +94,7 @@ func (e playbookExecutor) Exec(ctx context.Context) (retErr error) {
 		return err
 	}
 	// convert to transfer.Playbook struct
-	pb, err := pj.MarshalPlaybook()
+	pb, err := pj.MarshalPlaybook(e.tplEngine)
 	if err != nil {
 		return err
 	}
@@ -156,7 +163,7 @@ func (e playbookExecutor) execBatchHosts(ctx context.Context, play kkprojectv1.P
 			return errors.Errorf("host is empty")
 		}
 
-		if err := e.variable.Merge(variable.MergeRuntimeVariable(play.Vars.Nodes, serials...)); err != nil {
+		if err := e.variable.Merge(variable.MergeRuntimeVariable(e.tplEngine, play.Vars.Nodes, serials...)); err != nil {
 			return err
 		}
 		// generate task from pre tasks
@@ -216,7 +223,7 @@ func (e playbookExecutor) execBatchHosts(ctx context.Context, play kkprojectv1.P
 
 // dealHosts "hosts" argument in playbook. get hostname from kkprojectv1.PlayHost
 func (e playbookExecutor) dealHosts(host kkprojectv1.PlayHost, i *[]string) error {
-	ahn, err := e.variable.Get(variable.GetHostnames(host.Hosts))
+	ahn, err := e.variable.Get(variable.GetHostnames(e.tplEngine, host.Hosts))
 	if err != nil {
 		return err
 	}

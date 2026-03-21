@@ -24,6 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/kubesphere/kubekey/v4/pkg/modules/internal"
+	"github.com/kubesphere/kubekey/v4/pkg/utils"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
@@ -58,7 +59,7 @@ type addHostvarsArgs struct {
 // The arguments must be a YAML mapping with "hosts" and "vars" keys.
 // "hosts" can be a string or a sequence of strings.
 // "vars" must be a mapping node.
-func newAddHostvarsArgs(_ context.Context, raw runtime.RawExtension, vars map[string]any) (*addHostvarsArgs, error) {
+func newAddHostvarsArgs(ctx context.Context, raw runtime.RawExtension, vars map[string]any) (*addHostvarsArgs, error) {
 	var node yaml.Node
 	// Unmarshal the YAML document into a root node.
 	if err := yaml.Unmarshal(raw.Raw, &node); err != nil {
@@ -79,7 +80,7 @@ func newAddHostvarsArgs(_ context.Context, raw runtime.RawExtension, vars map[st
 			if err := valueNode.Decode(&val); err != nil {
 				return nil, errors.New("cannot decode \"hosts\"")
 			}
-			args.hosts, _ = variable.StringSliceVar(vars, map[string]any{"hosts": val}, "hosts")
+			args.hosts, _ = variable.StringSliceVar(utils.GetTmpl(ctx), vars, map[string]any{"hosts": val}, "hosts")
 		case "vars":
 			// Store the "vars" node for later processing.
 			args.vars = *valueNode
@@ -110,7 +111,8 @@ func ModuleAddHostvars(ctx context.Context, opts internal.ExecOptions) (string, 
 	if err != nil {
 		return internal.StdoutFailed, internal.StderrParseArgument, err
 	}
-	ahn, err := opts.Get(variable.GetHostnames(args.hosts))
+	tpl := utils.GetTmpl(ctx)
+	ahn, err := opts.Get(variable.GetHostnames(tpl, args.hosts))
 	if err != nil {
 		return internal.StdoutFailed, "failed to get hostnames", err
 	}
@@ -120,7 +122,7 @@ func ModuleAddHostvars(ctx context.Context, opts internal.ExecOptions) (string, 
 	}
 
 	// Merge the provided variables into the specified hosts.
-	if err := opts.Merge(variable.MergeHostsRuntimeVariable(args.vars, opts.Host, hosts...)); err != nil {
+	if err := opts.Merge(variable.MergeHostsRuntimeVariable(tpl, args.vars, opts.Host, hosts...)); err != nil {
 		return internal.StdoutFailed, "failed to add_hostvars", errors.Wrap(err, "failed to add_hostvars")
 	}
 
