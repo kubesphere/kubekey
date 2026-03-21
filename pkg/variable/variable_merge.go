@@ -1,6 +1,8 @@
 package variable
 
 import (
+	"text/template"
+
 	"github.com/cockroachdb/errors"
 	"gopkg.in/yaml.v3"
 )
@@ -36,7 +38,7 @@ var MergeRemoteVariable = func(data map[string]any, hostnames ...string) MergeFu
 // 1. Gets all variables for the host to create a parsing context
 // 2. Parses the YAML node using that context
 // 3. Merges the parsed data into the host's RuntimeVars
-var MergeRuntimeVariable = func(nodes []yaml.Node, hosts ...string) MergeFunc {
+var MergeRuntimeVariable = func(tpl *template.Template, nodes []yaml.Node, hosts ...string) MergeFunc {
 	if len(nodes) == 0 {
 		// skip
 		return emptyMergeFunc
@@ -62,7 +64,7 @@ var MergeRuntimeVariable = func(nodes []yaml.Node, hosts ...string) MergeFunc {
 				if node.IsZero() {
 					continue
 				}
-				data, err := parseYamlNode(ctx, copyNode(node))
+				data, err := parseYamlNode(tpl, ctx, copyNode(node))
 				if err != nil {
 					return err
 				}
@@ -80,7 +82,7 @@ var MergeRuntimeVariable = func(nodes []yaml.Node, hosts ...string) MergeFunc {
 // It takes a YAML node, a source hostname for context, and a list of target hostnames.
 // The function uses the source host's variables as context to parse the YAML node,
 // then merges the parsed data into each target host's RuntimeVars.
-var MergeHostsRuntimeVariable = func(node yaml.Node, hostname string, hosts ...string) MergeFunc {
+var MergeHostsRuntimeVariable = func(tpl *template.Template, node yaml.Node, hostname string, hosts ...string) MergeFunc {
 	if node.IsZero() {
 		// skip
 		return emptyMergeFunc
@@ -101,7 +103,7 @@ var MergeHostsRuntimeVariable = func(node yaml.Node, hostname string, hosts ...s
 		if !ok {
 			return errors.Errorf("host %s variables type error, expect map[string]any", hostname)
 		}
-		data, err := parseYamlNode(ctx, node)
+		data, err := parseYamlNode(tpl, ctx, node)
 		if err != nil {
 			return err
 		}

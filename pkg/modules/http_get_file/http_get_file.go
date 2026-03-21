@@ -31,6 +31,7 @@ import (
 
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/modules/internal"
+	"github.com/kubesphere/kubekey/v4/pkg/utils"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
@@ -140,7 +141,8 @@ func newHttpArgs(ctx context.Context, args map[string]any, vars map[string]any) 
 	}
 
 	// Retrieve http URL
-	httpURL, err := variable.StringVar(vars, args, "url")
+	tpl := utils.GetTmpl(ctx)
+	httpURL, err := variable.StringVar(tpl, vars, args, "url")
 	if err != nil {
 		klog.V(4).InfoS("Failed to get http url, using current url", "error", err)
 	}
@@ -148,21 +150,21 @@ func newHttpArgs(ctx context.Context, args map[string]any, vars map[string]any) 
 	klog.V(4).InfoS("http url", "url", httpArg.url)
 
 	// Retrieve username
-	username, err := variable.StringVar(vars, args, _const.VariableConnectorUserName)
+	username, err := variable.StringVar(tpl, vars, args, _const.VariableConnectorUserName)
 	if err != nil {
 		klog.V(4).InfoS("Failed to get http username, using current username", "error", err)
 	}
 	httpArg.username = username
 
 	// Retrieve password
-	password, err := variable.StringVar(vars, args, _const.VariableConnectorPassword)
+	password, err := variable.StringVar(tpl, vars, args, _const.VariableConnectorPassword)
 	if err != nil {
 		klog.V(4).InfoS("Failed to get http password, using current password", "error", err)
 	}
 	httpArg.password = password
 
 	// Retrieve token
-	token, err := variable.StringVar(vars, args, _const.VariableConnectorToken)
+	token, err := variable.StringVar(tpl, vars, args, _const.VariableConnectorToken)
 	if err != nil {
 		klog.V(4).InfoS("Failed to get connector token, using current token", "error", err)
 	}
@@ -175,7 +177,7 @@ func newHttpArgs(ctx context.Context, args map[string]any, vars map[string]any) 
 			}
 		}
 	}
-	if timeoutStr, err := variable.StringVar(vars, args, "timeout"); err != nil {
+	if timeoutStr, err := variable.StringVar(tpl, vars, args, "timeout"); err != nil {
 		klog.V(4).InfoS("Failed to get http timeout, using default timeout", "error", err)
 	} else {
 		timeout, err := time.ParseDuration(strings.TrimSpace(timeoutStr))
@@ -204,7 +206,7 @@ func ModuleHttpGetFile(ctx context.Context, opts internal.ExecOptions) (string, 
 		return internal.StdoutFailed, internal.StderrParseArgument, err
 	}
 
-	destParam, err := variable.StringVar(ha, args, "dest")
+	destParam, err := variable.StringVar(utils.GetTmpl(ctx), ha, args, "dest")
 	if err != nil {
 		return internal.StdoutFailed, "\"dest\" in args should be string", err
 	}

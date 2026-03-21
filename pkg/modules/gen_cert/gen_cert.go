@@ -26,6 +26,7 @@ import (
 	"k8s.io/utils/ptr"
 
 	"github.com/kubesphere/kubekey/v4/pkg/modules/internal"
+	"github.com/kubesphere/kubekey/v4/pkg/utils"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
@@ -250,19 +251,20 @@ func (gca genCertArgs) selfSignedCertificate(cfg cgutilcert.Config) (string, str
 }
 
 // newGenCertArgs parses and validates the arguments for certificate generation.
-func newGenCertArgs(_ context.Context, raw runtime.RawExtension, vars map[string]any) (*genCertArgs, error) {
+func newGenCertArgs(ctx context.Context, raw runtime.RawExtension, vars map[string]any) (*genCertArgs, error) {
 	gca := &genCertArgs{}
 	// Parse arguments.
 	args := variable.Extension2Variables(raw)
-	gca.rootKey, _ = variable.StringVar(vars, args, "root_key")
-	gca.rootCert, _ = variable.StringVar(vars, args, "root_cert")
-	gca.date, _ = variable.DurationVar(vars, args, "date")
-	gca.policy, _ = variable.StringVar(vars, args, "policy")
-	gca.sans, _ = variable.StringSliceVar(vars, args, "sans")
-	gca.cn, _ = variable.StringVar(vars, args, "cn")
-	gca.outKey, _ = variable.StringVar(vars, args, "out_key")
-	gca.outCert, _ = variable.StringVar(vars, args, "out_cert")
-	gca.isCA, _ = variable.BoolVar(vars, args, "is_ca")
+	tpl := utils.GetTmpl(ctx)
+	gca.rootKey, _ = variable.StringVar(tpl, vars, args, "root_key")
+	gca.rootCert, _ = variable.StringVar(tpl, vars, args, "root_cert")
+	gca.date, _ = variable.DurationVar(tpl, vars, args, "date")
+	gca.policy, _ = variable.StringVar(tpl, vars, args, "policy")
+	gca.sans, _ = variable.StringSliceVar(tpl, vars, args, "sans")
+	gca.cn, _ = variable.StringVar(tpl, vars, args, "cn")
+	gca.outKey, _ = variable.StringVar(tpl, vars, args, "out_key")
+	gca.outCert, _ = variable.StringVar(tpl, vars, args, "out_cert")
+	gca.isCA, _ = variable.BoolVar(tpl, vars, args, "is_ca")
 	// Validate arguments.
 	if gca.policy != policyAlways && gca.policy != policyIfNotPresent && gca.policy != policyNone {
 		return nil, errors.New("\"policy\" must be one of [Always, IfNotPresent, None]")

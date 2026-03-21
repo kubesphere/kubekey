@@ -28,7 +28,7 @@ type roleExecutor struct {
 // It checks tags, merges variables, and recursively executes dependent roles and blocks.
 func (e roleExecutor) Exec(ctx context.Context) error {
 	// merge variables defined in the role for the current hosts
-	if err := e.variable.Merge(variable.MergeRuntimeVariable(e.role.Vars.Nodes, e.hosts...)); err != nil {
+	if err := e.variable.Merge(variable.MergeRuntimeVariable(e.tplEngine, e.role.Vars.Nodes, e.hosts...)); err != nil {
 		return err
 	}
 	// deal dependency role: execute all role dependencies recursively

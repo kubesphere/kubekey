@@ -28,6 +28,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"text/template"
 	"time"
 
 	"github.com/cockroachdb/errors"
@@ -58,42 +59,42 @@ func init() {
 var _ Connector = &sshConnector{}
 var _ GatherFacts = &sshConnector{}
 
-func newSSHConnector(workdir, host string, hostVars map[string]any) *sshConnector {
+func newSSHConnector(tpl *template.Template, workdir, host string, hostVars map[string]any) *sshConnector {
 	// get host in connector variable. if empty, set default host: host_name.
-	hostParam, err := variable.StringVar(nil, hostVars, _const.VariableConnector, _const.VariableConnectorHost)
+	hostParam, err := variable.StringVar(tpl, nil, hostVars, _const.VariableConnector, _const.VariableConnectorHost)
 	if err != nil {
 		klog.V(4).InfoS("get connector host failed use current hostname", "error", err)
 		hostParam = host
 	}
 	// get port in connector variable. if empty, set default port: 22.
-	portParam, err := variable.IntVar(nil, hostVars, _const.VariableConnector, _const.VariableConnectorPort)
+	portParam, err := variable.IntVar(tpl, nil, hostVars, _const.VariableConnector, _const.VariableConnectorPort)
 	if err != nil {
 		klog.V(4).InfoS("connector port is empty, using default", "port", defaultSSHPort)
 		portParam = ptr.To(defaultSSHPort)
 	}
 	// get user in connector variable. if empty, set default user: root.
-	userParam, err := variable.StringVar(nil, hostVars, _const.VariableConnector, _const.VariableConnectorUser)
+	userParam, err := variable.StringVar(tpl, nil, hostVars, _const.VariableConnector, _const.VariableConnectorUser)
 	if err != nil {
 		klog.V(4).InfoS("connector user is empty, using default", "user", defaultSSHUser)
 		userParam = defaultSSHUser
 	}
 	// get password in connector variable. if empty, should connector by private key.
-	passwdParam, err := variable.StringVar(nil, hostVars, _const.VariableConnector, _const.VariableConnectorPassword)
+	passwdParam, err := variable.StringVar(tpl, nil, hostVars, _const.VariableConnector, _const.VariableConnectorPassword)
 	if err != nil {
 		klog.V(4).InfoS("connector password is empty use public key")
 	}
 	// get private key path in connector variable. if empty, set default path: /root/.ssh/id_rsa.
-	keyParam, err := variable.StringVar(nil, hostVars, _const.VariableConnector, _const.VariableConnectorPrivateKey)
+	keyParam, err := variable.StringVar(tpl, nil, hostVars, _const.VariableConnector, _const.VariableConnectorPrivateKey)
 	if err != nil {
 		klog.V(4).InfoS("ssh private key path is empty, using default", "path", defaultSSHPrivateKey)
 		keyParam = defaultSSHPrivateKey
 	}
-	keycontentParam, err := variable.StringVar(nil, hostVars, _const.VariableConnector, _const.VariableConnectorPrivateKeyContent)
+	keycontentParam, err := variable.StringVar(tpl, nil, hostVars, _const.VariableConnector, _const.VariableConnectorPrivateKeyContent)
 	if err != nil {
 		klog.V(4).InfoS("ssh private key content is empty")
 		// Leave keycontentParam as empty string - no default needed
 	}
-	cacheType, _ := variable.StringVar(nil, hostVars, _const.VariableGatherFactsCache)
+	cacheType, _ := variable.StringVar(tpl, nil, hostVars, _const.VariableGatherFactsCache)
 	connector := &sshConnector{
 		Host:              hostParam,
 		Port:              *portParam,
@@ -391,48 +392,5 @@ func (c *sshConnector) HostInfo(ctx context.Context) (map[string]any, error) {
 
 // getHostInfo from remote
 func (c *sshConnector) getHostInfo(ctx context.Context) (map[string]any, error) {
-	// os information
-	osVars := make(map[string]any)
-	var osRelease bytes.Buffer
-	if err := c.FetchFile(ctx, "/etc/os-release", &osRelease); err != nil {
-		return nil, err
-	}
-	osVars[_const.VariableOSRelease] = convertBytesToMap(osRelease.Bytes(), "=")
-	kernel, kernelStderr, err := c.ExecuteCommand(ctx, "uname -r")
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get kernel: %v, stderr: %q", err, string(kernelStderr))
-	}
-	osVars[_const.VariableOSKernelVersion] = string(bytes.TrimSpace(kernel))
-
-	hn, hnStderr, err := c.ExecuteCommand(ctx, "hostname")
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get hostname: %v, stderr: %q", err, string(hnStderr))
-	}
-	osVars[_const.VariableOSHostName] = string(bytes.TrimSpace(hn))
-
-	arch, archStderr, err := c.ExecuteCommand(ctx, "arch")
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get arch: %v, stderr: %q", err, string(archStderr))
-	}
-	osVars[_const.VariableOSArchitecture] = string(bytes.TrimSpace(arch))
-
-	// process information
-	procVars := make(map[string]any)
-	var cpu bytes.Buffer
-	if err := c.FetchFile(ctx, "/proc/cpuinfo", &cpu); err != nil {
-		return nil, err
-	}
-	procVars[_const.VariableProcessCPU] = convertBytesToSlice(cpu.Bytes(), ":")
-	var mem bytes.Buffer
-	if err := c.FetchFile(ctx, "/proc/meminfo", &mem); err != nil {
-		return nil, err
-	}
-	procVars[_const.VariableProcessMemory] = convertBytesToMap(mem.Bytes(), ":")
-
-	// persistence the hostInfo
-
-	return map[string]any{
-		_const.VariableOS:      osVars,
-		_const.VariableProcess: procVars,
-	}, nil
+	return parseHostInfo(c, ctx)
 }

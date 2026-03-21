@@ -17,11 +17,15 @@ limitations under the License.
 package image
 
 import (
+	"context"
 	"io"
 	"regexp"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
+	"github.com/kubesphere/kubekey/v4/pkg/utils"
 )
 
 // TestTransferPullArgs tests the transferPull function for parameter conversion.
@@ -85,7 +89,8 @@ func TestTransferPullArgs(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			result, err := transferPull(tc.args, tc.vars, io.Discard)
+			ctx := context.WithValue(context.Background(), utils.TplKey, tmpl.NewTmplAddFuncs())
+			result, err := transferPull(ctx, tc.args, tc.vars, io.Discard)
 			if tc.expectError {
 				require.Error(t, err)
 			} else {
@@ -169,7 +174,8 @@ func TestTransferPushArgs(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			result, err := transferPush(tc.args, tc.vars, io.Discard)
+			ctx := context.WithValue(context.Background(), utils.TplKey, tmpl.NewTmplAddFuncs())
+			result, err := transferPush(ctx, tc.args, tc.vars, io.Discard)
 			if tc.expectError {
 				require.Error(t, err)
 			} else {
@@ -296,7 +302,8 @@ func TestTransferCopyArgs(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			result, err := transferCopy(tc.args, tc.vars, io.Discard)
+			ctx := context.WithValue(context.Background(), utils.TplKey, tmpl.NewTmplAddFuncs())
+			result, err := transferCopy(ctx, tc.args, tc.vars, io.Discard)
 			if tc.expectError {
 				require.Error(t, err)
 			} else {

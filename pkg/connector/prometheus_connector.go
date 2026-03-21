@@ -26,6 +26,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/cockroachdb/errors"
@@ -55,35 +56,35 @@ type PrometheusConnector struct {
 }
 
 // newPrometheusConnector creates a new PrometheusConnector instance
-func newPrometheusConnector(vars map[string]any) *PrometheusConnector {
+func newPrometheusConnector(tpl *template.Template, vars map[string]any) *PrometheusConnector {
 	pc := &PrometheusConnector{
 		headers: make(map[string]string),
 		timeout: defaultPrometheusTimeout,
 	}
 
 	// Retrieve Prometheus URL
-	promURL, err := variable.StringVar(nil, vars, _const.VariableConnector, _const.VariableConnectorURL)
+	promURL, err := variable.StringVar(tpl, nil, vars, _const.VariableConnector, _const.VariableConnectorURL)
 	if err != nil {
 		klog.V(4).InfoS("Failed to get connector host, using current hostname", "error", err)
 	}
 	pc.url = promURL
 
 	// Retrieve username
-	username, err := variable.StringVar(nil, vars, _const.VariableConnector, _const.VariableConnectorUserName)
+	username, err := variable.StringVar(tpl, nil, vars, _const.VariableConnector, _const.VariableConnectorUserName)
 	if err != nil {
 		klog.V(4).InfoS("Failed to get connector username, using current username", "error", err)
 	}
 	pc.username = username
 
 	// Retrieve password
-	password, err := variable.StringVar(nil, vars, _const.VariableConnector, _const.VariableConnectorPassword)
+	password, err := variable.StringVar(tpl, nil, vars, _const.VariableConnector, _const.VariableConnectorPassword)
 	if err != nil {
 		klog.V(4).InfoS("Failed to get connector password, using current password", "error", err)
 	}
 	pc.password = password
 
 	// Retrieve token
-	token, err := variable.StringVar(nil, vars, _const.VariableConnector, _const.VariableConnectorToken)
+	token, err := variable.StringVar(tpl, nil, vars, _const.VariableConnector, _const.VariableConnectorToken)
 	if err != nil {
 		klog.V(4).InfoS("Failed to get connector token, using current token", "error", err)
 	}

@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 
 	"github.com/kubesphere/kubekey/v4/pkg/modules/internal"
+	"github.com/kubesphere/kubekey/v4/pkg/utils"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
@@ -101,14 +102,15 @@ func ModulePrometheus(ctx context.Context, opts internal.ExecOptions) (string, s
 	args := variable.Extension2Variables(opts.Args)
 
 	// Get query parameters
-	query, err := variable.StringVar(ha, args, "query")
+	tpl := utils.GetTmpl(ctx)
+	query, err := variable.StringVar(tpl, ha, args, "query")
 	if err != nil {
 		return internal.StdoutFailed, "failed to get prometheus query. Please provide a query parameter.", err
 	}
 
 	// Get optional parameters
-	format, _ := variable.StringVar(ha, args, "format")
-	timeParam, _ := variable.StringVar(ha, args, "time")
+	format, _ := variable.StringVar(tpl, ha, args, "format")
+	timeParam, _ := variable.StringVar(tpl, ha, args, "time")
 
 	// Build command (include all parameters in JSON format)
 	cmdMap := map[string]string{

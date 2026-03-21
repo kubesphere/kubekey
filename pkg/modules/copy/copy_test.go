@@ -24,6 +24,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/runtime"
 
+	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
+	"github.com/kubesphere/kubekey/v4/pkg/utils"
+
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 )
 
@@ -109,7 +112,7 @@ func TestCopyArgsParse(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx := context.Background()
+			ctx := context.WithValue(context.Background(), utils.TplKey, tmpl.NewTmplAddFuncs())
 			raw := createRawArgs(tc.args)
 			result, err := newCopyArgs(ctx, raw, nil)
 			if tc.expectParseError {
@@ -165,7 +168,7 @@ func TestCopyArgsTemplate(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx := context.Background()
+			ctx := context.WithValue(context.Background(), utils.TplKey, tmpl.NewTmplAddFuncs())
 			raw := createRawArgs(tc.args)
 			_, err := newCopyArgs(ctx, raw, tc.vars)
 			if tc.expectError {

@@ -12,6 +12,7 @@ import (
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/modules/internal"
 	"github.com/kubesphere/kubekey/v4/pkg/project"
+	"github.com/kubesphere/kubekey/v4/pkg/utils"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
@@ -42,7 +43,8 @@ func ModuleIncludeVars(ctx context.Context, opts internal.ExecOptions) (string, 
 		return internal.StdoutFailed, internal.StderrGetHostVariable, err
 	}
 	// check args
-	includeVarsByte, err := variable.Extension2String(vd, opts.Args)
+	tpl := utils.GetTmpl(ctx)
+	includeVarsByte, err := variable.Extension2String(tpl, vd, opts.Args)
 	if err != nil {
 		return internal.StdoutFailed, internal.StderrParseArgument, err
 	}
@@ -80,7 +82,7 @@ func ModuleIncludeVars(ctx context.Context, opts internal.ExecOptions) (string, 
 		return internal.StdoutFailed, internal.StderrParseArgument, errors.Wrap(err, "failed to failed to unmarshal YAML")
 	}
 
-	if err := opts.Merge(variable.MergeRuntimeVariable([]yaml.Node{node}, opts.Host)); err != nil {
+	if err := opts.Merge(variable.MergeRuntimeVariable(tpl, []yaml.Node{node}, opts.Host)); err != nil {
 		return internal.StdoutFailed, internal.StderrParseArgument, errors.Wrap(err, "failed to merge runtime variables")
 	}
 

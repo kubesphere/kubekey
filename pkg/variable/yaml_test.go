@@ -5,6 +5,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
+
+	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 )
 
 func TestProcessNode(t *testing.T) {
@@ -112,7 +114,7 @@ app:
 			}
 
 			ctx := make(map[string]any)
-			if err = processNode(ctx, node.Content[0]); err != nil {
+			if err = processNode(tmpl.NewTmplAddFuncs(), ctx, node.Content[0]); err != nil {
 				t.Fatalf("processNode failed: %v", err)
 			}
 

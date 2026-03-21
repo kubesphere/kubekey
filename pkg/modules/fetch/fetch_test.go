@@ -25,6 +25,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/runtime"
 
+	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
+	"github.com/kubesphere/kubekey/v4/pkg/utils"
+
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/modules/internal"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
@@ -86,7 +89,7 @@ func TestFetchArgsModule(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			ctx, cancel := context.WithTimeout(context.WithValue(context.Background(), utils.TplKey, tmpl.NewTmplAddFuncs()), 2*time.Second)
 			defer cancel()
 			stdout, stderr, err := ModuleFetch(ctx, tc.opt)
 			require.Equal(t, tc.expectStdout, stdout, tc.description)
@@ -151,7 +154,7 @@ func TestFetchArgsParse(t *testing.T) {
 			raw := createRawArgs(tc.args)
 			args := variable.Extension2Variables(raw)
 
-			_, err := variable.StringVar(tc.vars, args, "src")
+			_, err := variable.StringVar(tmpl.NewTmplAddFuncs(), tc.vars, args, "src")
 
 			if tc.expectError {
 				require.Error(t, err, tc.description)
@@ -199,7 +202,7 @@ func TestFetchArgsTemplate(t *testing.T) {
 			raw := createRawArgs(tc.args)
 			args := variable.Extension2Variables(raw)
 
-			_, err := variable.StringVar(tc.vars, args, "src")
+			_, err := variable.StringVar(tmpl.NewTmplAddFuncs(), tc.vars, args, "src")
 			if tc.expectError {
 				require.Error(t, err, tc.description)
 			} else {
