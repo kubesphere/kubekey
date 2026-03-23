@@ -74,7 +74,11 @@ storage_class:
   # nfs provisioner helm version
   nfs_provisioner_version: 4.0.18
 dns:
-  dns_image:
-    tag: v1.12.1
-  dns_cache_image:
-    tag: 1.26.4
+  # CoreDNS settings.
+  coredns:
+    image:
+      tag: v1.12.1
+  # NodeLocalDNS settings.
+  nodelocaldns:
+    image:
+      tag: 1.26.4
