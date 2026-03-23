@@ -69,13 +69,16 @@ spec:
     # CNI plugin type. Supported: calico, cilium, flannel, hybridnet, kubeovn, other
     type: calico
     # ========== Multi-CNI ==========
-    # Multi-CNI type. Supported: multus, none.
+    # Multi-CNI type. Supported: multus, spiderpool, none.
     multi_cni: none
     # ========== Multi-CNI - Multus ==========
     # Image tag for Multus (configure if needed).
     # multus:
     #   image:
     #    tag: v4.2.4
+    # ========== Multi-CNI - Spiderpool ==========
+    # Spiderpool version (configure if needed).
+    # spiderpool_version: v1.1.1
     # ========== Calico CNI ==========
     # Calico version (effective only when type is calico).
     calico_version: v3.26.5

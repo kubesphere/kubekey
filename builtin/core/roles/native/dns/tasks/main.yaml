@@ -2,8 +2,7 @@
   loop: "{{ .native.localDNS | toJson }}"
   command: |
     # Clean up any previous Kubekey-managed DNS blocks
-    sed -i ':a;$!{N;ba};s@# kubekey hosts BEGIN.*# kubekey hosts END@@' {{ .item }}
-    sed -i '/^$/N;/\n$/N;//D' {{ .item }}
+    sed -i '/# kubekey hosts BEGIN/,/# kubekey hosts END/d' {{ .item }}
     # Write the latest Kubekey DNS configuration
     cat >> {{ .item }} <<EOF
     # kubekey hosts BEGIN
@@ -40,11 +39,13 @@
     {{- if and (.image_registry.auth.registry | empty | not) (.image_registry.ha_vip | empty | not) }}
     {{ .image_registry.ha_vip }} {{ .image_registry.auth.registry | splitList "/" | first }}
     {{- else }}
-      {{- if (index .hostvars (.groups.image_registry | first) "internal_ipv4") | empty | not }}
+      {{- if .groups.image_registry | empty | not }}
+        {{- if (index .hostvars (.groups.image_registry | first) "internal_ipv4") | empty | not }}
     {{ index .hostvars (.groups.image_registry | first) "internal_ipv4" }} {{ .image_registry.auth.registry | splitList "/" | first }}
-      {{- end }}
-      {{- if (index .hostvars (.groups.image_registry | first) "internal_ipv6") | empty | not }}
+        {{- end }}
+        {{- if (index .hostvars (.groups.image_registry | first) "internal_ipv6") | empty | not }}
     {{ index .hostvars (.groups.image_registry | first) "internal_ipv6" }} {{ .image_registry.auth.registry | splitList "/" | first }}
+        {{- end }}
       {{- end }}
     {{- end }}
     # NFS server nodes
@@ -63,19 +64,20 @@
   loop: "{{ .native.localDNS | toJson }}"
   command: |
     # Remove any previous Kubekey-managed image registry control plane endpoint entries
-    sed -i ':a;$!{N;ba};s@# kubekey image_registry control_plane_endpoint BEGIN.*# kubekey image_registry control_plane_endpoint END@@' {{ .item }}
-    sed -i '/^$/N;/\n$/N;//D' {{ .item }}
+    sed -i '/# kubekey image_registry control_plane_endpoint BEGIN/,/# kubekey image_registry control_plane_endpoint END/d' {{ .item }}
     # Write the latest Kubekey image registry control plane endpoint DNS configuration
     cat >> {{ .item }} <<EOF
     # kubekey image_registry control_plane_endpoint BEGIN
     {{- if and (.image_registry.auth.registry | empty | not) (.image_registry.ha_vip | empty | not) }}
     {{ .image_registry.ha_vip }} {{ .image_registry.auth.registry | splitList "/" | first }}
     {{- else }}
-      {{- if (index .hostvars (.groups.image_registry | first) "internal_ipv4") | empty | not }}
+      {{- if .groups.image_registry | empty | not }}
+        {{- if (index .hostvars (.groups.image_registry | first) "internal_ipv4") | empty | not }}
     {{ index .hostvars (.groups.image_registry | first) "internal_ipv4" }} {{ .image_registry.auth.registry | splitList "/" | first }}
-      {{- end }}
-      {{- if (index .hostvars (.groups.image_registry | first) "internal_ipv6") | empty | not }}
+        {{- end }}
+        {{- if (index .hostvars (.groups.image_registry | first) "internal_ipv6") | empty | not }}
     {{ index .hostvars (.groups.image_registry | first) "internal_ipv6" }} {{ .image_registry.auth.registry | splitList "/" | first }}
+        {{- end }}
       {{- end }}
     {{- end }}
     # kubekey image_registry control_plane_endpoint END
@@ -137,7 +139,7 @@
     - .groups.k8s_cluster | default list | has .inventory_hostname
   command: |
     # Remove any previous Kubekey-managed kubernetes control plane endpoint DNS entries
-    sed -i ':a;$!{N;ba};s@# kubekey kubernetes control_plane_endpoint BEGIN.*# kubekey kubernetes control_plane_endpoint END@@' {{ .item }}
+    sed -i '/# kubekey kubernetes control_plane_endpoint BEGIN/,/# kubekey kubernetes control_plane_endpoint END/d' {{ .item }}
     # Write the current control plane endpoint DNS configuration
     cat >> {{ .item }} <<EOF
     # kubekey kubernetes control_plane_endpoint BEGIN

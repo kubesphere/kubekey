@@ -38,12 +38,12 @@
   loop: "{{ .native.localDNS | toJson }}"
   when: or (.kubernetes.control_plane_endpoint.type | ne "local") (.kubernetes.control_plane_endpoint.local.address | empty)
   command: |
-    sed -i ':a;$!{N;ba};s@# kubekey kubernetes control_plane_endpoint BEGIN.*# kubekey kubernetes control_plane_endpoint END@@' {{ .item }}
+    sed -i '/# kubekey kubernetes control_plane_endpoint BEGIN/,/# kubekey kubernetes control_plane_endpoint END/d' {{ .item }}
     cat >> {{ .item }} <<EOF
     # kubekey kubernetes control_plane_endpoint BEGIN
     127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
     ::1 {{ .kubernetes.control_plane_endpoint.host }}
-    # kubekey control_plane_endpoint END
+    # kubekey kubernetes control_plane_endpoint END
     EOF
     
 - name: Init | Copy kubeconfig to default directory

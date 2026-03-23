@@ -68,3 +68,13 @@
   copy:
     src: "{{ .binary_dir }}/storageclass/nfs/nfs-subdir-external-provisioner-{{ .item }}.tgz"
     dest: "{{ .artifact_dir }}/kubekey/storageclass/nfs/nfs-subdir-external-provisioner-{{ .item }}.tgz"
+
+- name: Helm | Ensure the Spiderpool binary is available
+  loop: "{{ .download.cni.spiderpool_version | toJson }}"
+  when:
+    - .item | empty | not
+    - .download.cni.multi_cni | has "spiderpool"
+    - printf "%s/cni/spiderpool/spiderpool-%s.tgz" .artifact_dir .item | fileExists | not
+  copy:
+    src: "{{ .binary_dir }}/cni/spiderpool/spiderpool-{{ .item }}.tgz"
+    dest: "{{ .artifact_dir }}/kubekey/cni/spiderpool/spiderpool-{{ .item }}.tgz"

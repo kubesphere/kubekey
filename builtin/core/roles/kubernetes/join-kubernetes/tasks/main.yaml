@@ -58,7 +58,7 @@
         - .groups.kube_control_plane | default list | has .inventory_hostname
       loop: "{{ .native.localDNS | toJson }}"
       command: |
-        sed -i ':a;$!{N;ba};s@# kubekey kubernetes control_plane_endpoint BEGIN.*# kubekey kubernetes control_plane_endpoint END@@' {{ .item }}
+        sed -i '/# kubekey kubernetes control_plane_endpoint BEGIN/,/# kubekey kubernetes control_plane_endpoint END/d' {{ .item }}
         cat >> {{ .item }} <<EOF
         # kubekey kubernetes control_plane_endpoint BEGIN
         127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
@@ -72,7 +72,7 @@
         - .kubernetes.control_plane_endpoint.type | eq "haproxy"
       loop: "{{ .native.localDNS | toJson }}"
       command: |
-        sed -i ':a;$!{N;ba};s@# kubekey kubernetes control_plane_endpoint BEGIN.*# kubekey kubernetes control_plane_endpoint END@@' {{ .item }}
+        sed -i '/# kubekey kubernetes control_plane_endpoint BEGIN/,/# kubekey kubernetes control_plane_endpoint END/d' {{ .item }}
         cat >> {{ .item }} <<EOF
         # kubekey kubernetes control_plane_endpoint BEGIN
         127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}

@@ -211,12 +211,13 @@ sysctl -p
 
 # ------------------------ 8. Local Host DNS Configuration ---------------------
 
-sed -i ':a;$!{N;ba};s@# kubekey hosts BEGIN.*# kubekey hosts END@@' /etc/hosts
-sed -i ':a;$!{N;ba};s@# kubekey kubernetes control_plane_endpoint BEGIN.*# kubekey kubernetes control_plane_endpoint END@@' {{ .item }}
-sed -i ':a;$!{N;ba};s@# kubekey image_registry control_plane_endpoint BEGIN.*# kubekey image_registry control_plane_endpoint END@@' {{ .item }}
-sed -i '/^$/N;/\n$/N;//D' /etc/hosts
+for dnsFile in {{ .native.localDNS | join " " }}; do
+   sed -i '/# kubekey hosts BEGIN/,/# kubekey hosts END/d' $dnsFile
+   sed -i '/# kubekey kubernetes control_plane_endpoint BEGIN/,/# kubekey kubernetes control_plane_endpoint END/d' $dnsFile
+   sed -i '/# kubekey image_registry control_plane_endpoint BEGIN/,/# kubekey image_registry control_plane_endpoint END/d' $dnsFile
+   awk 'NF{blank=0} !NF{blank++} blank<2' $dnsFile > tmp && mv tmp $dnsFile
 
-cat >>/etc/hosts<<EOF
+   cat >>$dnsFile<<EOF
 # kubekey hosts BEGIN
 # kubernetes hosts
 {{- range .groups.k8s_cluster | default list }}
@@ -259,6 +260,8 @@ cat >>/etc/hosts<<EOF
 {{- end }}
 # kubekey hosts END
 EOF
+
+done
 
 sync
 # echo 3 > /proc/sys/vm/drop_caches
