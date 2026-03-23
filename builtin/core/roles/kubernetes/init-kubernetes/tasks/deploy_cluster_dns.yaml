@@ -11,12 +11,12 @@
     kubectl apply -f /etc/kubernetes/coredns.yaml && kubectl rollout restart deployment -n kube-system coredns
 
 - name: DNS | Generate NodeLocalDNS DaemonSet manifest
-  when: dns.nodelocaldns.enabled
+  when: .dns.nodelocaldns.enabled
   template:
     src: dns/nodelocaldns.yaml
     dest: /etc/kubernetes/nodelocaldns.yaml
 
 - name: DNS | Deploy NodeLocalDNS DaemonSet
-  when: dns.nodelocaldns.enabled
+  when: .dns.nodelocaldns.enabled
   command: |
     kubectl apply -f /etc/kubernetes/nodelocaldns.yaml
