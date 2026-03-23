@@ -393,6 +393,11 @@ func (c *sshConnector) HostInfo(ctx context.Context) (map[string]any, error) {
 func (c *sshConnector) getHostInfo(ctx context.Context) (map[string]any, error) {
 	// os information
 	osVars := make(map[string]any)
+	osType, osTypeStderr, err := c.ExecuteCommand(ctx, "uname -s")
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get os type: %v, stderr: %q", err, string(osTypeStderr))
+	}
+	osVars[_const.VariableOSType] = string(bytes.TrimSpace(osType))
 	var osRelease bytes.Buffer
 	if err := c.FetchFile(ctx, "/etc/os-release", &osRelease); err != nil {
 		return nil, err

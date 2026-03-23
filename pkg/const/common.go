@@ -73,6 +73,8 @@ const ( // === From system generate ===
 const ( // === From GatherFact ===
 	// VariableOS the value is os information.
 	VariableOS = "os"
+	// VariableOSType the value is os type of VariableOS.
+	VariableOSType = "type"
 	// VariableOSRelease the value is os-release of VariableOS.
 	VariableOSRelease = "release"
 	// VariableOSKernelVersion the value is kernel version of VariableOS.
