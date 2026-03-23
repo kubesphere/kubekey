@@ -106,11 +106,14 @@ spec:
     # nfs-provisioner Helm chart version.
     #nfs_provisioner_version: 4.0.18
   dns:
-    # CoreDNS image tag.
-    dns_image:
-      tag: v1.9.3
-    # NodeLocalDNS image tag.
-    dns_cache_image:
-      tag: 1.22.13
+    # CoreDNS settings.
+    coredns:
+      image:
+        tag: v1.9.3
+    # NodeLocalDNS settings.
+    nodelocaldns:
+      enabled: true
+      image:
+        tag: 1.22.13
   # the external images will to add in packages  
   image_manifests: []
