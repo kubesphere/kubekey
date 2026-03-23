@@ -40,7 +40,7 @@ spec:
           operator: "Exists"
       containers:
       - name: node-cache
-        image: {{ .dns.dns_cache_image.registry }}/{{ .dns.dns_cache_image.repository }}:{{ .dns.dns_cache_image.tag }}
+        image: {{ .dns.nodelocaldns.image.registry }}/{{ .dns.nodelocaldns.image.repository }}:{{ .dns.nodelocaldns.image.tag }}
         resources:
           limits:
             memory: 200Mi
@@ -49,7 +49,7 @@ spec:
             memory: 70Mi
         args: 
           - -localip
-          - {{ .dns.dns_cache_ip }}
+          - {{ .dns.nodelocaldns.ip }}
           - -conf
           - /etc/coredns/Corefile
           - -upstreamsvc
@@ -67,7 +67,7 @@ spec:
             protocol: TCP
         livenessProbe:
           httpGet:
-            host: {{ .dns.dns_cache_ip }}
+            host: {{ .dns.nodelocaldns.ip }}
             path: /health
             port: 9254
             scheme: HTTP
@@ -76,7 +76,7 @@ spec:
           failureThreshold: 10
         readinessProbe:
           httpGet:
-            host: {{ .dns.dns_cache_ip }}
+            host: {{ .dns.nodelocaldns.ip }}
             path: /health
             port: 9254
             scheme: HTTP
@@ -170,7 +170,7 @@ data:
     }
   {{- end }}
 
-    {{ .dns.dns_domain }}:53 {
+    {{ .dns.domain }}:53 {
       errors
       cache {
          success 9984 30
@@ -178,19 +178,19 @@ data:
       }
       reload
       loop
-      bind {{ .dns.dns_cache_ip }}
-      forward . {{ .dns.dns_service_ip }} {
+      bind {{ .dns.nodelocaldns.ip }}
+      forward . {{ .dns.coredns.ip }} {
         force_tcp
       }
-      health {{ .dns.dns_cache_ip }}:9254
+      health {{ .dns.nodelocaldns.ip }}:9254
     }
     in-addr.arpa:53 {
       errors
       cache 30
       reload
       loop
-      bind {{ .dns.dns_cache_ip }}
-      forward . {{ .dns.dns_service_ip }} {
+      bind {{ .dns.nodelocaldns.ip }}
+      forward . {{ .dns.coredns.ip }} {
         force_tcp
       }
     }
@@ -199,8 +199,8 @@ data:
       cache 30
       reload
       loop
-      bind {{ .dns.dns_cache_ip }}
-      forward . {{ .dns.dns_service_ip }} {
+      bind {{ .dns.nodelocaldns.ip }}
+      forward . {{ .dns.coredns.ip }} {
           force_tcp
       }
     }
@@ -209,7 +209,7 @@ data:
       cache 30
       reload
       loop
-      bind {{ .dns.dns_cache_ip }}
+      bind {{ .dns.nodelocaldns.ip }}
       forward . /etc/resolv.conf
     {{- if .dns.dns_etc_hosts | empty | not }}
       hosts /etc/coredns/hosts {
