@@ -139,6 +139,7 @@ func (c *localConnector) getHostInfo(ctx context.Context) (map[string]any, error
 	case "linux":
 		// os information
 		osVars := make(map[string]any)
+		osVars[_const.VariableOSType] = runtime.GOOS
 		var osRelease bytes.Buffer
 		if err := c.FetchFile(ctx, "/etc/os-release", &osRelease); err != nil {
 			return nil, err
@@ -181,7 +182,11 @@ func (c *localConnector) getHostInfo(ctx context.Context) (map[string]any, error
 		}, nil
 	default:
 		klog.V(4).ErrorS(nil, "Unsupported platform", "platform", runtime.GOOS)
+		// os information
+		osVars := make(map[string]any)
+		osVars[_const.VariableOSType] = runtime.GOOS
+		return map[string]any{
+			_const.VariableOS: osVars,
+		}, nil
 	}
-
-	return make(map[string]any), nil
 }
