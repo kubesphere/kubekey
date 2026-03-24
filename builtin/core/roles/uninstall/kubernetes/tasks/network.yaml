@@ -30,7 +30,9 @@
     rm -rf /etc/cni/net.d/
     rm -rf /var/lib/cni/
     {{- if .cni.type | eq "calico" }}
-    rm -rf /usr/local/bin/calicoctl
+    if path=$(command -v calicoctl 2>/dev/null); then 
+      rm -f "$path"
+    fi
     {{- end }}
 
 - name: Network | Remove ARP and IP address entries for kube-vip

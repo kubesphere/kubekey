@@ -23,15 +23,21 @@
       command: |
         rm -rf {{ .cri.containerd.data_root }}
         rm -rf /etc/containerd
-        rm -rf /usr/local/bin/containerd*
-        rm -f /usr/local/bin/runc
-        rm -f /usr/local/bin/ctr
+        for bin in containerd containerd-shim containerd-shim-runc-v2 ctr runc; do
+          if path=$(command -v $bin 2>/dev/null); then
+            rm -f "$path"
+          fi
+        done
 
 - name: DockerCompose | Remove all Docker residual files and binaries
   command: |
     rm -rf {{ .cri.docker.data_root }}
     rm -rf /etc/docker
-    rm -rf /usr/local/bin/docker*
+    for bin in docker dockerd docker-init docker-proxy; do
+      if path=$(command -v $bin 2>/dev/null); then
+        rm -f "$path"
+      fi
+    done
 
 - name: DockerCompose | Remove the docker0 network interface
   ignore_errors: true
