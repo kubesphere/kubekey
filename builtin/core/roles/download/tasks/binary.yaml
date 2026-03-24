@@ -282,6 +282,7 @@
     {{- $result | toJson }}
   when: 
     - index (.item | default dict) "version" | empty | not
+    - or (index (.download.image_registry | default dict) "type" | empty | not) (.image_registry.type | empty | not)
     - printf "%s/image-registry/keepalived/%s/%s/keepalived-%s-linux-%s.tgz" .binary_dir .item.version .item.arch .item.version .item.arch | fileExists | not
   http_get_file:
     url: "{{ tpl .download.artifact_url.keepalived .item }}"

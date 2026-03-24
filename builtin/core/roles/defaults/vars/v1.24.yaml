@@ -16,7 +16,7 @@ etcd:
 image_registry:
   # ========== image registry ==========
   # keepalived image tag. Used for load balancing when there are multiple image registry nodes.
-  keepalived_version: v2.0.20
+  keepalived_version: 2.0.20
   # ========== image registry: harbor ==========
   # Harbor image tag (only valid if type is harbor).
   harbor_version: v2.10.2
