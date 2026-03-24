@@ -47,6 +47,7 @@
     EOF
     
 - name: Init | Copy kubeconfig to default directory
+  when: .kubernetes_install_LoadState.stdout | eq "not-found"
   command: |
     if [ ! -d ~/.kube ]; then
       mkdir -p ~/.kube
@@ -56,7 +57,7 @@
     fi
     cp -f /etc/kubernetes/admin.conf ~/.kube/config
     cp -f /etc/kubernetes/admin.conf /root/.kube/config
-  when: .kubernetes_install_LoadState.stdout | eq "not-found"
+    chown "$SUDO_USER":root ~/.kube/config
 
 - name: Init | Configure node as worker
   when: .groups.kube_worker | default list | has .inventory_hostname

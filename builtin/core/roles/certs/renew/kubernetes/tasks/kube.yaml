@@ -53,3 +53,8 @@
     src: >-
       {{ .binary_dir }}/kubeconfig
     dest: /root/.kube/config
+
+- name: Kubernetes | Set kubeconfig permissions
+  command: |
+    chown "$SUDO_USER":root ~/.kube/config
+    chown root:root /root/.kube/config

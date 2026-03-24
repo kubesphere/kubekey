@@ -27,6 +27,11 @@
       {{ .binary_dir }}/kubeconfig
     dest: /root/.kube/config
 
+- name: Join | Set kubeconfig permissions
+  command: |
+    chown "$SUDO_USER":root ~/.kube/config
+    chown root:root /root/.kube/config
+
 - name: Join | Configure node as worker
   when: .groups.kube_worker | default list | has .inventory_hostname
   block:
