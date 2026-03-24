@@ -14,7 +14,7 @@ metadata:
     prometheus.io/scrape: "true"
     createdby: 'kubekey'
 spec:
-  clusterIP: {{ .dns.dns_service_ip }}
+  clusterIP: {{ .dns.coredns.ip }}
   selector:
     k8s-app: kube-dns
   ports:

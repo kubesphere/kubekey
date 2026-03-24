@@ -44,27 +44,25 @@
 - name: Containerd | Synchronize image registry TLS certificates to the remote node
   block:
     - name: Containerd | Copy image registry CA certificate to the remote node
-      when: .image_registry.auth.ca_file | empty | not
+      when: .image_registry.auth.ca_file | fileExists
       copy:
         src: >-
           {{ .image_registry.auth.ca_file }}
         dest: >-
-          /etc/containerd/certs.d/{{ .image_registry.auth.registry }}/ca.crt
+          /etc/containerd/certs.d/{{ .image_registry.auth.registry | splitList "/" | first }}/ca.crt
     - name: Containerd | Copy image registry server certificate to the remote node
       when:
-      - .image_registry.auth.cert_file | empty | not
       - .image_registry.auth.cert_file | fileExists
       copy:
         src: >-
           {{ .image_registry.auth.cert_file }}
         dest: >-
-          /etc/containerd/certs.d/{{ .image_registry.auth.registry }}/server.crt
+          /etc/containerd/certs.d/{{ .image_registry.auth.registry | splitList "/" | first }}/server.crt
     - name: Containerd | Copy image registry server key to the remote node
       when:
-      - .image_registry.auth.key_file | empty | not
       - .image_registry.auth.key_file | fileExists
       copy:
         src: >-
           {{ .image_registry.auth.key_file }}
         dest: >-
-          /etc/containerd/certs.d/{{ .image_registry.auth.registry }}/server.key
+          /etc/containerd/certs.d/{{ .image_registry.auth.registry | splitList "/" | first }}/server.key

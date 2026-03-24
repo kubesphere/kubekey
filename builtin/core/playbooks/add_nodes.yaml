@@ -1,6 +1,7 @@
 ---
 - hosts:
     - all
+  gather_facts: true
   roles:
     - native/root
 - import_playbook: hook/pre_install.yaml

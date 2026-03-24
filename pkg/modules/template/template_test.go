@@ -134,7 +134,7 @@ func TestTemplateArgsParse(t *testing.T) {
 		},
 		{
 			name:             "valid args with mode",
-			args:             map[string]any{"src": "/local/template.tmpl", "dest": "/remote/file.conf", "mode": 0644},
+			args:             map[string]any{"src": "/local/template.tmpl", "dest": "/remote/file.conf", "mode": _const.PermFilePublic},
 			expectParseError: false,
 			expectSrc:        "/local/template.tmpl",
 			expectDest:       "/remote/file.conf",
@@ -216,7 +216,7 @@ func TestTemplateArgsTemplate(t *testing.T) {
 		{
 			name:        "template: mode with template variable",
 			args:        map[string]any{"src": "/tmp/src", "dest": "/tmp/dest", "mode": "{{ .file_mode }}"},
-			vars:        map[string]any{"file_mode": 0644},
+			vars:        map[string]any{"file_mode": _const.PermFilePublic},
 			expectError: false,
 			description: "When mode contains template, should resolve with vars",
 		},

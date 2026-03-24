@@ -16,7 +16,7 @@ etcd:
 image_registry:
   # ========== image registry ==========
   # keepalived image tag. Used for load balancing when there are multiple image registry nodes.
-  keepalived_version: v2.0.20
+  keepalived_version: 2.0.20
   # ========== image registry: harbor ==========
   # Harbor image tag (only valid if type is harbor).
   harbor_version: v2.10.2
@@ -44,9 +44,6 @@ cri:
   # runc binary
   runc_version: v1.1.5
 cni:
-  multus:
-    image:
-      tag: v4.2.4
   # ========== cni ==========
   # cni_plugins binary (optional)
   # cni_plugins_version: v1.1.1
@@ -64,6 +61,12 @@ cni:
   # ========== cni: hybridnet ==========
   # hybridnet helm
   hybridnet_version: 0.6.8
+  # ========== multi-cni: multus ==========
+  multus:
+    image:
+      tag: v4.2.4
+  # ========== multi-cni: spiderpool ==========
+  spiderpool_version: v1.1.1
 storage_class:
   # ========== storageclass ==========
   # ========== storageclass: local ==========
@@ -73,34 +76,11 @@ storage_class:
   # nfs provisioner helm version
   nfs_provisioner_version: 4.0.18
 dns:
-  dns_image:
-    tag: v1.8.6
-  dns_cache_image:
-    tag: 1.21.1
-image_manifests:
-  # calico for v3.26.5
-  - quay.io/tigera/operator:v1.30.11
-  - docker.io/calico/apiserver:v3.26.5
-  - docker.io/calico/cni:v3.26.5
-  - docker.io/calico/ctl:v3.26.5
-  - docker.io/calico/csi:v3.26.5
-  - docker.io/calico/kube-controllers:v3.26.5
-  - docker.io/calico/node-driver-registrar:v3.26.5
-  - docker.io/calico/node:v3.26.5
-  - docker.io/calico/pod2daemon-flexvol:v3.26.5
-  - docker.io/calico/typha:v3.26.5
-  # dns
-  - registry.k8s.io/coredns/coredns:v1.8.6
-  - registry.k8s.io/dns/k8s-dns-node-cache:1.21.1
-  # kubernetes
-  - registry.k8s.io/kube-apiserver:{{ .kubernetes.kube_version }}
-  - registry.k8s.io/kube-controller-manager:{{ .kubernetes.kube_version }}
-  - registry.k8s.io/kube-proxy:{{ .kubernetes.kube_version }}
-  - registry.k8s.io/kube-scheduler:{{ .kubernetes.kube_version }}
-  - registry.k8s.io/pause:3.7
-  # openebs/local for 4.4.0
-  - docker.io/openebs/linux-utils:4.3.0
-  - docker.io/openebs/provisioner-localpv:4.4.0
-  # control_plane_endpoint ha
-  - docker.io/library/haproxy:2.9.6-alpine
-  - docker.io/plndr/kube-vip:v0.7.2
+  # CoreDNS settings.
+  coredns:
+    image:
+      tag: v1.8.6
+  # NodeLocalDNS settings.
+  nodelocaldns:
+    image:
+      tag: 1.21.1 

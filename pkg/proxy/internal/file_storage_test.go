@@ -36,7 +36,7 @@ const testRootDir = "test"
 
 // The init function creates the test directory before any tests run.
 func init() {
-	if err := os.MkdirAll(testRootDir, 0755); err != nil {
+	if err := os.MkdirAll(testRootDir, _const.PermDirPublic); err != nil {
 		panic("failed to create test directory: " + err.Error())
 	}
 }
@@ -44,7 +44,7 @@ func init() {
 // cleanupTestDir removes and then recreates the test directory.
 func cleanupTestDir() {
 	os.RemoveAll(testRootDir)
-	if err := os.MkdirAll(testRootDir, 0755); err != nil {
+	if err := os.MkdirAll(testRootDir, _const.PermDirPublic); err != nil {
 		panic("failed to create test directory: " + err.Error())
 	}
 }
@@ -52,7 +52,7 @@ func cleanupTestDir() {
 // ensureResourceDir makes sure the given resource directory exists under the test root.
 func ensureResourceDir(resourcePrefix string) {
 	resourcePath := filepath.Join(testRootDir, resourcePrefix)
-	if err := os.MkdirAll(resourcePath, 0755); err != nil {
+	if err := os.MkdirAll(resourcePath, _const.PermDirPublic); err != nil {
 		panic("failed to create resource directory: " + err.Error())
 	}
 }
@@ -273,7 +273,7 @@ func Test_fileStore_GetListEmpty(t *testing.T) {
 
 			// Ensure the resource directory exists
 			resourcePath := filepath.Join(testRootDir, tc.resourcePrefix)
-			if err := os.MkdirAll(resourcePath, 0755); err != nil {
+			if err := os.MkdirAll(resourcePath, _const.PermDirPublic); err != nil {
 				t.Fatalf("failed to create resource directory: %v", err)
 			}
 

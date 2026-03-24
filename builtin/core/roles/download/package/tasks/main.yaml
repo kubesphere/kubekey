@@ -13,13 +13,10 @@
     - include_tasks: images.yaml
     # Download iso file
     - include_tasks: iso.yaml
+    # Download tools file
+    - include_tasks: tools.yaml
 
 - name: Package | Export artifact
   command: |
-    cp {{ .work_dir }}/manifests.yaml {{ .artifact_dir }}/manifests.yaml
-    {{- if .download.artifact_file | empty }}
-    artifact_file={{ .work_dir }}/artifact.tgz
-    {{- else }}
-    artifact_file={{ .download.artifact_file }}
-    {{- end }}
-    cd {{ .artifact_dir }} && tar -czvf $artifact_file .
+    # package binary directory
+    cd {{ .artifact_dir }}/kubekey && tar -czvf {{ .artifact_dir }}/kubekey-artifact.tgz . && rm -rf {{ .artifact_dir }}/kubekey

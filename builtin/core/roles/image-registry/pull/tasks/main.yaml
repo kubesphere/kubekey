@@ -1,0 +1,16 @@
+- name: PullImage | Download container images
+  tags: ["pull","image_registry"]
+  image:
+    platform: >
+      {{- $platform := list }}
+      {{- range .download.arch }}
+        {{- $platform = append $platform (printf "linux/%s" .) }}
+      {{- end }}
+      {{- $platform | toJson }}
+    policy: "{{ .download.images.policy }}"
+    auths: "{{ .cri.registry.auths | toJson }}"
+    manifests: "{{ .download.images.manifests | toJson }}"
+    src: "oci://{{ .module.image.reference.registry }}/{{ .module.image.reference.repository }}:{{ .module.image.reference.reference }}"
+    dest: "local://{{ .binary_dir }}/images/"
+  when:
+    - .download.fetch

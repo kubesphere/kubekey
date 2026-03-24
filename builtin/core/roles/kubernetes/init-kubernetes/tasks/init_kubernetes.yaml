@@ -4,10 +4,8 @@
     src: >-
       {{- if .kubernetes.kube_version | semverCompare ">=v1.31.0" -}}
       kubeadm/kubeadm-init.v1beta4
-      {{- else if .kubernetes.kube_version | semverCompare ">=v1.24.0" -}}
-      kubeadm/kubeadm-init.v1beta3
       {{- else -}}
-      kubeadm/kubeadm-init.v1beta2
+      kubeadm/kubeadm-init.v1beta3
       {{- end -}}
     dest: /etc/kubernetes/kubeadm-config.yaml
 
@@ -24,7 +22,7 @@
       command: | 
         # In Kubernetes, the ImagePullCheck for the pause image uses a hardcoded tag.
         # Adding --ignore-preflight-errors=ImagePull allows customization of the pause image reference.
-        /usr/local/bin/kubeadm init --config=/etc/kubernetes/kubeadm-config.yaml --ignore-preflight-errors=ImagePull {{ if not .kubernetes.kube_proxy.enabled }}--skip-phases=addon/kube-proxy{{ end }}
+        /usr/local/bin/kubeadm init --config=/etc/kubernetes/kubeadm-config.yaml --ignore-preflight-errors=ImagePull
     - name: Init | Post-initialization for kube-vip
       when: 
         - .kubernetes.kube_version | semverCompare ">=v1.29.0"
@@ -40,12 +38,12 @@
   loop: "{{ .native.localDNS | toJson }}"
   when: or (.kubernetes.control_plane_endpoint.type | ne "local") (.kubernetes.control_plane_endpoint.local.address | empty)
   command: |
-    sed -i ':a;$!{N;ba};s@# kubekey kubernetes control_plane_endpoint BEGIN.*# kubekey kubernetes control_plane_endpoint END@@' {{ .item }}
+    sed -i '/# kubekey kubernetes control_plane_endpoint BEGIN/,/# kubekey kubernetes control_plane_endpoint END/d' {{ .item }}
     cat >> {{ .item }} <<EOF
     # kubekey kubernetes control_plane_endpoint BEGIN
     127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
     ::1 {{ .kubernetes.control_plane_endpoint.host }}
-    # kubekey control_plane_endpoint END
+    # kubekey kubernetes control_plane_endpoint END
     EOF
     
 - name: Init | Copy kubeconfig to default directory

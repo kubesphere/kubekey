@@ -29,6 +29,14 @@ const (
 	mergeTag     = "!!merge"     // Merge key indicator
 )
 
+func copyNode(n yaml.Node) yaml.Node {
+	b, _ := yaml.Marshal(&n)
+	var out yaml.Node
+	_ = yaml.Unmarshal(b, &out)
+
+	return out
+}
+
 // parseYamlNode parses a YAML node into a map[string]any.
 // It handles both document nodes and other node types.
 func parseYamlNode(ctx map[string]any, node yaml.Node) (map[string]any, error) {

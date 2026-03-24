@@ -1,6 +1,7 @@
 ---
 - hosts:
     - all
+  gather_facts: true
   roles:
     - native/root
 

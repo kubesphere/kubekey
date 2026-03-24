@@ -1,6 +1,5 @@
 - name: Image | Download container images
   when:
-    - .download.images.manifests | default .image_manifests | empty | not
     - .download.fetch
   image:
     platform: >
@@ -11,6 +10,6 @@
       {{- $platform | toJson }}
     policy: "{{ .download.images.policy }}"
     auths: "{{ .cri.registry.auths | toJson }}"
-    manifests: "{{ .download.images.manifests | default .image_manifests | toJson }}"
+    manifests: "{{ .download.images.manifests | toJson }}"
     src: "oci://{{ .module.image.reference.registry }}/{{ .module.image.reference.repository }}:{{ .module.image.reference.reference }}"
     dest: "local://{{ .binary_dir }}/images/"

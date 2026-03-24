@@ -1,0 +1,15 @@
+global:
+  ## @param global.imageRegistryOverride Global image registry for all images, which is used for offline environment
+  imageRegistryOverride: "{{ .image_registry.ghcrio_registry }}"
+
+  ## @param global.clusterDnsDomain cluster dns domain
+  clusterDnsDomain: "{{ .kubernetes.networking.dns_domain | default "cluster.local" }}"
+
+  ## @section ipam parameters
+  ##
+  ipam:
+    ## @param ipam.enableIPv4 enable ipv4
+    enableIPv4: {{ .cni.ipv4_support }}
+  
+    ## @param ipam.enableIPv6 enable ipv6
+    enableIPv6: {{ .cni.ipv6_support }}

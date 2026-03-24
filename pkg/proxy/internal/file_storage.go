@@ -19,6 +19,8 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	apistorage "k8s.io/apiserver/pkg/storage"
 	"k8s.io/apiserver/pkg/storage/storagebackend/factory"
+
+	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 )
 
 const (
@@ -99,7 +101,7 @@ func (s *fileStore) updateRevision() error {
 	s.revisionMux.Unlock()
 
 	revisionPath := filepath.Join(s.rootDir, s.resourcePrefix, revisionFile)
-	return os.WriteFile(revisionPath, []byte(strconv.FormatUint(rev, 10)), 0644)
+	return os.WriteFile(revisionPath, []byte(strconv.FormatUint(rev, 10)), _const.PermFilePublic)
 }
 
 // ================================================
@@ -129,14 +131,14 @@ func (s *fileStore) getKeyFromPath(absPath string) string {
 // writeObject writes an object to file
 func (s *fileStore) writeObject(key string, obj runtime.Object) error {
 	filePath := key + dataFileSuffix
-	if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(filePath), _const.PermDirPublic); err != nil {
 		return errors.Wrap(err, "failed to create directory")
 	}
 	data, err := runtime.Encode(s.codec, obj)
 	if err != nil {
 		return errors.Wrap(err, "failed to encode object")
 	}
-	return os.WriteFile(filePath, data, 0644)
+	return os.WriteFile(filePath, data, _const.PermFilePublic)
 }
 
 // readObject reads an object from a file
@@ -385,7 +387,7 @@ func (s *fileStore) getRootEntries(key string) ([]os.DirEntry, bool, error) {
 	preparedKey := s.prepareKey(key)
 	if _, err := os.Stat(preparedKey); err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			if err := os.MkdirAll(preparedKey, 0755); err != nil {
+			if err := os.MkdirAll(preparedKey, _const.PermDirPublic); err != nil {
 				return nil, allNamespace, errors.Wrap(err, "failed to create directory")
 			}
 		} else {

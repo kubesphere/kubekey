@@ -1,0 +1,26 @@
+- name: Package | Copy manifests to artifact directory
+  when: printf "%s/manifests.yaml" .work_dir | fileExists
+  copy:
+    src: "{{ .binary_dir }}/manifests.yaml"
+    dest: "{{ .artifact_dir }}/kubekey/manifests.yaml"
+
+- name: Package | Download tools to artifact directory
+  loop: >
+    {{- $result := list -}}
+    {{- range $arch := .download.arch }}
+      {{- range $tool,$url := $.download.tools }}
+        {{- $result = append $result (dict "arch" $arch "tool" $tool "url" $url) -}}
+      {{- end }}
+    {{- end }}
+    {{- $result | toJson }}
+  when: printf "%s/tools/%s/%s" .artifact_dir .item.arch (base (tpl .item.url .item)) | fileExists | not
+  copy:
+    src: "{{ .work_dir }}/tools/{{ .item.arch }}/{{ base (tpl .item.url .item) }}"
+    dest: "{{ .artifact_dir }}/tools/{{ .item.arch }}/{{ base (tpl .item.url .item) }}"
+
+- name: Package | Download charts to artifact directory
+  loop: "{{ .download.charts | toJson }}"
+  when: printf "%s/charts/%s" .artifact_dir (base .item) | fileExists | not
+  copy:
+    src: "{{ .work_dir }}/charts/{{ base .item }}"
+    dest: "{{ .artifact_dir }}/charts/{{ base .item }}"

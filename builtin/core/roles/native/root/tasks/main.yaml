@@ -1,5 +1,7 @@
 - name: OS | Add sudo secure path
   tags: ["always"]
+  when:
+    - .os.type | eq "Linux"
   command: |
     ADD_PATHS="/usr/local/bin"
     BACKUP_FILE="/etc/sudoers.backup.$(date +%Y%m%d_%H%M%S)"

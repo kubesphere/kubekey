@@ -1,12 +1,14 @@
 ---
 - name: Artifact | Extract artifact archive to working directory
   tags: ["always"]
+  when: .download.artifact_file | fileExists
   command: |
-    if [ -f "{{ .download.artifact_file }}" ]; then
-      mkdir -p {{ .binary_dir }}
-      tar -zxvf {{ .artifact_file }} -C {{ .binary_dir }}
-    fi
-  when: .download.artifact_file | empty | not
+    mkdir -p {{ .binary_dir }}
+    tar -zxvf {{ .download.artifact_file }} -C {{ .binary_dir }}
+
+- name: Artifact | Load architecture-specific download URLs for each artifact version
+  when: printf "%s/manifests.yaml" .binary_dir | fileExists
+  include_vars: "{{ .binary_dir }}/manifests.yaml"
 
 - name: Artifact | Download required binaries and images
   when: .download.fetch
@@ -19,6 +21,8 @@
     - include_tasks: images.yaml
       tags: ["image_registry"]
     - include_tasks: iso.yaml
+    # Download tools file
+    - include_tasks: tools.yaml
     
 
 - name: Artifact | Set ownership of working directory to sudo user

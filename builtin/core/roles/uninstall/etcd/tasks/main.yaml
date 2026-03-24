@@ -19,7 +19,11 @@
         rm -rf {{ .etcd.env.data_dir }}
         rm -rf /etc/ssl/etcd/
         rm -rf /etc/etcd.env
-        rm -rf /usr/local/bin/etcd*
+        for bin in etcd etcdctl; do
+          if path=$(command -v $bin 2>/dev/null); then
+            rm -f "$path"
+          fi
+        done
 
 - name: ETCD | Uninstall backup-etcd timer and service, and remove backup scripts
   ignore_errors: true

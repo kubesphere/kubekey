@@ -126,14 +126,14 @@ func (o *AddNodeOptions) complete() error {
 	}
 	// add nodes to worker group
 	if o.Worker != "" {
-		for _, node := range strings.Split(o.ControlPlane, ",") {
+		for _, node := range strings.Split(o.Worker, ",") {
 			if !slices.Contains(groups[_const.VariableGroupsAll], node) {
 				return errors.Errorf("%q is not defined in inventory.", node)
 			}
 			if !slices.Contains(groups[defaultGroupWorker], node) {
 				group := o.Inventory.Spec.Groups[defaultGroupWorker]
 				group.Hosts = append(group.Hosts, node)
-				o.Inventory.Spec.Groups[defaultGroupControlPlane] = group
+				o.Inventory.Spec.Groups[defaultGroupWorker] = group
 			}
 			addNodes = append(addNodes, node)
 		}

@@ -1,0 +1,23 @@
+---
+- name: Spiderpool | Synchronize Spiderpool Helm chart package to remote node
+  copy:
+    src: >-
+      {{ .binary_dir }}/cni/spiderpool/spiderpool-{{ .cni.spiderpool_version }}.tgz
+    dest: >-
+      /etc/kubernetes/cni/spiderpool-{{ .cni.spiderpool_version }}.tgz
+
+- name: Spiderpool | Generate Spiderpool custom values file
+  when: .cni.spiderpool.values | empty | not
+  copy:
+    content: |
+      {{ .cni.spiderpool.values }}
+    dest: /etc/kubernetes/cni/spiderpool-custom-values.yaml
+
+- name: Spiderpool | Generate default values file for Spiderpool
+  template:
+    src: values.yaml
+    dest: /etc/kubernetes/cni/spiderpool-default-values.yaml
+
+- name: Spiderpool | Install Spiderpool using Helm with custom values
+  command: |
+    helm upgrade --install --namespace kube-system spiderpool /etc/kubernetes/cni/spiderpool-{{ .cni.spiderpool_version }}.tgz -f /etc/kubernetes/cni/spiderpool-default-values.yaml {{ if .cni.spiderpool.values | empty | not }}-f /etc/kubernetes/cni/spiderpool-custom-values.yaml{{ end }}

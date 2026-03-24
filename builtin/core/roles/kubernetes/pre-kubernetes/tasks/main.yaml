@@ -82,3 +82,19 @@
         src: >-
           {{ .kubernetes.certs.front_proxy_key }}
         dest: /etc/kubernetes/pki/front-proxy-ca.key
+
+- name: PreKubernetes | Add patches to kubeadm init and join
+  loop: "{{ .kubernetes.patches | toJson }}"
+  when: 
+    - .item | empty | not
+    - printf "/etc/kubernetes/patches/%s" (index (.item | default dict) "name") | fileExists | not
+  copy:
+    src: >-
+      {{- if .item.path | empty | not }}
+      {{ .item.path }}
+      {{- end }}
+    content: >-
+      {{- if .item.content | empty | not }}
+      {{ .item.content }}
+      {{- end }}
+    dest: /etc/kubernetes/patches/{{ .item.name }}

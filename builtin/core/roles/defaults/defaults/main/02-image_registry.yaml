@@ -25,6 +25,10 @@ image_registry:
       {{ $internalIPv6 }}
           {{- end -}}
         {{- end -}}
+      {{- else -}}
+        {{- if .zone | eq "cn" -}}
+      hub.kubesphere.com.cn
+        {{- end -}}
       {{- end -}}
     username: admin
     password: Harbor12345
@@ -33,45 +37,29 @@ image_registry:
       true
       {{- end -}}
     ca_file: >-
-      {{- if .image_registry.type | empty | not -}}
+      {{- if .groups.image_registry | default list | empty | not -}}
       {{ .binary_dir }}/pki/root.crt
       {{- end -}}
     cert_file: >-
-      {{- if .image_registry.type | empty | not -}}
+      {{- if .groups.image_registry | default list | empty | not -}}
       {{ .binary_dir }}/pki/image_registry.crt
       {{- end -}}
     key_file: >-
-      {{- if .image_registry.type | empty | not -}}
+      {{- if .groups.image_registry | default list | empty | not -}}
       {{ .binary_dir }}/pki/image_registry.key
       {{- end -}}
   # Registry endpoint for images from docker.io
   dockerio_registry: >-
-    {{- if .image_registry.auth.registry | empty | not -}}
-    {{ .image_registry.auth.registry }}
-    {{- else -}}
-    docker.io
-    {{- end -}}
+    {{- .image_registry.auth.registry | empty | ternary "docker.io" .image_registry.auth.registry -}}
 
   # Registry endpoint for images from quay.io
   quayio_registry: >-
-    {{- if .image_registry.auth.registry | empty | not -}}
-    {{ .image_registry.auth.registry }}
-    {{- else -}}
-    quay.io
-    {{- end -}}
+    {{- .image_registry.auth.registry | empty | ternary "quay.io" .image_registry.auth.registry -}}
 
   # Registry endpoint for images from ghcr.io
   ghcrio_registry: >-
-    {{- if .image_registry.auth.registry | empty | not -}}
-    {{ .image_registry.auth.registry }}
-    {{- else -}}
-    ghcr.io
-    {{- end -}}
+    {{- .image_registry.auth.registry | empty | ternary "ghcr.io" .image_registry.auth.registry -}}
 
   # Registry endpoint for images from ghcr.io
   k8sio_registry: >-
-    {{- if .image_registry.auth.registry | empty | not -}}
-    {{ .image_registry.auth.registry }}
-    {{- else -}}
-    registry.k8s.io
-    {{- end -}}
+    {{- .image_registry.auth.registry | empty | ternary "registry.k8s.io" .image_registry.auth.registry -}}

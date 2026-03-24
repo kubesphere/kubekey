@@ -24,3 +24,7 @@ nodeRegistration:
   kubeletExtraArgs:
     cgroup-driver: {{ .cri.cgroup_driver }}
     pod-infra-container-image: "{{ .kubernetes.sandbox_image.registry }}/{{ .kubernetes.sandbox_image.repository }}:{{ .kubernetes.sandbox_image.tag }}"
+{{- if .kubernetes.patches | empty | not }}
+patches: 
+  directory: /etc/kubernetes/patches/
+{{- end }}

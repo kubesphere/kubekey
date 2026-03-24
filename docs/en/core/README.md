@@ -208,6 +208,46 @@ Recommended etcd versions for each Kubernetes version:
 | 1.23\~1.28 | 1.12, 1.13 | v1.13.15 | https://kubeovn.github.io/docs/v1.12.x/en/start/prepare/<br>https://kubeovn.github.io/docs/v1.13.x/en/start/prepare/ |
 | 1.29\~1.34 | 1.14, 1.15 | v1.15.0 | https://kubeovn.github.io/docs/v1.14.x/en/start/prepare/<br>https://kubeovn.github.io/docs/v1.15.x/en/start/prepare/ |
 
+### Multi Container Network Plugin
+
+> **Note**: Multi Container Network Plugin (Multi-CNI) is used in conjunction with the primary CNI plugin to provide advanced networking capabilities such as multiple network interfaces per Pod. It requires a primary CNI plugin to be installed first.
+
+> **Important Notes**:
+> - Multi-CNI plugins must work alongside a primary CNI plugin (such as Calico, Flannel, Cilium, etc.)
+> - The primary CNI handles the default network, while the multi-CNI plugin provides additional network interfaces
+> - KubeKey supports `multus` and `spiderpool` as multi-CNI plugins
+
+#### [multus](https://github.com/k8snetworkplumbingwg/multus-cni)
+
+> **Note**: Multus CNI is a meta CNI plugin that enables multiple network interfaces per Kubernetes Pod. It acts as a "meta-plugin" and allows other CNI plugins to work together, providing advanced networking capabilities for Pods that require multiple network interfaces.
+
+> **Installation**:
+> - Use `--set cni.multi_cni="multus"` to enable Multus as the multi-CNI plugin
+> - Use `--set cni.multus.image.tag="v4.3.0"` to specify the Multus version (if not specified, the default version will be used)
+
+> **Prerequisites**: Multus requires a primary CNI plugin (such as Calico, Flannel, Cilium, etc.) to be installed first. Multus will work alongside the primary CNI to provide additional network interfaces.
+
+> **Key Features**: Multiple network interfaces per Pod, CNI chaining, support for various CNI plugins (macvlan, ipvlan, SR-IOV, etc.), NetworkAttachmentDefinition CRD support
+
+| kubernetes version | recommended multus version | kubekey default version | source |
+|---|---|---|---|
+| 1.23\~1.34 | v4.0.0+ | v4.2.4 | https://github.com/k8snetworkplumbingwg/multus-cni/releases |
+
+#### [spiderpool](https://github.com/spidernet-io/spiderpool)
+
+> **Note**: Spiderpool is the underlay and RDMA network solution for Kubernetes, supporting macvlan CNI, ipvlan CNI, and SR-IOV CNI. It is suitable for bare metal, VM, and public cloud environments. Spiderpool is a CNCF sandbox project that provides exceptional network performance, particularly benefiting network I/O-intensive and low-latency applications like storage, middleware, and AI.
+
+> **Installation**:
+> - Use `--set cni.multi_cni="spiderpool"` to enable Spiderpool as the multi-CNI plugin
+> - Use `--set cni.spiderpool_version="v1.1.x"` to specify the Spiderpool version (if not specified, the default version will be used)
+
+> **Prerequisites**: Spiderpool requires a primary CNI plugin to be installed first (Spiderpool will be deployed as an additional CNI alongside the primary CNI).
+
+> **Key Features**: Simplified installation, CRD-based IPAM with dual-stack support, RDMA network acceleration (RoCE, InfiniBand), excellent network performance (low latency, high throughput), multi-cluster network connectivity
+
+| kubernetes version | recommended spiderpool version | kubekey default version | source |
+|---|---|---|---|
+| 1.23\~1.34 | v1.0.x, v1.1.x | v1.1.x | https://spidernet-io.github.io/spiderpool/v1.1/usage/install/system-requirements/#node-requirements |
 
 ### Storage
 

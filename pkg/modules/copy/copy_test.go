@@ -23,6 +23,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/runtime"
+
+	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 )
 
 // createRawArgs creates a runtime.RawExtension from a map
@@ -69,7 +71,7 @@ func TestCopyArgsParse(t *testing.T) {
 		},
 		{
 			name:             "valid args with mode",
-			args:             map[string]any{"dest": "/tmp/test.txt", "mode": 0644},
+			args:             map[string]any{"dest": "/tmp/test.txt", "mode": _const.PermFilePublic},
 			expectParseError: false,
 			expectSrc:        "",
 			expectDest:       "/tmp/test.txt",
@@ -155,7 +157,7 @@ func TestCopyArgsTemplate(t *testing.T) {
 		{
 			name:        "template: mode with template variable",
 			args:        map[string]any{"src": "/tmp/src", "dest": "/tmp/dest", "mode": "{{ .file_mode }}"},
-			vars:        map[string]any{"file_mode": 0644},
+			vars:        map[string]any{"file_mode": _const.PermFilePublic},
 			expectError: false,
 			description: "When mode contains template, should resolve with vars",
 		},

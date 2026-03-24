@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/kubesphere/kubekey/v4/pkg/connector"
+	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/modules/internal"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
@@ -27,6 +28,14 @@ Usage:
 // ModuleSetup establishes a connection to a remote host and gathers facts about it.
 // It returns StdoutSuccess if successful, or an error message if any step fails.
 func ModuleSetup(ctx context.Context, opts internal.ExecOptions) (string, string, error) {
+	ha, err := opts.GetAllVariables()
+	if err != nil {
+		return internal.StdoutFailed, internal.StderrGetHostVariable, err
+	}
+	args := variable.Extension2Variables(opts.Args)
+	if force, err := variable.BoolVar(ha, args, "force"); err == nil && *force {
+		ctx = context.WithValue(ctx, _const.CTXSetupForceKey, true)
+	}
 	// get connector
 	conn, err := opts.GetConnector(ctx)
 	if err != nil {

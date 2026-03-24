@@ -1,6 +1,7 @@
 ---
 - hosts:
     - all
+  gather_facts: true
   roles:
     - native/root
 
@@ -42,6 +43,10 @@
     - image_registry
   roles:
     - image-registry
+- hosts:
+    - localhost
+  roles:
+    - image-registry/push
 
 # Install the Kubernetes cluster
 - hosts:

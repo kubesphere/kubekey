@@ -9,6 +9,6 @@
     policy: "{{ .download.images.policy }}"
     manifests: "{{ .download.images.manifests | toJson }}"
     src: "local://{{ .binary_dir }}/images/"
-    dest: "local://{{ .artifact_dir }}/images/"
+    dest: "local://{{ .artifact_dir }}/kubekey/images/"
   when:
     - .download.images.manifests | empty | not

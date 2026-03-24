@@ -9,11 +9,11 @@
     {{- end }}
     {{- $result | toJson }}
   when: 
-    - .download.etcd.etcd_version | empty | not
+    - index (.item | default dict) "version" | empty | not
     - printf "%s/etcd/%s/%s/etcd-%s-linux-%s.tar.gz" .artifact_dir .item.version .item.arch .item.version .item.arch | fileExists | not
   copy:
     src: "{{ .binary_dir }}/etcd/{{ .item.version }}/{{ .item.arch }}/etcd-{{ .item.version }}-linux-{{ .item.arch }}.tar.gz"
-    dest: "{{ .artifact_dir }}/etcd/{{ .item.version }}/{{ .item.arch }}/etcd-{{ .item.version }}-linux-{{ .item.arch }}.tar.gz"
+    dest: "{{ .artifact_dir }}/kubekey/etcd/{{ .item.version }}/{{ .item.arch }}/etcd-{{ .item.version }}-linux-{{ .item.arch }}.tar.gz"
 
 - name: Binary | Ensure Kubernetes binaries are present
   loop: >
@@ -25,11 +25,11 @@
     {{- end }}
     {{- $result | toJson }}
   when:
-    - .download.kubernetes.kube_version | empty | not
+    - index (.item | default dict) "version" | empty | not
     - printf "%s/kube/%s/%s/kubelet" .artifact_dir .item.version .item.arch | fileExists | not
   copy:
     src: "{{ .binary_dir }}/kube/{{ .item.version }}/{{ .item.arch }}/kubelet"
-    dest: "{{ .artifact_dir }}/kube/{{ .item.version }}/{{ .item.arch }}/kubelet"
+    dest: "{{ .artifact_dir }}/kubekey/kube/{{ .item.version }}/{{ .item.arch }}/kubelet"
   
 - name: Binary | Ensure Kubernetes kubeadm binaries are present
   loop: >
@@ -41,11 +41,11 @@
     {{- end }}
     {{- $result | toJson }}
   when:
-    - .download.kubernetes.kube_version | empty | not
+    - index (.item | default dict) "version" | empty | not
     - printf "%s/kube/%s/%s/kubeadm" .artifact_dir .item.version .item.arch | fileExists | not
   copy:
     src: "{{ .binary_dir }}/kube/{{ .item.version }}/{{ .item.arch }}/kubeadm"
-    dest: "{{ .artifact_dir }}/kube/{{ .item.version }}/{{ .item.arch }}/kubeadm"
+    dest: "{{ .artifact_dir }}/kubekey/kube/{{ .item.version }}/{{ .item.arch }}/kubeadm"
 
 - name: Binary | Ensure Kubernetes kubectl binaries are present
   loop: >
@@ -57,11 +57,11 @@
     {{- end }}
     {{- $result | toJson }}
   when:
-    - .download.kubernetes.kube_version | empty | not
+    - index (.item | default dict) "version" | empty | not
     - printf "%s/kube/%s/%s/kubectl" .artifact_dir .item.version .item.arch | fileExists | not
   copy:
     src: "{{ .binary_dir }}/kube/{{ .item.version }}/{{ .item.arch }}/kubectl"
-    dest: "{{ .artifact_dir }}/kube/{{ .item.version }}/{{ .item.arch }}/kubectl"
+    dest: "{{ .artifact_dir }}/kubekey/kube/{{ .item.version }}/{{ .item.arch }}/kubectl"
 
 - name: Binary | Ensure CNI plugins are present
   loop: >
@@ -73,11 +73,11 @@
     {{- end }}
     {{- $result | toJson }}
   when:
-    - .download.cni.cni_plugins_version | empty | not
+    - index (.item | default dict) "version" | empty | not
     - printf "%s/cni/plugins/%s/%s/cni-plugins-linux-%s-%s.tgz" .artifact_dir .item.version .item.arch .item.arch .item.version | fileExists | not
   copy:
     src: "{{ .binary_dir }}/cni/plugins/{{ .item.version }}/{{ .item.arch }}/cni-plugins-linux-{{ .item.arch }}-{{ .item.version }}.tgz"
-    dest: "{{ .artifact_dir }}/cni/plugins/{{ .item.version }}/{{ .item.arch }}/cni-plugins-linux-{{ .item.arch }}-{{ .item.version }}.tgz"
+    dest: "{{ .artifact_dir }}/kubekey/cni/plugins/{{ .item.version }}/{{ .item.arch }}/cni-plugins-linux-{{ .item.arch }}-{{ .item.version }}.tgz"
 
 - name: Binary | Ensure Helm binary is present
   loop: >
@@ -89,11 +89,11 @@
     {{- end }}
     {{- $result | toJson }}
   when:
-    - .download.kubernetes.helm_version | empty | not
-    - printf "%s/helm/%s/%s/helm-{{ .item.version }}-linux-{{ .item.arch }}.tar.gz" .artifact_dir .item.version .item.arch | fileExists | not
+    - index (.item | default dict) "version" | empty | not
+    - printf "%s/helm/%s/%s/helm-%s-linux-%s.tar.gz" .artifact_dir .item.version .item.arch .item.version .item.arch | fileExists | not
   copy:
     src: "{{ .binary_dir }}/helm/{{ .item.version }}/{{ .item.arch }}/helm-{{ .item.version }}-linux-{{ .item.arch }}.tar.gz"
-    dest: "{{ .artifact_dir }}/helm/{{ .item.version }}/{{ .item.arch }}/helm-{{ .item.version }}-linux-{{ .item.arch }}.tar.gz"
+    dest: "{{ .artifact_dir }}/kubekey/helm/{{ .item.version }}/{{ .item.arch }}/helm-{{ .item.version }}-linux-{{ .item.arch }}.tar.gz"
 
 - name: Binary | Ensure crictl binary is present
   loop: >
@@ -105,11 +105,11 @@
     {{- end }}
     {{- $result | toJson }} 
   when:
-    - .download.cri.crictl_version | empty | not
-    - printf "%s/crictl/%s/%s/crictl-{{ .item.version }}-linux-{{ .item.arch }}.tar.gz" .artifact_dir .item.version .item.arch | fileExists | not
+    - index (.item | default dict) "version" | empty | not
+    - printf "%s/crictl/%s/%s/crictl-%s-linux-%s.tar.gz" .artifact_dir .item.version .item.arch .item.version .item.arch | fileExists | not
   copy:
     src: "{{ .binary_dir }}/crictl/{{ .item.version }}/{{ .item.arch }}/crictl-{{ .item.version }}-linux-{{ .item.arch }}.tar.gz"
-    dest: "{{ .artifact_dir }}/crictl/{{ .item.version }}/{{ .item.arch }}/crictl-{{ .item.version }}-linux-{{ .item.arch }}.tar.gz"
+    dest: "{{ .artifact_dir }}/kubekey/crictl/{{ .item.version }}/{{ .item.arch }}/crictl-{{ .item.version }}-linux-{{ .item.arch }}.tar.gz"
 
 - name: Binary | Ensure Docker binary is present
   tags: ["image_registry"]
@@ -122,12 +122,12 @@
     {{- end }}
     {{- $result | toJson }}
   when: 
-    - .download.cri.docker_version | empty | not
+    - index (.item | default dict) "version" | empty | not
     - or (.download.image_registry.type | empty | not) (.download.cri.container_manager | has "docker")
-    - printf "%s/docker/%s/%s/docker-{{ .item.version }}.tgz" .artifact_dir .item.version .item.arch | fileExists | not
+    - printf "%s/docker/%s/%s/docker-%s.tgz" .artifact_dir .item.version .item.arch .item.version | fileExists | not
   copy:
     src: "{{ .binary_dir }}/docker/{{ .item.version }}/{{ .item.arch }}/docker-{{ .item.version }}.tgz"
-    dest: "{{ .artifact_dir }}/docker/{{ .item.version }}/{{ .item.arch }}/docker-{{ .item.version }}.tgz"
+    dest: "{{ .artifact_dir }}/kubekey/docker/{{ .item.version }}/{{ .item.arch }}/docker-{{ .item.version }}.tgz"
 
 - name: Binary | Ensure cri-dockerd binary is present
   loop: >
@@ -139,12 +139,12 @@
     {{- end }}
     {{- $result | toJson }}
   when: 
-    - .download.cri.cridockerd_version | empty | not
+    - index (.item | default dict) "version" | empty | not
     - .download.cri.container_manager | has "docker"
-      - printf "%s/cri-dockerd/%s/%s/cri-dockerd-{{ .item.version }}-{{ .item.arch }}.tgz" .artifact_dir .item.version .item.arch | fileExists | not
+    - printf "%s/cri-dockerd/%s/%s/cri-dockerd-%s-%s.tgz" .artifact_dir .item.version .item.arch (.item.version | trimPrefix "v") .item.arch | fileExists | not
   copy:
-    src: "{{ .binary_dir }}/cri-dockerd/{{ .item.version }}/{{ .item.arch }}/cri-dockerd-{{ .item.version }}-{{ .item.arch }}.tgz"
-    dest: "{{ .artifact_dir }}/cri-dockerd/{{ .item.version }}/{{ .item.arch }}/cri-dockerd-{{ .item.version }}-{{ .item.arch }}.tgz"
+    src: "{{ .binary_dir }}/cri-dockerd/{{ .item.version }}/{{ .item.arch }}/cri-dockerd-{{ .item.version | trimPrefix \"v\" }}-{{ .item.arch }}.tgz"
+    dest: "{{ .artifact_dir }}/kubekey/cri-dockerd/{{ .item.version }}/{{ .item.arch }}/cri-dockerd-{{ .item.version | trimPrefix \"v\" }}-{{ .item.arch }}.tgz"
 
 - name: Binary | Ensure containerd binary is present
   loop: >
@@ -156,12 +156,12 @@
     {{- end }}
     {{- $result | toJson }}
   when: 
-    - .download.cri.containerd_version | empty | not
+    - index (.item | default dict) "version" | empty | not
     - .download.cri.container_manager | has "containerd"
-    - printf "%s/containerd/%s/%s/containerd-{{ .item.version }}-linux-{{ .item.arch }}.tar.gz" .artifact_dir .item.version .item.arch | fileExists | not
+    - printf "%s/containerd/%s/%s/containerd-%s-linux-%s.tar.gz" .artifact_dir .item.version .item.arch (.item.version | trimPrefix "v") .item.arch | fileExists | not
   copy:
-    src: "{{ .binary_dir }}/containerd/{{ .item.version }}/{{ .item.arch }}/containerd-{{ .item.version }}-linux-{{ .item.arch }}.tar.gz"
-    dest: "{{ .artifact_dir }}/containerd/{{ .item.version }}/{{ .item.arch }}/containerd-{{ .item.version }}-linux-{{ .item.arch }}.tar.gz"
+    src: "{{ .binary_dir }}/containerd/{{ .item.version }}/{{ .item.arch }}/containerd-{{ .item.version | trimPrefix \"v\" }}-linux-{{ .item.arch }}.tar.gz"
+    dest: "{{ .artifact_dir }}/kubekey/containerd/{{ .item.version }}/{{ .item.arch }}/containerd-{{ .item.version | trimPrefix \"v\" }}-linux-{{ .item.arch }}.tar.gz"
 
 - name: Binary | Ensure runc binary is present
   loop: >
@@ -173,12 +173,12 @@
     {{- end }}
     {{- $result | toJson }}
   when: 
-    - .download.cri.runc_version | empty | not
+    - index (.item | default dict) "version" | empty | not
     - .download.cri.container_manager | has "containerd"
-    - printf "%s/runc/%s/%s/runc.{{ .item.arch }}" .artifact_dir .item.version .item.arch | fileExists | not
+    - printf "%s/runc/%s/%s/runc.%s" .artifact_dir .item.version .item.arch .item.arch | fileExists | not
   copy:
     src: "{{ .binary_dir }}/runc/{{ .item.version }}/{{ .item.arch }}/runc.{{ .item.arch }}"
-    dest: "{{ .artifact_dir }}/runc/{{ .item.version }}/{{ .item.arch }}/runc.{{ .item.arch }}"
+    dest: "{{ .artifact_dir }}/kubekey/runc/{{ .item.version }}/{{ .item.arch }}/runc.{{ .item.arch }}"
 
 - name: Binary | Ensure calicoctl binary is present
   loop: >
@@ -190,12 +190,12 @@
     {{- end }}
     {{- $result | toJson }}
   when: 
-    - .download.cni.calico_version | empty | not
+    - index (.item | default dict) "version" | empty | not
     - .download.cni.type | has "calico"
-    - printf "%s/cni/calico/%s/%s/calicoctl-linux-{{ .item.arch }}" .artifact_dir .item.version .item.arch | fileExists | not
+    - printf "%s/cni/calico/%s/%s/calicoctl-linux-%s" .artifact_dir .item.version .item.arch .item.arch | fileExists | not
   copy:
     src: "{{ .binary_dir }}/cni/calico/{{ .item.version }}/{{ .item.arch }}/calicoctl-linux-{{ .item.arch }}"
-    dest: "{{ .artifact_dir }}/cni/calico/{{ .item.version }}/{{ .item.arch }}/calicoctl-linux-{{ .item.arch }}"
+    dest: "{{ .artifact_dir }}/kubekey/cni/calico/{{ .item.version }}/{{ .item.arch }}/calicoctl-linux-{{ .item.arch }}"
 
 - name: Binary | Ensure Docker Registry binary is present
   tags: ["image_registry"]
@@ -208,12 +208,12 @@
     {{- end }}
     {{- $result | toJson }}
   when: 
-    - .download.image_registry.docker_registry_version | empty | not
+    - index (.item | default dict) "version" | empty | not
     - .download.image_registry.type | has "docker-registry"
-    - printf "%s/image-registry/docker-registry/%s/%s/docker-registry-{{ .item.version }}-linux-{{ .item.arch }}.tgz" .artifact_dir .item.version .item.arch | fileExists | not
+    - printf "%s/image-registry/docker-registry/%s/%s/docker-registry-%s-linux-%s.tgz" .artifact_dir .item.version .item.arch .item.version .item.arch | fileExists | not
   copy:
     src: "{{ .binary_dir }}/image-registry/docker-registry/{{ .item.version }}/{{ .item.arch }}/docker-registry-{{ .item.version }}-linux-{{ .item.arch }}.tgz"
-    dest: "{{ .artifact_dir }}/image-registry/docker-registry/{{ .item.version }}/{{ .item.arch }}/docker-registry-{{ .item.version }}-linux-{{ .item.arch }}.tgz"
+    dest: "{{ .artifact_dir }}/kubekey/image-registry/docker-registry/{{ .item.version }}/{{ .item.arch }}/docker-registry-{{ .item.version }}-linux-{{ .item.arch }}.tgz"
 
 - name: Binary | Ensure docker-compose binary is present
   tags: ["image_registry"]
@@ -226,12 +226,12 @@
     {{- end }}
     {{- $result | toJson }}
   when: 
-    - .download.image_registry.dockercompose_version | empty | not
+    - index (.item | default dict) "version" | empty | not
     - .download.image_registry.type | empty | not
     - printf "%s/image-registry/docker-compose/%s/%s/docker-compose" .artifact_dir .item.version .item.arch | fileExists | not
   copy:
     src: "{{ .binary_dir }}/image-registry/docker-compose/{{ .item.version }}/{{ .item.arch }}/docker-compose"
-    dest: "{{ .artifact_dir }}/image-registry/docker-compose/{{ .item.version }}/{{ .item.arch }}/docker-compose"
+    dest: "{{ .artifact_dir }}/kubekey/image-registry/docker-compose/{{ .item.version }}/{{ .item.arch }}/docker-compose"
 
 - name: Binary | Ensure Harbor binary is present
   tags: ["image_registry"]
@@ -244,12 +244,12 @@
     {{- end }}
     {{- $result | toJson }}
   when: 
-    - .download.image_registry.harbor_version | empty | not
+    - index (.item | default dict) "version" | empty | not
     - .download.image_registry.type | has "harbor"
-    - printf "%s/image-registry/harbor/%s/%s/harbor-offline-installer-{{ .item.version }}.tgz" .artifact_dir .item.version .item.arch | fileExists | not
+    - printf "%s/image-registry/harbor/%s/%s/harbor-offline-installer-%s.tgz" .artifact_dir .item.version .item.arch .item.version | fileExists | not
   copy:
     src: "{{ .binary_dir }}/image-registry/harbor/{{ .item.version }}/{{ .item.arch }}/harbor-offline-installer-{{ .item.version }}.tgz"
-    dest: "{{ .artifact_dir }}/image-registry/harbor/{{ .item.version }}/{{ .item.arch }}/harbor-offline-installer-{{ .item.version }}.tgz"
+    dest: "{{ .artifact_dir }}/kubekey/image-registry/harbor/{{ .item.version }}/{{ .item.arch }}/harbor-offline-installer-{{ .item.version }}.tgz"
 
 
 - name: Binary | Ensure keepalived binary is present
@@ -263,11 +263,11 @@
     {{- end }}
     {{- $result | toJson }}
   when: 
-    - .download.image_registry.keepalived_version | empty | not
-    - printf "%s/image-registry/keepalived/%s/%s/keepalived-{{ .item.version }}-linux-{{ .item.arch }}.tgz" .artifact_dir .item.version .item.arch | fileExists | not
+    - index (.item | default dict) "version" | empty | not
+    - printf "%s/image-registry/keepalived/%s/%s/keepalived-%s-linux-%s.tgz" .artifact_dir .item.version .item.arch .item.version .item.arch | fileExists | not
   copy:
     src: "{{ .binary_dir }}/image-registry/keepalived/{{ .item.version }}/{{ .item.arch }}/keepalived-{{ .item.version }}-linux-{{ .item.arch }}.tgz"
-    dest: "{{ .artifact_dir }}/image-registry/keepalived/{{ .item.version }}/{{ .item.arch }}/keepalived-{{ .item.version }}-linux-{{ .item.arch }}.tgz"
+    dest: "{{ .artifact_dir }}/kubekey/image-registry/keepalived/{{ .item.version }}/{{ .item.arch }}/keepalived-{{ .item.version }}-linux-{{ .item.arch }}.tgz"
 
 - name: Binary | Download tools to binary directory
   loop: >
@@ -278,7 +278,9 @@
       {{- end }}
     {{- end }}
     {{- $result | toJson }}
-  when: printf "%s/tools/%s/%s" .artifact_dir .item.arch (base (tpl .item.url .item)) | fileExists | not
+  when:
+    - index (.item | default dict) "version" | empty | not
+    - printf "%s/tools/%s/%s" .artifact_dir .item.arch (base (tpl .item.url .item)) | fileExists | not
   copy:
     src: "{{ .binary_dir }}/tools/{{ .item.arch }}/{{ base (tpl .item.url .item) }}"
     dest: "{{ .artifact_dir }}/tools/{{ .item.arch }}/{{ base (tpl .item.url .item) }}"
