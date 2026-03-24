@@ -11,4 +11,6 @@
 - name: Cridockerd | Remove all cri-dockerd related files and binaries
   command: |
     rm -rf /etc/cri-dockerd
-    rm -f /usr/local/bin/cri-dockerd
+    if path=$(command -v cri-dockerd 2>/dev/null); then
+      rm -f "$path"
+    fi

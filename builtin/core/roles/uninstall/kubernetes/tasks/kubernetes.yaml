@@ -15,9 +15,6 @@
 
 - name: Kubernetes | Remove all residual Kubernetes files and directories
   command: |
-    rm -rf /usr/local/bin/kubeadm
-    rm -rf /usr/local/bin/kubelet
-    rm -rf /usr/local/bin/kubectl
     rm -rf /var/lib/kubelet/
     # If /var/log/pods/ is not cleaned up, static pods may accumulate unexpected restarts due to lingering log files interfering with their lifecycle.
     rm -rf /var/log/pods/
@@ -25,3 +22,8 @@
     rm -rf ~/.kube/config
     rm -rf /root/.kube/config
     rm -rf /var/lib/etcd
+    for bin in kubeadm kubelet kubectl; do
+      if path=$(command -v $bin 2>/dev/null); then
+        rm -f "$path"
+      fi
+    done
