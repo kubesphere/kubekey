@@ -725,7 +725,7 @@ download:
   {{- end }}
 {{- end }}
 {{- if .download.cni.multi_cni | has "spiderpool" }}
-  {{- range .download.cni.spiderpool_version | default $default_spiderpool_version }}
+  {{- range .download.cni.spiderpool_version | default (list "v1.1.1") }}
       ##  CNI/spiderpool-{{ . }}
     {{- range index $.download.images "spiderpool/spiderpool" . }}
       - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/{{ slice (. | splitList "/") 1 | join "/" }}{{ else }}{{ . }}{{ end }}
