@@ -584,9 +584,6 @@ download:
   {{- end }}
 {{- else }}
       # kubernetes
-      ## kubernetes/dns
-      - {{ if .download.images.registry | empty | not }}{{ .download.images.registry }}/coredns/coredns:v1.8.6{{ else }}registry.k8s.io/coredns/coredns:v1.8.6{{ end }}
-      - {{ if .download.images.registry | empty | not }}{{ .download.images.registry }}/dns/k8s-dns-node-cache:1.21.1{{ else }}registry.k8s.io/dns/k8s-dns-node-cache:1.21.1{{ end }}
       ## kubernetes/high-availability
       - {{ if .download.images.registry | empty | not }}{{ .download.images.registry }}/library/haproxy:2.9.6-alpine{{ else }}docker.io/library/haproxy:2.9.6-alpine{{ end }}
       - {{ if .download.images.registry | empty | not }}{{ .download.images.registry }}/plndr/kube-vip:v0.7.2{{ else }}docker.io/plndr/kube-vip:v0.7.2{{ end }}
@@ -598,28 +595,64 @@ download:
       - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/kubernetes/kube-scheduler:{{ . }}{{ else }}registry.k8s.io/kube-scheduler:{{ . }}{{ end }}
   {{- if slice (. | splitList ".") 0 2 | join "." | eq "v1.23" }}
       - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/kubernetes/pause:3.6{{ else }}registry.k8s.io/pause:3.6{{ end }}
+      ## kubernetes/dns v1.23
+      - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/coredns/coredns:v1.8.6{{ else }}registry.k8s.io/coredns/coredns:v1.8.6{{ end }}
+      - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/dns/k8s-dns-node-cache:1.21.1{{ else }}registry.k8s.io/dns/k8s-dns-node-cache:1.21.1{{ end }}
   {{- else if slice (. | splitList ".") 0 2 | join "." | eq "v1.24" }}
       - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/kubernetes/pause:3.7{{ else }}registry.k8s.io/pause:3.7{{ end }}
+      ## kubernetes/dns v1.24
+      - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/coredns/coredns:v1.8.6{{ else }}registry.k8s.io/coredns/coredns:v1.8.6{{ end }}
+      - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/dns/k8s-dns-node-cache:1.21.1{{ else }}registry.k8s.io/dns/k8s-dns-node-cache:1.21.1{{ end }}
   {{- else if slice (. | splitList ".") 0 2 | join "." | eq "v1.25" }}
       - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/kubernetes/pause:3.8{{ else }}registry.k8s.io/pause:3.8{{ end }}
+      ## kubernetes/dns v1.25
+      - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/coredns/coredns:v1.9.3{{ else }}registry.k8s.io/coredns/coredns:v1.9.3{{ end }}
+      - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/dns/k8s-dns-node-cache:1.22.8{{ else }}registry.k8s.io/dns/k8s-dns-node-cache:1.22.8{{ end }}
   {{- else if slice (. | splitList ".") 0 2 | join "." | eq "v1.26" }}
       - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/kubernetes/pause:3.9{{ else }}registry.k8s.io/pause:3.9{{ end }}
+      ## kubernetes/dns v1.26
+      - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/coredns/coredns:v1.9.3{{ else }}registry.k8s.io/coredns/coredns:v1.9.3{{ end }}
+      - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/dns/k8s-dns-node-cache:1.22.13{{ else }}registry.k8s.io/dns/k8s-dns-node-cache:1.22.13{{ end }}
   {{- else if slice (. | splitList ".") 0 2 | join "." | eq "v1.27" }}
       - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/kubernetes/pause:3.9{{ else }}registry.k8s.io/pause:3.9{{ end }}
+      ## kubernetes/dns v1.27
+      - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/coredns/coredns:v1.10.1{{ else }}registry.k8s.io/coredns/coredns:v1.10.1{{ end }}
+      - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/dns/k8s-dns-node-cache:1.22.20{{ else }}registry.k8s.io/dns/k8s-dns-node-cache:1.22.20{{ end }}
   {{- else if slice (. | splitList ".") 0 2 | join "." | eq "v1.28" }}
       - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/kubernetes/pause:3.9{{ else }}registry.k8s.io/pause:3.9{{ end }}
+      ## kubernetes/dns v1.28
+      - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/coredns/coredns:v1.10.1{{ else }}registry.k8s.io/coredns/coredns:v1.10.1{{ end }}
+      - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/dns/k8s-dns-node-cache:1.22.23{{ else }}registry.k8s.io/dns/k8s-dns-node-cache:1.22.23{{ end }}
   {{- else if slice (. | splitList ".") 0 2 | join "." | eq "v1.29" }}
       - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/kubernetes/pause:3.9{{ else }}registry.k8s.io/pause:3.9{{ end }}
+      ## kubernetes/dns v1.29
+      - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/coredns/coredns:v1.11.1{{ else }}registry.k8s.io/coredns/coredns:v1.11.1{{ end }}
+      - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/dns/k8s-dns-node-cache:1.22.23{{ else }}registry.k8s.io/dns/k8s-dns-node-cache:1.22.23{{ end }}
   {{- else if slice (. | splitList ".") 0 2 | join "." | eq "v1.30" }}
       - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/kubernetes/pause:3.9{{ else }}registry.k8s.io/pause:3.9{{ end }}
+      ## kubernetes/dns v1.30
+      - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/coredns/coredns:v1.11.3{{ else }}registry.k8s.io/coredns/coredns:v1.11.3{{ end }}
+      - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/dns/k8s-dns-node-cache:1.22.28{{ else }}registry.k8s.io/dns/k8s-dns-node-cache:1.22.28{{ end }}
   {{- else if slice (. | splitList ".") 0 2 | join "." | eq "v1.31" }}
       - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/kubernetes/pause:3.10{{ else }}registry.k8s.io/pause:3.10{{ end }}
+      ## kubernetes/dns v1.31
+      - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/coredns/coredns:v1.11.3{{ else }}registry.k8s.io/coredns/coredns:v1.11.3{{ end }}
+      - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/dns/k8s-dns-node-cache:1.23.1{{ else }}registry.k8s.io/dns/k8s-dns-node-cache:1.23.1{{ end }}
   {{- else if slice (. | splitList ".") 0 2 | join "." | eq "v1.32" }}
       - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/kubernetes/pause:3.10{{ else }}registry.k8s.io/pause:3.10{{ end }}
+      ## kubernetes/dns v1.32
+      - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/coredns/coredns:v1.11.3{{ else }}registry.k8s.io/coredns/coredns:v1.11.3{{ end }}
+      - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/dns/k8s-dns-node-cache:1.23.1{{ else }}registry.k8s.io/dns/k8s-dns-node-cache:1.23.1{{ end }}
   {{- else if slice (. | splitList ".") 0 2 | join "." | eq "v1.33" }}
       - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/kubernetes/pause:3.10{{ else }}registry.k8s.io/pause:3.10{{ end }}
+      ## kubernetes/dns v1.33
+      - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/coredns/coredns:v1.12.0{{ else }}registry.k8s.io/coredns/coredns:v1.12.0{{ end }}
+      - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/dns/k8s-dns-node-cache:1.25.0{{ else }}registry.k8s.io/dns/k8s-dns-node-cache:1.25.0{{ end }}
   {{- else if slice (. | splitList ".") 0 2 | join "." | eq "v1.34" }}
       - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/kubernetes/pause:3.10.1{{ else }}registry.k8s.io/pause:3.10.1{{ end }}
+      ## kubernetes/dns v1.34
+      - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/coredns/coredns:v1.12.1{{ else }}registry.k8s.io/coredns/coredns:v1.12.1{{ end }}
+      - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/dns/k8s-dns-node-cache:1.26.4{{ else }}registry.k8s.io/dns/k8s-dns-node-cache:1.26.4{{ end }}
   {{- end }}
 {{- end }}
       ## kubernetes/etcd
