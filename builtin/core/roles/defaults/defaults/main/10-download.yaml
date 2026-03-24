@@ -115,7 +115,7 @@ download:
     - "ubuntu-22.04-debs" 
     - "ubuntu-24.04-debs"
   cni:
-    type: [ "calico" ]
+    type: []
   cri:
     container_manager: >
       {{- $container_manager := list }}

@@ -26,6 +26,7 @@ import (
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	cliflag "k8s.io/component-base/cli/flag"
 
 	"github.com/kubesphere/kubekey/v4/cmd/kk/app/options"
@@ -87,5 +88,19 @@ func (o *PreCheckOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1
 		Tags:     tags,
 	}
 
-	return playbook, o.CommonOptions.Complete(playbook)
+	if err := o.CommonOptions.Complete(playbook); err != nil {
+		return nil, err
+	}
+
+	return playbook, o.completeConfig()
+}
+
+func (o *PreCheckOptions) completeConfig() error {
+	if _, ok, _ := unstructured.NestedFieldNoCopy(o.Config.Value(), "kubernetes", "kube_version"); !ok {
+		if err := unstructured.SetNestedField(o.Config.Value(), o.Kubernetes, "kubernetes", "kube_version"); err != nil {
+			return errors.Wrapf(err, "failed to set %q to config", "kube_version")
+		}
+	}
+
+	return nil
 }
