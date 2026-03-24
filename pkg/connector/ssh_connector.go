@@ -322,7 +322,7 @@ func (c *sshConnector) ExecuteCommand(_ context.Context, cmd string) ([]byte, []
 	}
 	defer session.Close()
 
-	cmd = fmt.Sprintf("TERM=dumb; export LANG=C.UTF-8;sudo -E %s << 'KUBEKEY_EOF'\n%s\nKUBEKEY_EOF", c.shell, cmd)
+	cmd = fmt.Sprintf("TERM=dumb; export LANG=C.UTF-8; SUDO_USER=%s; sudo -E %s << 'KUBEKEY_EOF'\n%s\nKUBEKEY_EOF", c.User, c.shell, cmd)
 	klog.V(5).InfoS("exec ssh command", "cmd", cmd)
 
 	in, err := session.StdinPipe()
