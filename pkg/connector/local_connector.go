@@ -22,6 +22,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"os/user"
 	"path/filepath"
 	"runtime"
 
@@ -36,13 +37,27 @@ import (
 var _ Connector = &localConnector{}
 var _ GatherFacts = &localConnector{}
 
+func getLocalUser() string {
+	user, err := user.Current()
+	if err != nil {
+		return "root"
+	}
+	return user.Username
+}
+
 func newLocalConnector(workdir string, hostVars map[string]any) *localConnector {
+	user, err := variable.StringVar(nil, hostVars, _const.VariableConnector, _const.VariableConnectorUser)
+	if err != nil {
+		klog.V(4).Info("Warning: Failed to obtain local connector user when executing command with sudo. Please ensure the 'kk' process is run by a root-privileged user.")
+		user = getLocalUser()
+	}
 	password, err := variable.StringVar(nil, hostVars, _const.VariableConnector, _const.VariableConnectorPassword)
 	if err != nil { // password is not necessary when execute with root user.
 		klog.V(4).Info("Warning: Failed to obtain local connector password when executing command with sudo. Please ensure the 'kk' process is run by a root-privileged user.")
 	}
 	cacheType, _ := variable.StringVar(nil, hostVars, _const.VariableGatherFactsCache)
 	connector := &localConnector{
+		User:     user,
 		Password: password,
 		Cmd:      exec.New(),
 	}
@@ -53,6 +68,7 @@ func newLocalConnector(workdir string, hostVars map[string]any) *localConnector 
 }
 
 type localConnector struct {
+	User     string
 	Password string
 	Cmd      exec.Interface
 	// shell to execute command
@@ -109,6 +125,7 @@ func (c *localConnector) ExecuteCommand(ctx context.Context, cmd string) ([]byte
 	klog.V(5).InfoS("exec local command", "cmd", cmd)
 	// in
 	command := c.Cmd.CommandContext(ctx, "sudo", "-SE", c.shell, "-c", cmd)
+	command.SetEnv([]string{"SUDO_USER=" + c.User})
 	if c.Password != "" {
 		command.SetStdin(bytes.NewBufferString(c.Password + "\n"))
 	}
