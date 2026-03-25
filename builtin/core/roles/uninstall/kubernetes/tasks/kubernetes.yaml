@@ -19,8 +19,10 @@
     # If /var/log/pods/ is not cleaned up, static pods may accumulate unexpected restarts due to lingering log files interfering with their lifecycle.
     rm -rf /var/log/pods/
     rm -rf /etc/kubernetes/
-    rm -rf ~/.kube/config
     rm -rf /root/.kube/config
+    if [ "$SUDO_USER" != "root" ]; then
+      rm -rf /home/$SUDO_USER/.kube/config
+    fi
     rm -rf /var/lib/etcd
     for bin in kubeadm kubelet kubectl; do
       if path=$(command -v $bin 2>/dev/null); then

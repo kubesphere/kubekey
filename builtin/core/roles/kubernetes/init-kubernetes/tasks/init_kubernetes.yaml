@@ -49,15 +49,18 @@
 - name: Init | Copy kubeconfig to default directory
   when: .kubernetes_install_LoadState.stdout | eq "not-found"
   command: |
-    if [ ! -d ~/.kube ]; then
-      mkdir -p ~/.kube
-    fi
     if [ ! -d /root/.kube ]; then
       mkdir -p /root/.kube
     fi
-    cp -f /etc/kubernetes/admin.conf ~/.kube/config
     cp -f /etc/kubernetes/admin.conf /root/.kube/config
-    chown "$SUDO_USER":root ~/.kube/config
+    chown root:root /root/.kube/config
+    if [ "$SUDO_USER" != "root" ]; then
+      if [ ! -d /home/$SUDO_USER/.kube ]; then
+        mkdir -p /home/$SUDO_USER/.kube
+      fi
+      cp -f /etc/kubernetes/admin.conf /home/$SUDO_USER/.kube/config
+      chown "$SUDO_USER":root /home/$SUDO_USER/.kube/config
+    fi
 
 - name: Init | Configure node as worker
   when: .groups.kube_worker | default list | has .inventory_hostname
