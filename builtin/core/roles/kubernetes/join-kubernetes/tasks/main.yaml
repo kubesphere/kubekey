@@ -13,13 +13,6 @@
   command: |
     /usr/local/bin/kubeadm join --config=/etc/kubernetes/kubeadm-config.yaml --ignore-preflight-errors=FileExisting-crictl,ImagePull
 
-- name: Join | Synchronize kubeconfig to remote node for current user
-  when: .groups.kube_control_plane | default list | has .inventory_hostname
-  copy:
-    src: >-
-      {{ .binary_dir }}/kubeconfig
-    dest: ~/.kube/config
-
 - name: Join | Synchronize kubeconfig to remote node for root
   when: .groups.kube_control_plane | default list | has .inventory_hostname
   copy:
@@ -29,8 +22,14 @@
 
 - name: Join | Set kubeconfig permissions
   command: |
-    chown "$SUDO_USER":root ~/.kube/config
     chown root:root /root/.kube/config
+    if [ "$SUDO_USER" != "root" ]; then
+      if [ ! -d /home/$SUDO_USER/.kube ]; then
+        mkdir -p /home/$SUDO_USER/.kube
+      fi
+      cp /root/.kube/config /home/$SUDO_USER/.kube/config
+      chown "$SUDO_USER":root /home/$SUDO_USER/.kube/config
+    fi
 
 - name: Join | Configure node as worker
   when: .groups.kube_worker | default list | has .inventory_hostname

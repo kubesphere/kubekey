@@ -267,6 +267,7 @@ download:
         # - quay.io/cilium/operator-azure:v1.15.19
         - quay.io/cilium/operator:v1.15.19
       "1.16.18":
+        - quay.io/cilium/cilium-envoy:v1.34.12-1765374555-6a93b0bbba8d6dc75b651cbafeedb062b2997716
         - quay.io/cilium/cilium:v1.16.18
         - quay.io/cilium/clustermesh-apiserver:v1.16.18
         - quay.io/cilium/docker-plugin:v1.16.18
@@ -277,6 +278,7 @@ download:
         - quay.io/cilium/operator-generic:v1.16.18
         - quay.io/cilium/operator:v1.16.18
       "1.17.11":
+        - quay.io/cilium/cilium-envoy:v1.34.12-1765374555-6a93b0bbba8d6dc75b651cbafeedb062b2997716 
         - quay.io/cilium/cilium:v1.17.11
         - quay.io/cilium/clustermesh-apiserver:v1.17.11
         - quay.io/cilium/docker-plugin:v1.17.11
@@ -287,6 +289,7 @@ download:
         - quay.io/cilium/operator-generic:v1.17.11
         - quay.io/cilium/operator:v1.17.11
       "1.18.7":
+        - quay.io/cilium/cilium-envoy:v1.35.9-1770554954-8ce3bb4eca04188f4a0a1bfbd0a06a40f90883de
         - quay.io/cilium/cilium:v1.18.7
         - quay.io/cilium/clustermesh-apiserver:v1.18.7
         - quay.io/cilium/docker-plugin:v1.18.7
@@ -297,6 +300,7 @@ download:
         - quay.io/cilium/operator-generic:v1.18.7
         - quay.io/cilium/operator:v1.18.7
       "1.19.1":
+        - quay.io/cilium/cilium-envoy:v1.35.9-1770979049-232ed4a26881e4ab4f766f251f258ed424fff663
         - quay.io/cilium/cilium:v1.19.1
         - quay.io/cilium/clustermesh-apiserver:v1.19.1
         - quay.io/cilium/docker-plugin:v1.19.1
