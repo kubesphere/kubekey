@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"text/template"
 
 	"github.com/cockroachdb/errors"
 	kkprojectv1 "github.com/kubesphere/kubekey/api/project/v1"
@@ -39,17 +40,17 @@ func copyNode(n yaml.Node) yaml.Node {
 
 // parseYamlNode parses a YAML node into a map[string]any.
 // It handles both document nodes and other node types.
-func parseYamlNode(ctx map[string]any, node yaml.Node) (map[string]any, error) {
+func parseYamlNode(tpl *template.Template, ctx map[string]any, node yaml.Node) (map[string]any, error) {
 	// parse node
 	switch node.Kind {
 	case yaml.DocumentNode:
 		for _, dn := range node.Content {
-			if err := processNode(ctx, dn); err != nil {
+			if err := processNode(tpl, ctx, dn); err != nil {
 				return nil, err
 			}
 		}
 	default:
-		if err := processNode(ctx, &node); err != nil {
+		if err := processNode(tpl, ctx, &node); err != nil {
 			return nil, err
 		}
 	}
@@ -60,7 +61,7 @@ func parseYamlNode(ctx map[string]any, node yaml.Node) (map[string]any, error) {
 
 // processNode recursively processes a YAML node and updates the context map.
 // It handles mapping nodes (objects), sequence nodes (arrays), and scalar nodes (values).
-func processNode(ctx map[string]any, node *yaml.Node, path ...string) error {
+func processNode(tpl *template.Template, ctx map[string]any, node *yaml.Node, path ...string) error {
 	switch node.Kind {
 	case yaml.MappingNode:
 		if len(node.Content)%2 != 0 {
@@ -73,19 +74,19 @@ func processNode(ctx map[string]any, node *yaml.Node, path ...string) error {
 				return errors.New("map key must be scalar")
 			}
 			newPath := append(path, mapTag+keyNode.Value)
-			if err := processNode(ctx, valueNode, newPath...); err != nil {
+			if err := processNode(tpl, ctx, valueNode, newPath...); err != nil {
 				return err
 			}
 		}
 	case yaml.SequenceNode:
 		for i, item := range node.Content {
 			elemPath := append(path, fmt.Sprintf("%s%d", seqTag, i))
-			if err := processNode(ctx, item, elemPath...); err != nil {
+			if err := processNode(tpl, ctx, item, elemPath...); err != nil {
 				return err
 			}
 		}
 	case yaml.ScalarNode:
-		value, err := parseScalarValue(ctx, node)
+		value, err := parseScalarValue(tpl, ctx, node)
 		if err != nil {
 			return err
 		}
@@ -102,7 +103,7 @@ func processNode(ctx map[string]any, node *yaml.Node, path ...string) error {
 
 // parseScalarValue parses a scalar YAML node into its corresponding Go value.
 // It handles null, boolean, string, integer, and float values.
-func parseScalarValue(ctx map[string]any, node *yaml.Node) (any, error) {
+func parseScalarValue(tpl *template.Template, ctx map[string]any, node *yaml.Node) (any, error) {
 	switch node.Tag {
 	case nullTag:
 		return nil, nil
@@ -115,7 +116,7 @@ func parseScalarValue(ctx map[string]any, node *yaml.Node) (any, error) {
 		return v, nil
 	case strTag, "":
 		if kkprojectv1.IsTmplSyntax(node.Value) {
-			pv, err := tmpl.ParseFunc(ctx, node.Value, func(b []byte) any {
+			pv, err := tmpl.ParseFunc(tpl, ctx, node.Value, func(b []byte) any {
 				var a any
 				err := json.Unmarshal(b, &a)
 				if err != nil {

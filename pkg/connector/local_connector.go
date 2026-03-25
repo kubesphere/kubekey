@@ -25,6 +25,7 @@ import (
 	"os/user"
 	"path/filepath"
 	"runtime"
+	"text/template"
 
 	"github.com/cockroachdb/errors"
 	"k8s.io/klog/v2"
@@ -45,17 +46,17 @@ func getLocalUser() string {
 	return user.Username
 }
 
-func newLocalConnector(workdir string, hostVars map[string]any) *localConnector {
-	user, err := variable.StringVar(nil, hostVars, _const.VariableConnector, _const.VariableConnectorUser)
+func newLocalConnector(tpl *template.Template, workdir string, hostVars map[string]any) *localConnector {
+	user, err := variable.StringVar(tpl, nil, hostVars, _const.VariableConnector, _const.VariableConnectorUser)
 	if err != nil {
 		klog.V(4).Info("Warning: Failed to obtain local connector user when executing command with sudo. Please ensure the 'kk' process is run by a root-privileged user.")
 		user = getLocalUser()
 	}
-	password, err := variable.StringVar(nil, hostVars, _const.VariableConnector, _const.VariableConnectorPassword)
+	password, err := variable.StringVar(tpl, nil, hostVars, _const.VariableConnector, _const.VariableConnectorPassword)
 	if err != nil { // password is not necessary when execute with root user.
 		klog.V(4).Info("Warning: Failed to obtain local connector password when executing command with sudo. Please ensure the 'kk' process is run by a root-privileged user.")
 	}
-	cacheType, _ := variable.StringVar(nil, hostVars, _const.VariableGatherFactsCache)
+	cacheType, _ := variable.StringVar(tpl, nil, hostVars, _const.VariableGatherFactsCache)
 	connector := &localConnector{
 		User:     user,
 		Password: password,

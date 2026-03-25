@@ -24,7 +24,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/runtime"
 
+	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 	"github.com/kubesphere/kubekey/v4/pkg/modules/internal"
+	"github.com/kubesphere/kubekey/v4/pkg/utils"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
@@ -177,7 +179,7 @@ vars:
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			ctx, cancel := context.WithTimeout(context.WithValue(context.Background(), utils.TplKey, tmpl.NewTmplAddFuncs()), 2*time.Second)
 			defer cancel()
 			stdout, stderr, err := ModuleAddHostvars(ctx, tc.opt)
 			require.Equal(t, tc.expectStdout, stdout, tc.description)
@@ -233,7 +235,7 @@ func TestAddHostvarsArgsParse(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx := context.Background()
+			ctx := context.WithValue(context.Background(), utils.TplKey, tmpl.NewTmplAddFuncs())
 			raw := runtime.RawExtension{Raw: tc.rawArgs}
 			_, err := newAddHostvarsArgs(ctx, raw, nil)
 			if tc.expectParseError {
@@ -307,7 +309,7 @@ vars:
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			ctx, cancel := context.WithTimeout(context.WithValue(context.Background(), utils.TplKey, tmpl.NewTmplAddFuncs()), 2*time.Second)
 			defer cancel()
 
 			testVar := internal.NewTestVariable(tc.hosts, tc.initialVars)
@@ -478,7 +480,7 @@ vars:
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			ctx, cancel := context.WithTimeout(context.WithValue(context.Background(), utils.TplKey, tmpl.NewTmplAddFuncs()), 2*time.Second)
 			defer cancel()
 
 			testVar := internal.NewTestVariable(tc.hosts, tc.initialVars)
@@ -506,7 +508,7 @@ vars:
 	}
 
 	t.Run("multiple hosts isolation", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		ctx, cancel := context.WithTimeout(context.WithValue(context.Background(), utils.TplKey, tmpl.NewTmplAddFuncs()), 2*time.Second)
 		defer cancel()
 
 		hosts := []string{"node1", "node2", "node3"}

@@ -24,6 +24,7 @@ import (
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
+	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 	"github.com/kubesphere/kubekey/v4/pkg/utils"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 	"github.com/kubesphere/kubekey/v4/pkg/web/api"
@@ -327,13 +328,14 @@ func (h *InventoryHandler) ListHosts(request *restful.Request, response *restful
 		// Convert the raw extension to a map of variables.
 		vars := variable.Extension2Variables(raw)
 		// Extract relevant fields from the variables.
-		internalIPV4, _ := variable.StringVar(nil, vars, _const.VariableIPv4)
-		internalIPV6, _ := variable.StringVar(nil, vars, _const.VariableIPv6)
-		sshHost, _ := variable.StringVar(nil, vars, _const.VariableConnector, _const.VariableConnectorHost)
-		sshPort, _ := variable.StringVar(nil, vars, _const.VariableConnector, _const.VariableConnectorPort)
-		sshUser, _ := variable.StringVar(nil, vars, _const.VariableConnector, _const.VariableConnectorUser)
-		sshPassword, _ := variable.StringVar(nil, vars, _const.VariableConnector, _const.VariableConnectorPassword)
-		sshPrivateKeyContent, _ := variable.StringVar(nil, vars, _const.VariableConnector, _const.VariableConnectorPrivateKeyContent)
+		tpl := tmpl.NewTmplAddFuncs()
+		internalIPV4, _ := variable.StringVar(tpl, nil, vars, _const.VariableIPv4)
+		internalIPV6, _ := variable.StringVar(tpl, nil, vars, _const.VariableIPv6)
+		sshHost, _ := variable.StringVar(tpl, nil, vars, _const.VariableConnector, _const.VariableConnectorHost)
+		sshPort, _ := variable.StringVar(tpl, nil, vars, _const.VariableConnector, _const.VariableConnectorPort)
+		sshUser, _ := variable.StringVar(tpl, nil, vars, _const.VariableConnector, _const.VariableConnectorUser)
+		sshPassword, _ := variable.StringVar(tpl, nil, vars, _const.VariableConnector, _const.VariableConnectorPassword)
+		sshPrivateKeyContent, _ := variable.StringVar(tpl, nil, vars, _const.VariableConnector, _const.VariableConnectorPrivateKeyContent)
 
 		// Remove sensitive or redundant variables from the vars map.
 		delete(vars, _const.VariableIPv4)

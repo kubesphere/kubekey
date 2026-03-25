@@ -6,6 +6,7 @@ import (
 	"github.com/kubesphere/kubekey/v4/pkg/connector"
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/modules/internal"
+	"github.com/kubesphere/kubekey/v4/pkg/utils"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
@@ -33,7 +34,7 @@ func ModuleSetup(ctx context.Context, opts internal.ExecOptions) (string, string
 		return internal.StdoutFailed, internal.StderrGetHostVariable, err
 	}
 	args := variable.Extension2Variables(opts.Args)
-	if force, err := variable.BoolVar(ha, args, "force"); err == nil && *force {
+	if force, err := variable.BoolVar(utils.GetTmpl(ctx), ha, args, "force"); err == nil && *force {
 		ctx = context.WithValue(ctx, _const.CTXSetupForceKey, true)
 	}
 	// get connector

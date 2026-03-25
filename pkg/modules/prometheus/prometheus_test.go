@@ -25,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
+	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 	"github.com/kubesphere/kubekey/v4/pkg/variable/source"
 )
@@ -106,7 +107,7 @@ func TestPrometheusArgsParse(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			raw := createRawArgs(tc.args)
 			args := variable.Extension2Variables(raw)
-			_, err := variable.StringVar(tc.vars, args, "query")
+			_, err := variable.StringVar(tmpl.NewTmplAddFuncs(), tc.vars, args, "query")
 			if tc.expectParseError {
 				require.Error(t, err, tc.description)
 			} else {
@@ -152,7 +153,7 @@ func TestPrometheusArgsTemplate(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			raw := createRawArgs(tc.args)
 			args := variable.Extension2Variables(raw)
-			_, err := variable.StringVar(tc.vars, args, "query")
+			_, err := variable.StringVar(tmpl.NewTmplAddFuncs(), tc.vars, args, "query")
 			if tc.expectError {
 				require.Error(t, err, tc.description)
 			} else {

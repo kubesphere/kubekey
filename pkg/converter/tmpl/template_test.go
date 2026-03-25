@@ -208,7 +208,7 @@ func TestParseBool(t *testing.T) {
 	}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			b, err := ParseBool(tc.variable, tc.condition...)
+			b, err := ParseBool(NewTmplAddFuncs(), tc.variable, tc.condition...)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -316,7 +316,7 @@ func TestParseValue(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			output, _ := Parse(tc.variable, tc.input)
+			output, _ := Parse(NewTmplAddFuncs(), tc.variable, tc.input)
 			assert.Equal(t, tc.excepted, output)
 		})
 	}
@@ -649,7 +649,7 @@ func TestParseFunction(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			output, err := Parse(tc.variable, tc.input)
+			output, err := Parse(NewTmplAddFuncs(), tc.variable, tc.input)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -750,7 +750,7 @@ a2:
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			output, err := ParseFunc(tc.variable, tc.input, StringFunc)
+			output, err := ParseFunc(NewTmplAddFuncs(), tc.variable, tc.input, StringFunc)
 			if err != nil {
 				t.Fatal(err)
 			}

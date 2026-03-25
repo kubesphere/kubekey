@@ -29,6 +29,18 @@ var (
 	StringFunc = func(b []byte) string { return string(b) }
 )
 
+func NewTmplAddFuncs() *template.Template {
+	tpl := template.New("kubekey")
+	funcMap := funcMap()
+	// 全局
+	includedNames := make(map[string]int)
+	// Add the template-rendering functions here so we can close over t.
+	funcMap["include"] = includeFun(tpl, includedNames)
+	funcMap["tpl"] = tplFun(tpl, includedNames, false)
+	tpl.Funcs(funcMap)
+	return tpl
+}
+
 // ParseFunc parses a template string using the provided context and parse function.
 // It takes a context map C, an input string that may contain template syntax,
 // and a parse function that converts the template result to the desired Output type.
@@ -36,20 +48,15 @@ var (
 // For template inputs, it parses and executes the template with the context,
 // then applies the parse function to the result.
 // Returns the parsed output and any error encountered during template processing.
-func ParseFunc[C ~map[string]any, Output any](ctx C, input string, f func([]byte) Output) (Output, error) {
+func ParseFunc[C ~map[string]any, Output any](tpl *template.Template, ctx C, input string, f func([]byte) Output) (Output, error) {
 	// If input doesn't contain template syntax, return directly
 	if !kkprojectv1.IsTmplSyntax(input) {
 		return f([]byte(input)), nil
 	}
 
-	funcMap := funcMap()
-	includedNames := make(map[string]int)
-	tl := template.New("kubekey")
-	// Add the template-rendering functions here so we can close over t.
-	funcMap["include"] = includeFun(tl, includedNames)
-	funcMap["tpl"] = tplFun(tl, includedNames, false)
+	tl, _ := tpl.Clone()
 	// Parse the template string
-	_, err := tl.Funcs(funcMap).Parse(input)
+	_, err := tl.Parse(input)
 	if err != nil {
 		return f(nil), errors.Wrapf(err, "failed to parse template '%s'", input)
 	}
@@ -67,16 +74,16 @@ func ParseFunc[C ~map[string]any, Output any](ctx C, input string, f func([]byte
 
 // Parse is a helper function that wraps ParseFunc to directly return bytes.
 // It takes a context map C and input string, and returns the parsed bytes.
-func Parse[C ~map[string]any](ctx C, input string) ([]byte, error) {
-	return ParseFunc(ctx, input, func(o []byte) []byte {
+func Parse[C ~map[string]any](tpl *template.Template, ctx C, input string) ([]byte, error) {
+	return ParseFunc(tpl, ctx, input, func(o []byte) []byte {
 		return o
 	})
 }
 
 // ParseBool parse template string to bool
-func ParseBool(ctx map[string]any, inputs ...string) (bool, error) {
+func ParseBool(tpl *template.Template, ctx map[string]any, inputs ...string) (bool, error) {
 	for _, input := range inputs {
-		output, err := ParseFunc(ctx, input, func(o []byte) bool {
+		output, err := ParseFunc(tpl, ctx, input, func(o []byte) bool {
 			return bytes.EqualFold(o, []byte("true"))
 		})
 		if err != nil {

@@ -336,7 +336,7 @@ func (e *taskExecutor) executeModule(ctx context.Context, task *kkcorev1alpha1.T
 		}
 
 		// Merge item into host's runtime variables
-		if err := e.variable.Merge(variable.MergeRuntimeVariable([]yaml.Node{node}, host)); err != nil {
+		if err := e.variable.Merge(variable.MergeRuntimeVariable(e.tplEngine, []yaml.Node{node}, host)); err != nil {
 			return modules.StdoutFailed, "", nil, err
 		}
 		// Clean up loop item variable after execution
@@ -350,7 +350,7 @@ func (e *taskExecutor) executeModule(ctx context.Context, task *kkcorev1alpha1.T
 				resErr = err
 				return
 			}
-			if err := e.variable.Merge(variable.MergeRuntimeVariable([]yaml.Node{resetNode}, host)); err != nil {
+			if err := e.variable.Merge(variable.MergeRuntimeVariable(e.tplEngine, []yaml.Node{resetNode}, host)); err != nil {
 				resErr = err
 				return
 			}
@@ -400,7 +400,7 @@ func (e *taskExecutor) dealLoop(ha map[string]any) ([]any, error) {
 		items = []any{nil}
 	} else {
 		var err error
-		items, err = variable.SliceVar(ha, variable.Extension2Variables(e.task.Spec.Loop), "raw")
+		items, err = variable.SliceVar(e.tplEngine, ha, variable.Extension2Variables(e.task.Spec.Loop), "raw")
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to parse loop items")
 		}
@@ -413,7 +413,7 @@ func (e *taskExecutor) dealLoop(ha map[string]any) ([]any, error) {
 // Returns true if the task should be skipped, false if it should proceed.
 func (e *taskExecutor) dealWhen(had map[string]any) (bool, error) {
 	if len(e.task.Spec.When) > 0 {
-		ok, err := tmpl.ParseBool(had, e.task.Spec.When...)
+		ok, err := tmpl.ParseBool(e.tplEngine, had, e.task.Spec.When...)
 		if err != nil {
 			return false, err
 		}
@@ -432,7 +432,7 @@ func (e *taskExecutor) dealFailedWhen(had map[string]any, err error) error {
 		return err
 	}
 	if len(e.task.Spec.FailedWhen) > 0 {
-		ok, err := tmpl.ParseBool(had, e.task.Spec.FailedWhen...)
+		ok, err := tmpl.ParseBool(e.tplEngine, had, e.task.Spec.FailedWhen...)
 		if err != nil {
 			return errors.Wrap(err, "failed to parse failed_when condition")
 		}
@@ -520,7 +520,7 @@ func (e *taskExecutor) dealRegister(host string, loopResults []kkcorev1alpha1.Lo
 		if err != nil {
 			return errors.Join(resErr, err)
 		}
-		resErr = errors.Join(resErr, e.variable.Merge(variable.MergeRuntimeVariable([]yaml.Node{node}, host)))
+		resErr = errors.Join(resErr, e.variable.Merge(variable.MergeRuntimeVariable(e.tplEngine, []yaml.Node{node}, host)))
 	}
 
 	return resErr

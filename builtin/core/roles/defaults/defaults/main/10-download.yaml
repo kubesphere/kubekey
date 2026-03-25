@@ -36,7 +36,8 @@ download:
       {{- .zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
       github.com/kubernetes-sigs/cri-tools/releases/download/{{ "{{ .version }}" }}/crictl-{{ "{{ .version }}" }}-linux-{{ "{{ .arch }}" }}.tar.gz
     docker: >-
-      https://mirrors.aliyun.com/docker-ce/linux/static/stable/
+      {{- .zone | eq "cn" | ternary "https://mirrors.aliyun.com/docker-ce/" "https://download.docker.com/" -}}
+      linux/static/stable/
       {{- "{{ if eq .arch \"amd64\" }}x86_64{{ else if eq .arch \"arm64\" }}aarch64{{ end }}" -}}
       /docker-{{ "{{ .version }}" }}.tgz
     cridockerd: >-
