@@ -167,6 +167,7 @@ download:
         - docker.io/calico/flannel-migration-controller:v3.26.5
         - docker.io/flannel/flannel:v0.24.4
         - docker.io/calico/dikastes:v3.26.5
+        - docker.io/calico/node-driver-registrar:v3.26.5
         - quay.io/calico/pod2daemon-flexvol:v3.26.5
       v3.28.5:
         - quay.io/tigera/operator:v1.34.13
@@ -182,6 +183,7 @@ download:
         - docker.io/calico/flannel-migration-controller:v3.28.5
         - docker.io/flannel/flannel:v0.24.4
         - docker.io/calico/dikastes:v3.28.5
+        - docker.io/calico/node-driver-registrar:v3.28.5
         - quay.io/calico/pod2daemon-flexvol:v3.28.5
       v3.29.7: # refer https://docs.tigera.io/calico/3.29/reference/component-versions
         - quay.io/tigera/operator:v1.36.16
@@ -198,6 +200,7 @@ download:
         # - docker.io/calico/windows:v3.29.7
         - docker.io/flannel/flannel:v0.24.4
         - docker.io/calico/dikastes:v3.29.7
+        - docker.io/calico/node-driver-registrar:v3.29.7
         - quay.io/calico/pod2daemon-flexvol:v3.29.7
       v3.30.5:
         - quay.io/tigera/operator:v1.38.9
@@ -216,6 +219,7 @@ download:
         - docker.io/calico/flannel-migration-controller:v3.30.5
         - docker.io/flannel/flannel:v0.24.4
         - docker.io/calico/dikastes:v3.30.5
+        - docker.io/calico/node-driver-registrar:v3.30.5
         - quay.io/calico/pod2daemon-flexvol:v3.30.5
         - docker.io/calico/csi:v3.30.5
         - docker.io/calico/key-cert-provisioner:v3.30.5
@@ -239,6 +243,7 @@ download:
         - docker.io/calico/flannel-migration-controller:v3.31.3
         - docker.io/flannel/flannel:v0.24.4
         - docker.io/calico/dikastes:v3.31.3
+        - docker.io/calico/node-driver-registrar:v3.31.3
         - quay.io/calico/pod2daemon-flexvol:v3.31.3
         - docker.io/calico/csi:v3.31.3
         - docker.io/calico/key-cert-provisioner:v3.31.3

@@ -1,5 +1,6 @@
 - name: PullImage | Download container images
   tags: ["pull","image_registry"]
+  when: .download.fetch
   image:
     platform: >
       {{- $platform := list }}
@@ -12,5 +13,3 @@
     manifests: "{{ .download.images.manifests | toJson }}"
     src: "oci://{{ .module.image.reference.registry }}/{{ .module.image.reference.repository }}:{{ .module.image.reference.reference }}"
     dest: "local://{{ .binary_dir }}/images/"
-  when:
-    - .download.fetch
