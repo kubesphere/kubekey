@@ -28,6 +28,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"text/template"
 	"time"
 
 	"github.com/cockroachdb/errors"
@@ -58,42 +59,42 @@ func init() {
 var _ Connector = &sshConnector{}
 var _ GatherFacts = &sshConnector{}
 
-func newSSHConnector(workdir, host string, hostVars map[string]any) *sshConnector {
+func newSSHConnector(tpl *template.Template, workdir, host string, hostVars map[string]any) *sshConnector {
 	// get host in connector variable. if empty, set default host: host_name.
-	hostParam, err := variable.StringVar(nil, hostVars, _const.VariableConnector, _const.VariableConnectorHost)
+	hostParam, err := variable.StringVar(tpl, nil, hostVars, _const.VariableConnector, _const.VariableConnectorHost)
 	if err != nil {
 		klog.V(4).InfoS("get connector host failed use current hostname", "error", err)
 		hostParam = host
 	}
 	// get port in connector variable. if empty, set default port: 22.
-	portParam, err := variable.IntVar(nil, hostVars, _const.VariableConnector, _const.VariableConnectorPort)
+	portParam, err := variable.IntVar(tpl, nil, hostVars, _const.VariableConnector, _const.VariableConnectorPort)
 	if err != nil {
 		klog.V(4).InfoS("connector port is empty, using default", "port", defaultSSHPort)
 		portParam = ptr.To(defaultSSHPort)
 	}
 	// get user in connector variable. if empty, set default user: root.
-	userParam, err := variable.StringVar(nil, hostVars, _const.VariableConnector, _const.VariableConnectorUser)
+	userParam, err := variable.StringVar(tpl, nil, hostVars, _const.VariableConnector, _const.VariableConnectorUser)
 	if err != nil {
 		klog.V(4).InfoS("connector user is empty, using default", "user", defaultSSHUser)
 		userParam = defaultSSHUser
 	}
 	// get password in connector variable. if empty, should connector by private key.
-	passwdParam, err := variable.StringVar(nil, hostVars, _const.VariableConnector, _const.VariableConnectorPassword)
+	passwdParam, err := variable.StringVar(tpl, nil, hostVars, _const.VariableConnector, _const.VariableConnectorPassword)
 	if err != nil {
 		klog.V(4).InfoS("connector password is empty use public key")
 	}
 	// get private key path in connector variable. if empty, set default path: /root/.ssh/id_rsa.
-	keyParam, err := variable.StringVar(nil, hostVars, _const.VariableConnector, _const.VariableConnectorPrivateKey)
+	keyParam, err := variable.StringVar(tpl, nil, hostVars, _const.VariableConnector, _const.VariableConnectorPrivateKey)
 	if err != nil {
 		klog.V(4).InfoS("ssh private key path is empty, using default", "path", defaultSSHPrivateKey)
 		keyParam = defaultSSHPrivateKey
 	}
-	keycontentParam, err := variable.StringVar(nil, hostVars, _const.VariableConnector, _const.VariableConnectorPrivateKeyContent)
+	keycontentParam, err := variable.StringVar(tpl, nil, hostVars, _const.VariableConnector, _const.VariableConnectorPrivateKeyContent)
 	if err != nil {
 		klog.V(4).InfoS("ssh private key content is empty")
 		// Leave keycontentParam as empty string - no default needed
 	}
-	cacheType, _ := variable.StringVar(nil, hostVars, _const.VariableGatherFactsCache)
+	cacheType, _ := variable.StringVar(tpl, nil, hostVars, _const.VariableGatherFactsCache)
 	connector := &sshConnector{
 		Host:              hostParam,
 		Port:              *portParam,
@@ -322,7 +323,7 @@ func (c *sshConnector) ExecuteCommand(_ context.Context, cmd string) ([]byte, []
 	}
 	defer session.Close()
 
-	cmd = fmt.Sprintf("TERM=dumb; export LANG=C.UTF-8; SUDO_USER=%s; sudo -E %s << 'KUBEKEY_EOF'\n%s\nKUBEKEY_EOF", c.User, c.shell, cmd)
+	cmd = fmt.Sprintf("TERM=dumb; export LANG=C.UTF-8;sudo -E %s << 'KUBEKEY_EOF'\n%s\nKUBEKEY_EOF", c.shell, cmd)
 	klog.V(5).InfoS("exec ssh command", "cmd", cmd)
 
 	in, err := session.StdinPipe()

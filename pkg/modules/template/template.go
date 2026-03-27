@@ -36,6 +36,7 @@ import (
 	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 	"github.com/kubesphere/kubekey/v4/pkg/modules/internal"
 	"github.com/kubesphere/kubekey/v4/pkg/project"
+	"github.com/kubesphere/kubekey/v4/pkg/utils"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
@@ -82,23 +83,24 @@ type templateArgs struct {
 	mode *uint32
 }
 
-func newTemplateArgs(_ context.Context, raw runtime.RawExtension, vars map[string]any) (*templateArgs, error) {
+func newTemplateArgs(ctx context.Context, raw runtime.RawExtension, vars map[string]any) (*templateArgs, error) {
 	var err error
 	// check args
 	ta := &templateArgs{}
 	args := variable.Extension2Variables(raw)
 
-	ta.src, err = variable.StringVar(vars, args, "src")
+	tpl := utils.GetTmpl(ctx)
+	ta.src, err = variable.StringVar(tpl, vars, args, "src")
 	if err != nil {
 		return nil, errors.New("\"src\" should be string")
 	}
 
-	ta.dest, err = variable.StringVar(vars, args, "dest")
+	ta.dest, err = variable.StringVar(tpl, vars, args, "dest")
 	if err != nil {
 		return nil, errors.New("\"dest\" should be string")
 	}
 
-	mode, err := variable.IntVar(vars, args, "mode")
+	mode, err := variable.IntVar(tpl, vars, args, "mode")
 	if err != nil {
 		klog.V(4).InfoS("get mode error", "error", err)
 	} else {
@@ -214,7 +216,7 @@ func handleRelativeDir(ctx context.Context, pj project.Project, relPath string, 
 		if err != nil {
 			return errors.Wrapf(err, "failed to read file %q", path)
 		}
-		result, err := tmpl.Parse(vars, string(data))
+		result, err := tmpl.Parse(utils.GetTmpl(ctx), vars, string(data))
 		if err != nil {
 			return errors.Wrapf(err, "failed to parse file %q", path)
 		}
@@ -241,7 +243,7 @@ func handleRelativeDir(ctx context.Context, pj project.Project, relPath string, 
 
 // relFile when template.src is relative file, get file from project, parse it, and copy to remote.
 func (ta templateArgs) readFile(ctx context.Context, data string, mode fs.FileMode, conn connector.Connector, vars map[string]any) error {
-	result, err := tmpl.Parse(vars, data)
+	result, err := tmpl.Parse(utils.GetTmpl(ctx), vars, data)
 	if err != nil {
 		return err
 	}
@@ -289,7 +291,7 @@ func (ta templateArgs) absDir(ctx context.Context, conn connector.Connector, var
 		if err != nil {
 			return errors.Wrapf(err, "failed to read file %q", path)
 		}
-		result, err := tmpl.Parse(vars, string(data))
+		result, err := tmpl.Parse(utils.GetTmpl(ctx), vars, string(data))
 		if err != nil {
 			return errors.Wrapf(err, "failed to parse file %q", path)
 		}

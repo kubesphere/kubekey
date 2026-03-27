@@ -21,6 +21,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/cockroachdb/errors"
@@ -202,7 +203,7 @@ func PrintVar(ctx map[string]any, keys ...string) (any, error) {
 }
 
 // StringVar get string value by key
-func StringVar(ctx map[string]any, args map[string]any, keys ...string) (string, error) {
+func StringVar(tpl *template.Template, ctx map[string]any, args map[string]any, keys ...string) (string, error) {
 	// convert to string
 	sv, found, err := unstructured.NestedString(args, keys...)
 	if err != nil {
@@ -212,11 +213,11 @@ func StringVar(ctx map[string]any, args map[string]any, keys ...string) (string,
 		return "", errors.Errorf("cannot find variable %q", strings.Join(keys, "."))
 	}
 
-	return tmpl.ParseFunc(ctx, sv, tmpl.StringFunc)
+	return tmpl.ParseFunc(tpl, ctx, sv, tmpl.StringFunc)
 }
 
 // StringSliceVar get string slice value by key
-func StringSliceVar(ctx map[string]any, args map[string]any, keys ...string) ([]string, error) {
+func StringSliceVar(tpl *template.Template, ctx map[string]any, args map[string]any, keys ...string) ([]string, error) {
 	val, found, err := unstructured.NestedFieldNoCopy(args, keys...)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -229,7 +230,7 @@ func StringSliceVar(ctx map[string]any, args map[string]any, keys ...string) ([]
 	case []string:
 		var ss []string
 		for _, a := range valv {
-			as, err := tmpl.ParseFunc(ctx, a, tmpl.StringFunc)
+			as, err := tmpl.ParseFunc(tpl, ctx, a, tmpl.StringFunc)
 			if err != nil {
 				return nil, err
 			}
@@ -247,7 +248,7 @@ func StringSliceVar(ctx map[string]any, args map[string]any, keys ...string) ([]
 				return nil, nil
 			}
 
-			as, err := tmpl.ParseFunc(ctx, av, tmpl.StringFunc)
+			as, err := tmpl.ParseFunc(tpl, ctx, av, tmpl.StringFunc)
 			if err != nil {
 				return nil, err
 			}
@@ -257,7 +258,7 @@ func StringSliceVar(ctx map[string]any, args map[string]any, keys ...string) ([]
 
 		return ss, nil
 	case string:
-		as, err := tmpl.Parse(ctx, valv)
+		as, err := tmpl.Parse(tpl, ctx, valv)
 		if err != nil {
 			return nil, err
 		}
@@ -275,7 +276,7 @@ func StringSliceVar(ctx map[string]any, args map[string]any, keys ...string) ([]
 
 // SliceVar retrieves a generic slice value by key.
 // It supports both direct arrays and JSON array strings (after template rendering).
-func SliceVar(ctx map[string]any, args map[string]any, keys ...string) ([]any, error) {
+func SliceVar(tpl *template.Template, ctx map[string]any, args map[string]any, keys ...string) ([]any, error) {
 	val, found, err := unstructured.NestedFieldNoCopy(args, keys...)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -290,7 +291,7 @@ func SliceVar(ctx map[string]any, args map[string]any, keys ...string) ([]any, e
 		return valv, nil
 	case string:
 		// Render template and try to parse as a JSON array
-		as, err := tmpl.Parse(ctx, valv)
+		as, err := tmpl.Parse(tpl, ctx, valv)
 		if err != nil {
 			return nil, err
 		}
@@ -308,7 +309,7 @@ func SliceVar(ctx map[string]any, args map[string]any, keys ...string) ([]any, e
 }
 
 // IntVar get int value by key
-func IntVar(ctx map[string]any, args map[string]any, keys ...string) (*int, error) {
+func IntVar(tpl *template.Template, ctx map[string]any, args map[string]any, keys ...string) (*int, error) {
 	val, found, err := unstructured.NestedFieldNoCopy(args, keys...)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -332,7 +333,7 @@ func IntVar(ctx map[string]any, args map[string]any, keys ...string) (*int, erro
 	case reflect.Float32, reflect.Float64:
 		return ptr.To(int(v.Float())), nil
 	case reflect.String:
-		vs, err := tmpl.ParseFunc(ctx, v.String(), tmpl.StringFunc)
+		vs, err := tmpl.ParseFunc(tpl, ctx, v.String(), tmpl.StringFunc)
 		if err != nil {
 			return nil, err
 		}
@@ -349,7 +350,7 @@ func IntVar(ctx map[string]any, args map[string]any, keys ...string) (*int, erro
 }
 
 // BoolVar get bool value by key
-func BoolVar(ctx map[string]any, args map[string]any, keys ...string) (*bool, error) {
+func BoolVar(tpl *template.Template, ctx map[string]any, args map[string]any, keys ...string) (*bool, error) {
 	val, found, err := unstructured.NestedFieldNoCopy(args, keys...)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -363,7 +364,7 @@ func BoolVar(ctx map[string]any, args map[string]any, keys ...string) (*bool, er
 	case reflect.Bool:
 		return ptr.To(v.Bool()), nil
 	case reflect.String:
-		vs, err := tmpl.ParseBool(ctx, v.String())
+		vs, err := tmpl.ParseBool(tpl, ctx, v.String())
 		if err != nil {
 			return nil, err
 		}
@@ -375,8 +376,8 @@ func BoolVar(ctx map[string]any, args map[string]any, keys ...string) (*bool, er
 }
 
 // DurationVar get time.Duration value by key
-func DurationVar(ctx map[string]any, args map[string]any, key string) (time.Duration, error) {
-	stringVar, err := StringVar(ctx, args, key)
+func DurationVar(tpl *template.Template, ctx map[string]any, args map[string]any, key string) (time.Duration, error) {
+	stringVar, err := StringVar(tpl, ctx, args, key)
 	if err != nil {
 		return 0, err
 	}
@@ -385,7 +386,7 @@ func DurationVar(ctx map[string]any, args map[string]any, key string) (time.Dura
 }
 
 // AnyVar get data from input args and keys,unmarshal data into dest
-func AnyVar(ctx, args map[string]any, dest any, keys ...string) error {
+func AnyVar(tpl *template.Template, ctx, args map[string]any, dest any, keys ...string) error {
 	val, found, err := unstructured.NestedFieldNoCopy(args, keys...)
 	if err != nil {
 		return errors.WithStack(err)
@@ -404,7 +405,7 @@ func AnyVar(ctx, args map[string]any, dest any, keys ...string) error {
 		}
 	}
 
-	valBytesAfterTmpl, err := tmpl.Parse(ctx, string(valBytes))
+	valBytesAfterTmpl, err := tmpl.Parse(tpl, ctx, string(valBytes))
 	if err != nil {
 		return err
 	}
@@ -456,7 +457,7 @@ func Extension2Variables(ext runtime.RawExtension) map[string]any {
 // Extension2String converts a runtime.RawExtension to a string, optionally parsing it as a template.
 // If the extension is empty, it returns nil. If the string is quoted, it unquotes it first.
 // Finally, it parses the string as a template using the provided context.
-func Extension2String(ctx map[string]any, ext runtime.RawExtension) ([]byte, error) {
+func Extension2String(tpl *template.Template, ctx map[string]any, ext runtime.RawExtension) ([]byte, error) {
 	if len(ext.Raw) == 0 {
 		return nil, nil
 	}
@@ -467,5 +468,5 @@ func Extension2String(ctx map[string]any, ext runtime.RawExtension) ([]byte, err
 		input = ns
 	}
 
-	return tmpl.Parse(ctx, input)
+	return tmpl.Parse(tpl, ctx, input)
 }

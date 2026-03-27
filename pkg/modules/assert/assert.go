@@ -25,6 +25,7 @@ import (
 
 	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 	"github.com/kubesphere/kubekey/v4/pkg/modules/internal"
+	"github.com/kubesphere/kubekey/v4/pkg/utils"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
@@ -89,12 +90,13 @@ type assertArgs struct {
 	msg        string
 }
 
-func newAssertArgs(_ context.Context, raw runtime.RawExtension, vars map[string]any) (*assertArgs, error) {
+func newAssertArgs(ctx context.Context, raw runtime.RawExtension, vars map[string]any) (*assertArgs, error) {
 	var err error
 	var aa = &assertArgs{}
 
 	args := variable.Extension2Variables(raw)
-	if aa.that, err = variable.StringSliceVar(vars, args, "that"); err != nil {
+	tpl := utils.GetTmpl(ctx)
+	if aa.that, err = variable.StringSliceVar(tpl, vars, args, "that"); err != nil {
 		return nil, errors.New("\"that\" should be []string or string")
 	}
 	for i, s := range aa.that {
@@ -102,15 +104,15 @@ func newAssertArgs(_ context.Context, raw runtime.RawExtension, vars map[string]
 			aa.that[i] = kkprojectv1.ParseTmplSyntax(s)
 		}
 	}
-	aa.successMsg, _ = variable.StringVar(vars, args, "success_msg")
+	aa.successMsg, _ = variable.StringVar(tpl, vars, args, "success_msg")
 	if aa.successMsg == "" {
 		aa.successMsg = internal.StdoutSuccess
 	}
-	aa.failMsg, _ = variable.StringVar(vars, args, "fail_msg")
+	aa.failMsg, _ = variable.StringVar(tpl, vars, args, "fail_msg")
 	if aa.failMsg == "" {
 		aa.failMsg = internal.StdoutFailed
 	}
-	aa.msg, _ = variable.StringVar(vars, args, "msg")
+	aa.msg, _ = variable.StringVar(tpl, vars, args, "msg")
 	if aa.msg == "" {
 		aa.msg = internal.StdoutFailed
 	}
@@ -131,7 +133,7 @@ func ModuleAssert(ctx context.Context, opts internal.ExecOptions) (string, strin
 		return internal.StdoutFailed, internal.StderrParseArgument, err
 	}
 
-	ok, err := tmpl.ParseBool(ha, aa.that...)
+	ok, err := tmpl.ParseBool(utils.GetTmpl(ctx), ha, aa.that...)
 	if err != nil {
 		return internal.StdoutFailed, "failed to parse argument of that", err
 	}

@@ -25,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/rand"
 
 	"github.com/kubesphere/kubekey/v4/pkg/modules/internal"
+	"github.com/kubesphere/kubekey/v4/pkg/utils"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
@@ -72,15 +73,16 @@ func ModuleFetch(ctx context.Context, opts internal.ExecOptions) (string, string
 	}
 	// check args
 	args := variable.Extension2Variables(opts.Args)
-	srcParam, err := variable.StringVar(ha, args, "src")
+	tpl := utils.GetTmpl(ctx)
+	srcParam, err := variable.StringVar(tpl, ha, args, "src")
 	if err != nil {
 		return internal.StdoutFailed, "\"src\" in args should be string", err
 	}
-	destParam, err := variable.StringVar(ha, args, "dest")
+	destParam, err := variable.StringVar(tpl, ha, args, "dest")
 	if err != nil {
 		return internal.StdoutFailed, "\"dest\" in args should be string", err
 	}
-	tmpDir, err := variable.StringVar(ha, ha, "tmp_dir")
+	tmpDir, err := variable.StringVar(tpl, ha, ha, "tmp_dir")
 	if err != nil || tmpDir == "" {
 		tmpDir = "/tmp/kubekey/"
 	}

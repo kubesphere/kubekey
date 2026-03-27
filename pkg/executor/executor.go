@@ -3,6 +3,7 @@ package executor
 import (
 	"context"
 	"io"
+	"text/template"
 
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -21,6 +22,8 @@ type option struct {
 
 	playbook *kkcorev1.Playbook
 	variable variable.Variable
+
+	tplEngine *template.Template
 	// commandLine log output. default os.stdout
 	logOutput io.Writer
 }

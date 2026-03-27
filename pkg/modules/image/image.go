@@ -27,6 +27,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"text/template"
 
 	"github.com/asaskevich/govalidator"
 	"github.com/cockroachdb/errors"
@@ -41,6 +42,7 @@ import (
 
 	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 	"github.com/kubesphere/kubekey/v4/pkg/modules/internal"
+	"github.com/kubesphere/kubekey/v4/pkg/utils"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
@@ -166,17 +168,17 @@ type imageArgs struct {
 // - pull: src=remote registry, dest=local directory
 // - push: src=local directory, dest=remote registry
 // - copy: src=local directory, dest=local directory
-func newImageArgs(_ context.Context, raw runtime.RawExtension, vars map[string]any, logOutput io.Writer) (*imageArgs, error) {
+func newImageArgs(ctx context.Context, raw runtime.RawExtension, vars map[string]any, logOutput io.Writer) (*imageArgs, error) {
 	args := variable.Extension2Variables(raw)
 
 	if pull, ok := args["pull"]; ok {
-		return transferPull(pull, vars, logOutput)
+		return transferPull(ctx, pull, vars, logOutput)
 	}
 	if push, ok := args["push"]; ok {
-		return transferPush(push, vars, logOutput)
+		return transferPush(ctx, push, vars, logOutput)
 	}
 	if copy, ok := args["copy"]; ok {
-		return transferCopy(copy, vars, logOutput)
+		return transferCopy(ctx, copy, vars, logOutput)
 	}
 
 	// New format: parse directly
@@ -187,10 +189,11 @@ func newImageArgs(_ context.Context, raw runtime.RawExtension, vars map[string]a
 	}
 
 	// Parse manifests
-	ia.manifests, _ = variable.StringSliceVar(vars, args, "manifests")
+	tpl := utils.GetTmpl(ctx)
+	ia.manifests, _ = variable.StringSliceVar(tpl, vars, args, "manifests")
 
 	// Parse policy
-	ia.policy, _ = variable.StringVar(vars, args, "policy")
+	ia.policy, _ = variable.StringVar(tpl, vars, args, "policy")
 	if ia.policy == "" {
 		ia.policy = PolicyStrict
 	}
@@ -201,10 +204,10 @@ func newImageArgs(_ context.Context, raw runtime.RawExtension, vars map[string]a
 	}
 
 	// Parse platform
-	ia.platform, _ = variable.StringSliceVar(vars, args, "platform")
+	ia.platform, _ = variable.StringSliceVar(tpl, vars, args, "platform")
 
 	// Parse pattern
-	patternStr, _ := variable.StringVar(vars, args, "pattern")
+	patternStr, _ := variable.StringVar(tpl, vars, args, "pattern")
 	if patternStr != "" {
 		pattern, err := regexp.Compile(patternStr)
 		if err != nil {
@@ -215,7 +218,7 @@ func newImageArgs(_ context.Context, raw runtime.RawExtension, vars map[string]a
 
 	// Parse auths
 	auths := make([]imageAuth, 0)
-	_ = variable.AnyVar(vars, args, &auths, "auths")
+	_ = variable.AnyVar(tpl, vars, args, &auths, "auths")
 	ia.auths = append(ia.auths, auths...)
 
 	// Parse src
@@ -241,7 +244,7 @@ func newImageArgs(_ context.Context, raw runtime.RawExtension, vars map[string]a
 	return ia, nil
 }
 
-func (i *imageArgs) copy(ctx context.Context, hostVars map[string]any) error {
+func (i *imageArgs) copy(tpl *template.Template, ctx context.Context, hostVars map[string]any) error {
 	// Determine the manifests to operate on
 	images := i.manifests
 	// Apply pattern filtering if pattern is provided
@@ -271,11 +274,11 @@ func (i *imageArgs) copy(ctx context.Context, hostVars map[string]any) error {
 		_ = unstructured.SetNestedField(hostVars, reference.Repository, "module", "image", "reference", "repository")
 		_ = unstructured.SetNestedField(hostVars, reference.Reference, "module", "image", "reference", "reference")
 
-		src, err := tmpl.ParseFunc(hostVars, i.src, tmpl.StringFunc)
+		src, err := tmpl.ParseFunc(tpl, hostVars, i.src, tmpl.StringFunc)
 		if err != nil {
 			return errors.Wrapf(err, "failed to parse src %q", i.src)
 		}
-		dest, err := tmpl.ParseFunc(hostVars, i.dest, tmpl.StringFunc)
+		dest, err := tmpl.ParseFunc(tpl, hostVars, i.dest, tmpl.StringFunc)
 		if err != nil {
 			return errors.Wrapf(err, "failed to parse dest %q", i.dest)
 		}
@@ -541,7 +544,7 @@ func ModuleImage(ctx context.Context, opts internal.ExecOptions) (string, string
 		return internal.StdoutFailed, internal.StderrParseArgument, err
 	}
 
-	if err := ia.copy(ctx, ha); err != nil {
+	if err := ia.copy(utils.GetTmpl(ctx), ctx, ha); err != nil {
 		if errors.Is(err, filepath.SkipDir) {
 			return internal.StdoutSkip, "image manifest is empty", nil
 		}
