@@ -17,12 +17,14 @@ limitations under the License.
 package image
 
 import (
+	"context"
 	"io"
 	"regexp"
 
 	"github.com/cockroachdb/errors"
 	"k8s.io/utils/ptr"
 
+	"github.com/kubesphere/kubekey/v4/pkg/utils"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
@@ -69,25 +71,26 @@ type oldImageCopyTargetArgs struct {
 // transferPull parses deprecated "pull" configuration arguments and converts them to the new imageArgs format.
 // Old format: pull images from remote registry to local directory
 // New format: src = remote reference (oci://), dest = local directory (local://)
-func transferPull(pullArgs any, vars map[string]any, logOutput io.Writer) (*imageArgs, error) {
+func transferPull(ctx context.Context, pullArgs any, vars map[string]any, logOutput io.Writer) (*imageArgs, error) {
 	pull, ok := pullArgs.(map[string]any)
 	if !ok {
 		return nil, errors.New("\"pull\" should be map")
 	}
 
 	ipl := &oldImagePullArgs{}
-	ipl.manifests, _ = variable.StringSliceVar(vars, pull, "manifests")
+	tpl := utils.GetTmpl(ctx)
+	ipl.manifests, _ = variable.StringSliceVar(tpl, vars, pull, "manifests")
 	ipl.auths = make([]imageAuth, 0)
 	pullAuths := make([]imageAuth, 0)
-	_ = variable.AnyVar(vars, pull, &pullAuths, "auths")
+	_ = variable.AnyVar(tpl, vars, pull, &pullAuths, "auths")
 	ipl.auths = append(ipl.auths, pullAuths...)
 
-	ipl.imagesDir, _ = variable.StringVar(vars, pull, "images_dir")
-	ipl.skipTLSVerify, _ = variable.BoolVar(vars, pull, "skip_tls_verify")
+	ipl.imagesDir, _ = variable.StringVar(tpl, vars, pull, "images_dir")
+	ipl.skipTLSVerify, _ = variable.BoolVar(tpl, vars, pull, "skip_tls_verify")
 	if ipl.skipTLSVerify == nil {
 		ipl.skipTLSVerify = ptr.To(false)
 	}
-	ipl.platform, _ = variable.StringSliceVar(vars, pull, "platform")
+	ipl.platform, _ = variable.StringSliceVar(tpl, vars, pull, "platform")
 
 	// Validate required fields
 	if len(ipl.manifests) == 0 {
@@ -110,7 +113,7 @@ func transferPull(pullArgs any, vars map[string]any, logOutput io.Writer) (*imag
 // transferPush parses deprecated "push" configuration arguments and converts them to the new imageArgs format.
 // Old format: push images from local directory to remote registry
 // New format: src = local directory (local://), dest = remote reference (oci://)
-func transferPush(pushArgs any, vars map[string]any, logOutput io.Writer) (*imageArgs, error) {
+func transferPush(ctx context.Context, pushArgs any, vars map[string]any, logOutput io.Writer) (*imageArgs, error) {
 	push, ok := pushArgs.(map[string]any)
 	if !ok {
 		return nil, errors.New("\"push\" should be map")
@@ -119,13 +122,14 @@ func transferPush(pushArgs any, vars map[string]any, logOutput io.Writer) (*imag
 	ips := &oldImagePushArgs{}
 	ips.auths = make([]imageAuth, 0)
 	pushAuths := make([]imageAuth, 0)
-	_ = variable.AnyVar(vars, push, &pushAuths, "auths")
+	tpl := utils.GetTmpl(ctx)
+	_ = variable.AnyVar(tpl, vars, push, &pushAuths, "auths")
 	ips.auths = append(ips.auths, pushAuths...)
 
-	ips.imagesDir, _ = variable.StringVar(vars, push, "images_dir")
-	srcPattern, _ := variable.StringVar(vars, push, "src_pattern")
+	ips.imagesDir, _ = variable.StringVar(tpl, vars, push, "images_dir")
+	srcPattern, _ := variable.StringVar(tpl, vars, push, "src_pattern")
 	destTmpl, _ := variable.PrintVar(push, "dest")
-	ips.skipTLSVerify, _ = variable.BoolVar(vars, push, "skip_tls_verify")
+	ips.skipTLSVerify, _ = variable.BoolVar(tpl, vars, push, "skip_tls_verify")
 	if ips.skipTLSVerify == nil {
 		ips.skipTLSVerify = ptr.To(false)
 	}
@@ -166,7 +170,7 @@ func transferPush(pushArgs any, vars map[string]any, logOutput io.Writer) (*imag
 // transferCopy parses deprecated "copy" configuration arguments and converts them to the new imageArgs format.
 // Old format: copy images from local directory to local directory
 // New format: src = local directory (local://), dest = local directory (local://)
-func transferCopy(copyArgs any, vars map[string]any, logOutput io.Writer) (*imageArgs, error) {
+func transferCopy(ctx context.Context, copyArgs any, vars map[string]any, logOutput io.Writer) (*imageArgs, error) {
 	cp, ok := copyArgs.(map[string]any)
 	if !ok {
 		return nil, errors.New("\"copy\" should be map")
@@ -174,11 +178,12 @@ func transferCopy(copyArgs any, vars map[string]any, logOutput io.Writer) (*imag
 
 	cps := &oldImageCopyArgs{}
 
-	cps.Platform, _ = variable.StringSliceVar(vars, cp, "platform")
+	tpl := utils.GetTmpl(ctx)
+	cps.Platform, _ = variable.StringSliceVar(tpl, vars, cp, "platform")
 
-	cps.From.manifests, _ = variable.StringSliceVar(vars, cp, "from", "manifests")
+	cps.From.manifests, _ = variable.StringSliceVar(tpl, vars, cp, "from", "manifests")
 
-	cps.From.Path, _ = variable.StringVar(vars, cp, "from", "path")
+	cps.From.Path, _ = variable.StringVar(tpl, vars, cp, "from", "path")
 
 	toPath, _ := variable.PrintVar(cp, "to", "path")
 	if destStr, ok := toPath.(string); !ok {
@@ -188,7 +193,7 @@ func transferCopy(copyArgs any, vars map[string]any, logOutput io.Writer) (*imag
 	} else {
 		cps.To.Path = destStr
 	}
-	srcPattern, _ := variable.StringVar(vars, cp, "to", "src_pattern")
+	srcPattern, _ := variable.StringVar(tpl, vars, cp, "to", "src_pattern")
 	if srcPattern != "" {
 		pattern, err := regexp.Compile(srcPattern)
 		if err != nil {

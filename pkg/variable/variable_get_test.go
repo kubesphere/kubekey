@@ -23,6 +23,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+
+	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 )
 
 func TestGetHostnames(t *testing.T) {
@@ -109,7 +111,7 @@ func TestGetHostnames(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			result, err := tc.variable.Get(GetHostnames(tc.hosts))
+			result, err := tc.variable.Get(GetHostnames(tmpl.NewTmplAddFuncs(), tc.hosts))
 			if err != nil {
 				t.Fatal(err)
 			}

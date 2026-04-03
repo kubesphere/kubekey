@@ -23,6 +23,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/runtime"
+
+	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
+	"github.com/kubesphere/kubekey/v4/pkg/utils"
 )
 
 // createRawArgs creates a runtime.RawExtension from a map
@@ -104,7 +107,7 @@ func TestGenCertArgsParse(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx := context.Background()
+			ctx := context.WithValue(context.Background(), utils.TplKey, tmpl.NewTmplAddFuncs())
 			raw := createRawArgs(tc.args)
 			_, err := newGenCertArgs(ctx, raw, nil)
 			if tc.expectParseError {
@@ -150,7 +153,7 @@ func TestGenCertArgsTemplate(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx := context.Background()
+			ctx := context.WithValue(context.Background(), utils.TplKey, tmpl.NewTmplAddFuncs())
 			raw := createRawArgs(tc.args)
 			_, err := newGenCertArgs(ctx, raw, tc.vars)
 			if tc.expectError {

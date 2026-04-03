@@ -22,6 +22,7 @@ import (
 	"io/fs"
 	"net"
 	"os"
+	"text/template"
 
 	"github.com/cockroachdb/errors"
 	"k8s.io/klog/v2"
@@ -62,7 +63,7 @@ type Connector interface {
 // if set connector to "prometheus", use prometheus connector
 // if connector is not set. when host is localhost, use local connector, else use ssh connector
 // vars contains all inventory for host. It's best to define the connector info in inventory file.
-func NewConnector(host string, v variable.Variable) (Connector, error) {
+func NewConnector(tpl *template.Template, host string, v variable.Variable) (Connector, error) {
 	ha, err := v.Get(variable.GetAllVariable(host))
 	if err != nil {
 		return nil, err
@@ -81,29 +82,29 @@ func NewConnector(host string, v variable.Variable) (Connector, error) {
 		return nil, errors.New("workdir in variable should be string")
 	}
 
-	connectedType, _ := variable.StringVar(nil, vd, _const.VariableConnector, _const.VariableConnectorType)
+	connectedType, _ := variable.StringVar(tpl, nil, vd, _const.VariableConnector, _const.VariableConnectorType)
 	switch connectedType {
 	case connectedLocal:
-		return newLocalConnector(wd, vd), nil
+		return newLocalConnector(tpl, wd, vd), nil
 	case connectedSSH:
-		return newSSHConnector(wd, host, vd), nil
+		return newSSHConnector(tpl, wd, host, vd), nil
 	case connectedKubernetes:
-		return newKubernetesConnector(host, wd, vd)
+		return newKubernetesConnector(tpl, host, wd, vd)
 	case connectedPrometheus:
-		return newPrometheusConnector(vd), nil
+		return newPrometheusConnector(tpl, vd), nil
 	default:
 		localHost, _ := os.Hostname()
 		// get host in connector variable. if empty, set default host: host_name.
-		hostParam, err := variable.StringVar(nil, vd, _const.VariableConnector, _const.VariableConnectorHost)
+		hostParam, err := variable.StringVar(tpl, nil, vd, _const.VariableConnector, _const.VariableConnectorHost)
 		if err != nil {
 			klog.V(4).InfoS("connector host is empty, using provided host", "host", host)
 			hostParam = host
 		}
 		if host == _const.VariableLocalHost || host == localHost || isLocalIP(hostParam) {
-			return newLocalConnector(wd, vd), nil
+			return newLocalConnector(tpl, wd, vd), nil
 		}
 
-		return newSSHConnector(wd, host, vd), nil
+		return newSSHConnector(tpl, wd, host, vd), nil
 	}
 }
 

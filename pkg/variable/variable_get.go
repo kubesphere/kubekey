@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"text/template"
 
 	"github.com/cockroachdb/errors"
 	"k8s.io/apimachinery/pkg/util/rand"
@@ -21,7 +22,7 @@ import (
 // It supports various hostname patterns including direct hostnames, group names,
 // indexed group access (e.g., "group[0]"), and random selection (e.g., "group|random").
 // The function also supports template parsing for hostnames using configuration variables.
-var GetHostnames = func(name []string) GetFunc {
+var GetHostnames = func(tpl *template.Template, name []string) GetFunc {
 	if len(name) == 0 {
 		return emptyGetFunc
 	}
@@ -34,7 +35,7 @@ var GetHostnames = func(name []string) GetFunc {
 		var hs []string
 		for _, n := range name {
 			// Try to parse hostname using configuration variables as template context
-			if pn, err := tmpl.ParseFunc(Extension2Variables(vv.value.Config.Spec), n, tmpl.StringFunc); err == nil {
+			if pn, err := tmpl.ParseFunc(tpl, Extension2Variables(vv.value.Config.Spec), n, tmpl.StringFunc); err == nil {
 				n = pn
 			}
 			// Add direct hostname if it exists in the hosts map

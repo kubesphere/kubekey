@@ -23,6 +23,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/runtime"
 
+	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
@@ -88,7 +89,7 @@ func TestCommandArgsParse(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
 			raw := createRawArgs(tc.args)
-			_, err := variable.Extension2String(tc.vars, raw)
+			_, err := variable.Extension2String(tmpl.NewTmplAddFuncs(), tc.vars, raw)
 			if tc.expectError {
 				require.Error(t, err, tc.description)
 			} else {
@@ -140,7 +141,7 @@ func TestCommandArgsTemplate(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
 			raw := createRawArgs(tc.args)
-			result, err := variable.Extension2String(tc.vars, raw)
+			result, err := variable.Extension2String(tmpl.NewTmplAddFuncs(), tc.vars, raw)
 			require.NoError(t, err, tc.description)
 			_ = result // result contains resolved template
 		})

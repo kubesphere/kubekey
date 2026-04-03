@@ -23,6 +23,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"text/template"
 
 	"github.com/cockroachdb/errors"
 	"k8s.io/klog/v2"
@@ -36,8 +37,8 @@ const kubeconfigRelPath = ".kube/config"
 
 var _ Connector = &kubernetesConnector{}
 
-func newKubernetesConnector(host string, workdir string, hostVars map[string]any) (*kubernetesConnector, error) {
-	kubeconfig, err := variable.StringVar(nil, hostVars, _const.VariableConnector, _const.VariableConnectorKubeconfig)
+func newKubernetesConnector(tpl *template.Template, host string, workdir string, hostVars map[string]any) (*kubernetesConnector, error) {
+	kubeconfig, err := variable.StringVar(tpl, nil, hostVars, _const.VariableConnector, _const.VariableConnectorKubeconfig)
 	if err != nil && host != _const.VariableLocalHost {
 		return nil, err
 	}

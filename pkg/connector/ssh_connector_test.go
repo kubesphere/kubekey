@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
+	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 )
 
 // TestNewSSHConnector_PrivateKeyPriority tests the private key parameter extraction
@@ -99,7 +100,7 @@ func TestNewSSHConnector_PrivateKeyPriority(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			connector := newSSHConnector("/tmp/workdir", "test-host", tc.hostVars)
+			connector := newSSHConnector(tmpl.NewTmplAddFuncs(), "/tmp/workdir", "test-host", tc.hostVars)
 
 			if connector.PrivateKey != tc.expectedPrivateKey {
 				t.Errorf("%s\nExpected PrivateKey: %q\nGot: %q",
@@ -148,7 +149,7 @@ func TestNewSSHConnector_DefaultParameters(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			connector := newSSHConnector("/tmp/workdir", "test-host", tc.hostVars)
+			connector := newSSHConnector(tmpl.NewTmplAddFuncs(), "/tmp/workdir", "test-host", tc.hostVars)
 
 			if connector.Host != tc.expectedHost {
 				t.Errorf("Expected Host: %q, Got: %q", tc.expectedHost, connector.Host)
