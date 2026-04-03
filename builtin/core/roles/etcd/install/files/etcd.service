@@ -13,6 +13,7 @@ NotifyAccess=all
 RestartSec=10s
 LimitNOFILE=40000
 Restart=always
+TimeoutStartSec=10min
 
 [Install]
 WantedBy=multi-user.target

@@ -33,12 +33,13 @@ import (
 )
 
 const (
-	defaultKubeVersion = "v1.33.1"
+	defaultKubeVersion = "v1.34.3"
 )
 
 const (
 	defaultGroupControlPlane = "kube_control_plane"
 	defaultGroupWorker       = "kube_worker"
+	defaultGroupEtcd         = "etcd"
 )
 
 var getInventory options.InventoryFunc = func() (*kkcorev1.Inventory, error) {

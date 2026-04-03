@@ -2,6 +2,7 @@ package executor
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -12,7 +13,7 @@ import (
 	"github.com/schollz/progressbar/v3"
 	"gopkg.in/yaml.v3"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/json"
+	k8sjson "k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -210,7 +211,7 @@ func (e *taskExecutor) execTaskHost(i int, h string) func(ctx context.Context) {
 
 			var rawItem runtime.RawExtension
 			if rendered != nil {
-				if bs, err := json.Marshal(rendered); err == nil {
+				if bs, err := k8sjson.Marshal(rendered); err == nil {
 					rawItem = runtime.RawExtension{Raw: bs}
 				}
 			}
@@ -456,7 +457,10 @@ func (e *taskExecutor) dealRegister(host string, loopResults []kkcorev1alpha1.Lo
 		switch e.task.Spec.RegisterType {
 		case "json":
 			// Attempt to unmarshal as JSON.
-			if err := json.Unmarshal([]byte(s), &out); err != nil {
+			// Use Decoder with UseNumber() to preserve large integers precision.
+			decoder := json.NewDecoder(strings.NewReader(s))
+			decoder.UseNumber()
+			if err := decoder.Decode(&out); err != nil {
 				klog.V(5).ErrorS(err, "failed to register json value")
 				return s
 			}

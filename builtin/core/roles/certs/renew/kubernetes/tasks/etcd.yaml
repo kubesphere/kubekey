@@ -9,13 +9,13 @@
 - name: ETCD | Copy client certificate to remote host
   copy:
     src: >-
-      {{ .etcd.cert_file }}
+      {{ .etcd.client_cert_file }}
     dest: /etc/kubernetes/pki/etcd/client.crt
     mode: 0755
 
 - name: ETCD | Copy client key to remote host
   copy:
     src: >-
-      {{ .etcd.key_file }}
+      {{ .etcd.client_key_file }}
     dest: /etc/kubernetes/pki/etcd/client.key
     mode: 0755

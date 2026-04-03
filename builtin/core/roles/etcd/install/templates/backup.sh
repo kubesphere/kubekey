@@ -5,11 +5,20 @@ set -o nounset
 set -o pipefail
 
 ETCDCTL_PATH='/usr/local/bin/etcdctl'
-{{- if .internal_ipv4 | empty | not }}
-ENDPOINTS='https://{{ .internal_ipv4 }}:2379'
-{{- else if .internal_ipv6 | empty | not }}
-ENDPOINTS='https://{{ .internal_ipv6 }}:2379'
+{{- $endpoints := list }}
+{{- range .groups.etcd | default list }}
+  {{- if $.need_uninstall_etcd | default list | has . | not }}
+    {{- $internalIPv4 := index $.hostvars . "internal_ipv4" | default "" }}
+    {{- $internalIPv6 := index $.hostvars . "internal_ipv6" | default "" }}
+    {{- if $internalIPv4 | empty | not }}
+      {{- $endpoints = append $endpoints (printf "https://%s:%d" $internalIPv4 $.etcd.port) }}
+    {{- end }}
+    {{- if $internalIPv6 | empty | not }}
+      {{- $endpoints = append $endpoints (printf "https://[%s]:%d" $internalIPv6 $.etcd.port) }}
+    {{- end }}
+  {{- end }}
 {{- end }}
+ETCD_ENDPOINTS="{{ join "," $endpoints }}"
 ETCD_DATA_DIR="{{ .etcd.env.data_dir }}"
 BACKUP_DIR="${BACKUP_DIR:-{{ .etcd.backup.backup_dir }}/timer/etcd-$(date +%Y-%m-%d-%H-%M-%S)}"
 KEEPBACKUPNUMBER='{{ .etcd.backup.keep_backup_number }}'

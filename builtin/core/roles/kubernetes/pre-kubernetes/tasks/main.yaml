@@ -58,12 +58,12 @@
     - name: PreKubernetes | Copy etcd client certificate to control plane node
       copy:
         src: >-
-          {{ .etcd.cert_file }}
+          {{ .etcd.client_cert_file }}
         dest: /etc/kubernetes/pki/etcd/client.crt
     - name: PreKubernetes | Copy etcd client key to control plane node
       copy:
         src: >-
-          {{ .etcd.key_file }}
+          {{ .etcd.client_key_file }}
         dest: /etc/kubernetes/pki/etcd/client.key
 
 - name: PreKubernetes | Synchronize front-proxy CA files to control plane nodes

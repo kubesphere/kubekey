@@ -14,6 +14,7 @@ spec:
     #     port: 22
     #     user: root
     #     password: 123456
+    #   internal_ipv4: 1.1.1.1
   groups:
     # all kubernetes nodes.
     k8s_cluster:

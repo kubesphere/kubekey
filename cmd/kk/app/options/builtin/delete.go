@@ -21,6 +21,9 @@ package builtin
 
 import (
 	"fmt"
+	"os"
+	"slices"
+	"strings"
 
 	"github.com/cockroachdb/errors"
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
@@ -30,6 +33,8 @@ import (
 	cliflag "k8s.io/component-base/cli/flag"
 
 	"github.com/kubesphere/kubekey/v4/cmd/kk/app/options"
+	_const "github.com/kubesphere/kubekey/v4/pkg/const"
+	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
 // ======================================================================================
@@ -159,6 +164,11 @@ type DeleteNodesOptions struct {
 	Kubernetes          string
 	DeleteAllComponents bool
 	DeleteData          bool
+	// Override indicates whether to override the inventory file after successful execution.
+	// When set to true, the inventory.yaml file will be updated.
+	Override bool
+	// deleteNodes stores the nodes to be deleted for later inventory update
+	deleteNodes []string
 }
 
 // Flags returns the flag sets for DeleteNodesOptions
@@ -169,6 +179,7 @@ func (o *DeleteNodesOptions) Flags() cliflag.NamedFlagSets {
 	kfs.StringVar(&o.Kubernetes, "with-kubernetes", o.Kubernetes, fmt.Sprintf("Specify a supported version of kubernetes. default is %s", o.Kubernetes))
 	kfs.BoolVar(&o.DeleteAllComponents, "all", o.DeleteAllComponents, "Delete all cluster components, including cri, etcd, dns, and the image registry.")
 	kfs.BoolVar(&o.DeleteData, "with-data", o.DeleteData, "Also delete data directories (harbor data, registry data, etc.). Use with caution.")
+	kfs.BoolVar(&o.Override, "override", o.Override, "Override the inventory file after successful execution")
 
 	return fss
 }
@@ -210,6 +221,9 @@ func (o *DeleteNodesOptions) Complete(cmd *cobra.Command, args []string) (*kkcor
 
 // completeConfig updates the configuration with container manager settings
 func (o *DeleteNodesOptions) completeConfig(nodes []string) error {
+	// Store nodes for later inventory update
+	o.deleteNodes = nodes
+
 	// If kube_version is not set in config, set it to the specified Kubernetes version
 	if _, ok, _ := unstructured.NestedFieldNoCopy(o.Config.Value(), "kubernetes", "kube_version"); !ok {
 		if err := unstructured.SetNestedField(o.Config.Value(), o.Kubernetes, "kubernetes", "kube_version"); err != nil {
@@ -220,6 +234,7 @@ func (o *DeleteNodesOptions) completeConfig(nodes []string) error {
 	if err := unstructured.SetNestedStringSlice(o.Config.Value(), nodes, "delete_nodes"); err != nil {
 		return errors.Wrapf(err, "failed to set %q to config", "delete_nodes")
 	}
+
 	if o.DeleteAllComponents {
 		if err := unstructured.SetNestedField(o.Config.Value(), true, "delete", "cri"); err != nil {
 			return errors.Wrapf(err, "failed to set %q to config", "delete_cri")
@@ -241,6 +256,150 @@ func (o *DeleteNodesOptions) completeConfig(nodes []string) error {
 	}
 
 	return nil
+}
+
+// OverrideInventory updates the inventory.yaml file after successful execution.
+// This should be called only when the Run method succeeds and Override flag is set.
+func (o *DeleteNodesOptions) OverrideInventory() error {
+	// Only update inventory file when --override flag is set
+	if !o.Override || o.InventoryFile == "" || len(o.deleteNodes) == 0 {
+		return nil
+	}
+
+	return o.removeNodesFromInventoryFile(o.deleteNodes)
+}
+
+// removeNodesFromInventoryFile removes nodes from inventory groups (kube_control_plane, kube_worker, etcd)
+// and updates the inventory.yaml file while preserving comments and formatting
+func (o *DeleteNodesOptions) removeNodesFromInventoryFile(nodes []string) error {
+	// Read original file content
+	content, err := os.ReadFile(o.InventoryFile)
+	if err != nil {
+		return errors.Wrapf(err, "failed to read inventory file %s", o.InventoryFile)
+	}
+	lines := strings.Split(string(content), "\n")
+
+	// Get groups from inventory
+	groups := variable.ConvertGroup(*o.Inventory)
+
+	// Find which groups contain the nodes to be deleted
+	deleteGroupHosts := make(map[string][]string)
+
+	// Check if etcd should be deleted from config
+	deleteEtcd, _, _ := unstructured.NestedBool(o.Config.Value(), "delete", "etcd")
+
+	for _, node := range nodes {
+		// Check if node exists in inventory
+		if !slices.Contains(groups[_const.VariableGroupsAll], node) {
+			return errors.Errorf("%q is not defined in inventory.", node)
+		}
+		// Check each group for the node
+		for _, groupName := range []string{defaultGroupControlPlane, defaultGroupWorker, defaultGroupEtcd} {
+			// Only delete from etcd group if delete.etcd is true in config
+			if groupName == defaultGroupEtcd && !deleteEtcd {
+				continue
+			}
+			if slices.Contains(groups[groupName], node) {
+				if _, ok := deleteGroupHosts[groupName]; !ok {
+					deleteGroupHosts[groupName] = []string{}
+				}
+				deleteGroupHosts[groupName] = append(deleteGroupHosts[groupName], node)
+				// Remove node from the group in memory
+				group := o.Inventory.Spec.Groups[groupName]
+				group.Hosts = slices.DeleteFunc(group.Hosts, func(h string) bool {
+					return h == node
+				})
+				o.Inventory.Spec.Groups[groupName] = group
+			}
+		}
+	}
+
+	if len(deleteGroupHosts) == 0 {
+		return nil
+	}
+
+	// Find and remove lines containing the nodes from groups
+	linesToRemove := o.findNodesToRemove(lines, deleteGroupHosts)
+	if len(linesToRemove) == 0 {
+		return nil
+	}
+
+	// Sort lines to remove in descending order to avoid index shifting
+	slices.SortFunc(linesToRemove, func(a, b int) int {
+		return b - a
+	})
+
+	// Remove lines
+	for _, lineNum := range linesToRemove {
+		if lineNum >= 0 && lineNum < len(lines) {
+			lines = append(lines[:lineNum], lines[lineNum+1:]...)
+		}
+	}
+
+	// Write back
+	output := strings.Join(lines, "\n")
+	return errors.Wrapf(os.WriteFile(o.InventoryFile, []byte(output), _const.PermFilePublic),
+		"failed to write inventory file %s", o.InventoryFile)
+}
+
+// findNodesToRemove finds the line numbers of nodes that should be removed from groups
+func (o *DeleteNodesOptions) findNodesToRemove(lines []string, deleteGroupHosts map[string][]string) []int {
+	var linesToRemove []int
+	currentGroup := ""
+	inHosts := false
+
+	for i, line := range lines {
+		trimmed := strings.TrimSpace(line)
+
+		// Check if we're entering a group
+		for groupName := range deleteGroupHosts {
+			if trimmed == groupName+":" {
+				currentGroup = groupName
+				inHosts = false
+				break
+			}
+		}
+
+		// Check if we're in the hosts section of a group
+		if currentGroup != "" && strings.TrimSpace(trimmed) == "hosts:" {
+			inHosts = true
+			continue
+		}
+
+		// Check if this line contains a node to remove
+		if inHosts && currentGroup != "" {
+			if nodes, ok := deleteGroupHosts[currentGroup]; ok {
+				// Check if this line is a list item with a node to remove
+				for _, node := range nodes {
+					// Match patterns like "- node1" or "        - node1"
+					if strings.TrimSpace(trimmed) == "- "+node {
+						linesToRemove = append(linesToRemove, i)
+						break
+					}
+				}
+			}
+		}
+
+		// If we encounter a new top-level key, reset the group context
+		if !strings.HasPrefix(line, " ") && !strings.HasPrefix(line, "\t") && trimmed != "" && !strings.HasPrefix(trimmed, "#") {
+			if currentGroup != "" && !strings.HasPrefix(trimmed, currentGroup) {
+				// Check if this is a new group or section
+				isGroup := false
+				for groupName := range deleteGroupHosts {
+					if strings.HasPrefix(trimmed, groupName) {
+						isGroup = true
+						break
+					}
+				}
+				if !isGroup && !strings.HasPrefix(trimmed, "hosts") {
+					currentGroup = ""
+					inHosts = false
+				}
+			}
+		}
+	}
+
+	return linesToRemove
 }
 
 // ======================================================================================
