@@ -191,6 +191,9 @@ nodeRegistration:
       value: {{ .cri.cgroup_driver }}
     - name: pod-infra-container-image
       value: "{{ .kubernetes.sandbox_image.registry }}/{{ .kubernetes.sandbox_image.repository }}:{{ .kubernetes.sandbox_image.tag }}"
+{{- if .kubernetes.kubelet.extra_args | empty | not }}
+{{ mapToNamedStringArgs .kubernetes.kubelet.extra_args | toYaml | indent 4 }}
+{{- end }}
 skipPhases:
 {{ .kubernetes.skip_phases | toYaml | indent 2 }}
 {{- if .kubernetes.patches | empty | not }}
@@ -251,6 +254,3 @@ featureGates:
 cgroupDriver: {{ .cri.cgroup_driver }}
 containerLogMaxSize: {{ .kubernetes.kubelet.container_log_max_size }}
 containerLogMaxFiles: {{ .kubernetes.kubelet.container_log_max_files }}
-{{- if .kubernetes.kubelet.extra_args | empty | not }}
-{{ .kubernetes.kubelet.extra_args | toYaml }}
-{{- end }}
