@@ -61,7 +61,7 @@ func TestDebugArgsModule(t *testing.T) {
 		description  string
 	}{
 		{
-			name: "missing msg",
+			name: "missing both msg and var",
 			opt: internal.ExecOptions{
 				Host:     "node1",
 				Variable: NewTestVariable([]string{"node1"}, nil),
@@ -69,7 +69,7 @@ func TestDebugArgsModule(t *testing.T) {
 			},
 			expectStdout: internal.StdoutFailed,
 			expectError:  true,
-			description:  "When msg is missing, should return failed",
+			description:  "When both msg and var are missing, should return failed",
 		},
 	}
 
@@ -193,6 +193,56 @@ func TestDebugModule(t *testing.T) {
 			args:        map[string]any{"msg": map[string]any{"key": "value"}},
 			expectError: false,
 			description: "Should print object successfully",
+		},
+		// New test cases for var field
+		{
+			name:        "print var with template syntax",
+			hosts:       []string{"node1"},
+			vars:        map[string]any{"version": "v1.0.0"},
+			args:        map[string]any{"var": "{{ .version }}"},
+			expectError: false,
+			description: "Should print var with template syntax successfully",
+		},
+		{
+			name:        "print var with simple path",
+			hosts:       []string{"node1"},
+			vars:        map[string]any{"config": map[string]any{"name": "test"}},
+			args:        map[string]any{"var": ".config.name"},
+			expectError: false,
+			description: "Should print var with simple path successfully",
+		},
+		{
+			name:        "print var with nested path",
+			hosts:       []string{"node1"},
+			vars:        map[string]any{"data": map[string]any{"level1": map[string]any{"level2": "value"}}},
+			args:        map[string]any{"var": ".data.level1.level2"},
+			expectError: false,
+			description: "Should print var with nested path successfully",
+		},
+		// New test cases for msg field with template filters
+		{
+			name:        "print msg with default filter when var exists",
+			hosts:       []string{"node1"},
+			vars:        map[string]any{"name": "kubekey"},
+			args:        map[string]any{"msg": "Name is {{ .name | default \"unknown\" }}"},
+			expectError: false,
+			description: "Should print msg with template filter when var exists",
+		},
+		{
+			name:        "print msg with default filter when var missing",
+			hosts:       []string{"node1"},
+			vars:        map[string]any{},
+			args:        map[string]any{"msg": "Name is {{ .name | default \"unknown\" }}"},
+			expectError: false,
+			description: "Should print msg with template filter when var is missing",
+		},
+		{
+			name:        "print complex message with template",
+			hosts:       []string{"node1"},
+			vars:        map[string]any{"version": "v1.0.0", "app": "kubekey"},
+			args:        map[string]any{"msg": "App {{ .app }} version is {{ .version }}"},
+			expectError: false,
+			description: "Should print complex message with multiple template variables",
 		},
 	}
 
