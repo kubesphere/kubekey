@@ -8,6 +8,8 @@
 # CA (self-signed or provided)
 # |- etcd.cert
 # |- etcd.key
+# |- etcd-client.cert
+# |- etcd-client.key
 # |
 # |- image_registry.cert
 # |- image_registry.key

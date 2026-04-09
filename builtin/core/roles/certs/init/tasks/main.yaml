@@ -42,6 +42,8 @@
           {{ .binary_dir }}/pki/front-proxy.crt
 
 - name: Cert | Generate the etcd certificate file
+  loop: "{{ .groups.etcd | toJson }}"  
+  when: .item | empty | not
   gen_cert:
     root_key: >-
       {{ .binary_dir }}/pki/root.key
@@ -50,24 +52,43 @@
     cn: etcd
     sans: >-
       {{- $ips := list -}}
-      {{- range .groups.etcd | default list -}}
-        {{- $internalIPv4 := index $.hostvars . "internal_ipv4" | default "" -}}
-        {{- $internalIPv6 := index $.hostvars . "internal_ipv6" | default "" -}}
-        {{- if $internalIPv4 | empty | not -}}
-          {{- $ips = append $ips $internalIPv4 -}}
-        {{- end -}}
-        {{- if $internalIPv6 | empty | not -}}
-          {{- $ips = append $ips $internalIPv6 -}}
-        {{- end -}}
+      {{- $hostname := index .hostvars .item "hostname" | default "" -}}
+      {{- if .native.set_hostname -}}
+        {{- $hostname = .item -}}
+      {{- end -}}
+      {{- if $hostname | empty | not -}}
+        {{- $ips = append $ips $hostname -}}
+      {{- end -}}
+      {{- $internalIPv4 := index .hostvars .item "internal_ipv4" | default "" -}}
+      {{- if $internalIPv4 | empty | not -}}
+        {{- $ips = append $ips $internalIPv4 -}}
+      {{- end -}}
+      {{- $internalIPv6 := index .hostvars .item "internal_ipv6" | default "" -}}
+      {{- if $internalIPv6 | empty | not -}}
+        {{- $ips = append $ips $internalIPv6 -}}
       {{- end -}}
       {{ $ips | toJson }}
     date: "{{ .certs.etcd.date }}"
     policy: "{{ .certs.etcd.gen_cert_policy }}"
     out_key: >-
-      {{ .binary_dir }}/pki/etcd.key
+      {{ .binary_dir }}/pki/etcd-{{ .item }}.key
     out_cert: >-
-      {{ .binary_dir }}/pki/etcd.crt
+      {{ .binary_dir }}/pki/etcd-{{ .item }}.crt
+
+- name: Cert | Generate the etcd client certificate file
   when: .groups.etcd | default list | empty | not
+  gen_cert:
+    root_key: >-
+      {{ .binary_dir }}/pki/root.key
+    root_cert: >-
+      {{ .binary_dir }}/pki/root.crt
+    cn: etcd
+    date: "{{ .certs.etcd.date }}"
+    policy: "{{ .certs.etcd.gen_cert_policy }}"
+    out_key: >-
+      {{ .binary_dir }}/pki/etcd-client.key
+    out_cert: >-
+      {{ .binary_dir }}/pki/etcd-client.crt
 
 - name: Cert | Generate the image registry certificate file
   tags: ["image_registry"]

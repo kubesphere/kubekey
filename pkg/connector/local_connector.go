@@ -125,7 +125,8 @@ func (c *localConnector) ExecuteCommand(ctx context.Context, cmd string) ([]byte
 	klog.V(5).InfoS("exec local command", "cmd", cmd)
 	// in
 	command := c.Cmd.CommandContext(ctx, "sudo", "-SE", c.shell, "-c", cmd)
-	command.SetEnv([]string{"SUDO_USER=" + c.User})
+	// Append SUDO_USER to existing environment variables instead of replacing them
+	command.SetEnv(append(os.Environ(), "SUDO_USER="+c.User))
 	if c.Password != "" {
 		command.SetStdin(bytes.NewBufferString(c.Password + "\n"))
 	}

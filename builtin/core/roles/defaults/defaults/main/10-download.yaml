@@ -167,6 +167,7 @@ download:
         - docker.io/calico/flannel-migration-controller:v3.26.5
         - docker.io/flannel/flannel:v0.24.4
         - docker.io/calico/dikastes:v3.26.5
+        - docker.io/calico/node-driver-registrar:v3.26.5
         - quay.io/calico/pod2daemon-flexvol:v3.26.5
       v3.28.5:
         - quay.io/tigera/operator:v1.34.13
@@ -182,6 +183,7 @@ download:
         - docker.io/calico/flannel-migration-controller:v3.28.5
         - docker.io/flannel/flannel:v0.24.4
         - docker.io/calico/dikastes:v3.28.5
+        - docker.io/calico/node-driver-registrar:v3.28.5
         - quay.io/calico/pod2daemon-flexvol:v3.28.5
       v3.29.7: # refer https://docs.tigera.io/calico/3.29/reference/component-versions
         - quay.io/tigera/operator:v1.36.16
@@ -198,6 +200,7 @@ download:
         # - docker.io/calico/windows:v3.29.7
         - docker.io/flannel/flannel:v0.24.4
         - docker.io/calico/dikastes:v3.29.7
+        - docker.io/calico/node-driver-registrar:v3.29.7
         - quay.io/calico/pod2daemon-flexvol:v3.29.7
       v3.30.5:
         - quay.io/tigera/operator:v1.38.9
@@ -216,6 +219,7 @@ download:
         - docker.io/calico/flannel-migration-controller:v3.30.5
         - docker.io/flannel/flannel:v0.24.4
         - docker.io/calico/dikastes:v3.30.5
+        - docker.io/calico/node-driver-registrar:v3.30.5
         - quay.io/calico/pod2daemon-flexvol:v3.30.5
         - docker.io/calico/csi:v3.30.5
         - docker.io/calico/key-cert-provisioner:v3.30.5
@@ -239,6 +243,7 @@ download:
         - docker.io/calico/flannel-migration-controller:v3.31.3
         - docker.io/flannel/flannel:v0.24.4
         - docker.io/calico/dikastes:v3.31.3
+        - docker.io/calico/node-driver-registrar:v3.31.3
         - quay.io/calico/pod2daemon-flexvol:v3.31.3
         - docker.io/calico/csi:v3.31.3
         - docker.io/calico/key-cert-provisioner:v3.31.3
@@ -267,6 +272,7 @@ download:
         # - quay.io/cilium/operator-azure:v1.15.19
         - quay.io/cilium/operator:v1.15.19
       "1.16.18":
+        - quay.io/cilium/cilium-envoy:v1.34.12-1765374555-6a93b0bbba8d6dc75b651cbafeedb062b2997716
         - quay.io/cilium/cilium:v1.16.18
         - quay.io/cilium/clustermesh-apiserver:v1.16.18
         - quay.io/cilium/docker-plugin:v1.16.18
@@ -277,6 +283,7 @@ download:
         - quay.io/cilium/operator-generic:v1.16.18
         - quay.io/cilium/operator:v1.16.18
       "1.17.11":
+        - quay.io/cilium/cilium-envoy:v1.34.12-1765374555-6a93b0bbba8d6dc75b651cbafeedb062b2997716 
         - quay.io/cilium/cilium:v1.17.11
         - quay.io/cilium/clustermesh-apiserver:v1.17.11
         - quay.io/cilium/docker-plugin:v1.17.11
@@ -287,6 +294,7 @@ download:
         - quay.io/cilium/operator-generic:v1.17.11
         - quay.io/cilium/operator:v1.17.11
       "1.18.7":
+        - quay.io/cilium/cilium-envoy:v1.35.9-1770554954-8ce3bb4eca04188f4a0a1bfbd0a06a40f90883de
         - quay.io/cilium/cilium:v1.18.7
         - quay.io/cilium/clustermesh-apiserver:v1.18.7
         - quay.io/cilium/docker-plugin:v1.18.7
@@ -297,6 +305,7 @@ download:
         - quay.io/cilium/operator-generic:v1.18.7
         - quay.io/cilium/operator:v1.18.7
       "1.19.1":
+        - quay.io/cilium/cilium-envoy:v1.35.9-1770979049-232ed4a26881e4ab4f766f251f258ed424fff663
         - quay.io/cilium/cilium:v1.19.1
         - quay.io/cilium/clustermesh-apiserver:v1.19.1
         - quay.io/cilium/docker-plugin:v1.19.1

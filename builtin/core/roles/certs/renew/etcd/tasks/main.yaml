@@ -2,19 +2,19 @@
 - name: ETCD | Copy CA certificate to remote host
   copy:
     src: >-
-      {{ ..etcd.ca_file }}
+      {{ .etcd.ca_file }}
     dest: /etc/ssl/etcd/ssl/ca.crt
 
 - name: ETCD | Copy server certificate to remote host
   copy:
     src: >-
-      {{ .etcd.cert_file }}
+      {{ tpl .etcd.server_cert_file .inventory_hostname }}
     dest: /etc/ssl/etcd/ssl/server.crt
 
 - name: ETCD | Copy server private key to remote host
   copy:
     src: >-
-      {{ .etcd.key_file }}
+      {{ tpl .etcd.server_key_file .inventory_hostname }}
     dest: /etc/ssl/etcd/ssl/server.key
 
 - name: ETCD | Restart etcd service to apply new certificates

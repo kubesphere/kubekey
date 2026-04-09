@@ -13,6 +13,10 @@
 
 - name: Restore etcd by snapshot
   command: |
+    unset ETCDCTL_ENDPOINTS
+    unset ETCDCTL_KEY
+    unset ETCDCTL_CERT
+    unset ETCDCTL_CACERT
     export $(cat /etc/etcd.env | grep ETCDCTL_CACERT)
     export $(cat /etc/etcd.env | grep ETCDCTL_CERT)
     export $(cat /etc/etcd.env | grep ETCDCTL_KEY)

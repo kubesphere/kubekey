@@ -58,7 +58,7 @@ func IsTmplSyntax(s string) bool {
 // ParseTmplSyntax wraps a string with template syntax delimiters "{{" and "}}"
 // to make it a valid Go template expression
 func ParseTmplSyntax(s string) string {
-	return "{{ " + s + "}}"
+	return "{{" + s + "}}"
 }
 
 func TrimTmplSyntax(s string) string {

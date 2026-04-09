@@ -1,0 +1,41 @@
+  
+- name: ScalingUp | Promote learner member to voting member
+  delegate_to: "{{ .installed_etcd }}"
+  command: |
+    unset ETCDCTL_ENDPOINTS ETCDCTL_KEY ETCDCTL_CERT ETCDCTL_CACERT
+
+    MEMBER_ID=$(printf "%x" {{ .etcd_member_list.stdout.member.ID }})
+    for i in $(seq 1 30); do
+      # try promote member
+      if ETCDCTL_API=3 etcdctl \
+          --endpoints=https://localhost:{{ .etcd.port }} \
+          --cacert=/etc/ssl/etcd/ssl/ca.crt \
+          --cert=/etc/ssl/etcd/ssl/server.crt \
+          --key=/etc/ssl/etcd/ssl/server.key \
+          member promote "$MEMBER_ID"; then
+        echo "✅ promote success"
+        exit 0
+      fi
+      sleep 10
+    done
+    echo "❌ timeout after 5 minutes"
+    exit 1
+
+- name: ScalingUp | Waiting etcd service becomes healthy
+  command: |
+    unset ETCDCTL_ENDPOINTS ETCDCTL_KEY ETCDCTL_CERT ETCDCTL_CACERT
+
+    for ((i=1; i<=12; i++)); do
+      if ETCDCTL_API=3 etcdctl \
+        --endpoints=https://localhost:{{ .etcd.port }} \
+        --cacert=/etc/ssl/etcd/ssl/ca.crt \
+        --cert=/etc/ssl/etcd/ssl/server.crt \
+        --key=/etc/ssl/etcd/ssl/server.key \
+        endpoint health >/dev/null 2>&1; then
+        echo "✅ etcd is healthy"
+        exit 0
+      fi
+      sleep 5
+    done
+    echo "❌ etcd did not become healthy within 60 seconds"
+    exit 1

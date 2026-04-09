@@ -1,0 +1,74 @@
+- name: Postprocess | Refresh etcd.env
+  command: |
+    # set ETCD_INITIAL_CLUSTER_STATE to existing
+    sed -i 's/^ETCD_INITIAL_CLUSTER_STATE=new$/ETCD_INITIAL_CLUSTER_STATE=existing/' /etc/etcd.env
+    # set ETCD_INITIAL_CLUSTER to all etcd nodes
+    {{- $initialCluster := list }}
+    {{- range .groups.etcd | default list }}
+      {{- if $.need_uninstall_etcd | default list | has . | not }}
+        {{- $hostname := index $.hostvars . "hostname" }}
+        {{- $internalIPv4 := index $.hostvars . "internal_ipv4" | default "" }}
+        {{- if $internalIPv4 | empty | not }}
+          {{- $initialCluster = append $initialCluster (printf "%s=https://%s:%d" $hostname $internalIPv4 $.etcd.peer_port) }}
+        {{- end }}
+        {{- $internalIPv6 := index $.hostvars . "internal_ipv6" | default "" }}
+        {{- if $internalIPv6 | empty | not }}
+          {{- $initialCluster = append $initialCluster (printf "%s=https://[%s]:%d" $hostname $internalIPv6 $.etcd.peer_port) }}
+        {{- end }}
+      {{- end }}
+    {{- end -}} 
+    sed -i 's/^ETCD_INITIAL_CLUSTER=.*/ETCD_INITIAL_CLUSTER={{ $initialCluster | join "," }}/' /etc/etcd.env
+
+
+- name: ScalingDown | Restart etcd if only one member left after removal
+  when:
+    - .installed_etcd | eq .inventory_hostname
+    # Calculate: original etcd count - nodes to uninstall = remaining count
+    # Restart only when remaining count is 1 (single node mode)
+    - sub (.groups.etcd | len) (.need_uninstall_etcd | len) | eq 1
+  block:
+    - name: ScalingDown | Restart etcd to apply new configuration for single node
+      command: |
+        unset ETCDCTL_ENDPOINTS ETCDCTL_KEY ETCDCTL_CERT ETCDCTL_CACERT
+
+        # Force new cluster when scaling down to single node
+        if grep -q "^ETCD_FORCE_NEW_CLUSTER=" /etc/etcd.env; then
+          sed -i 's/^ETCD_FORCE_NEW_CLUSTER=.*/ETCD_FORCE_NEW_CLUSTER=true/' /etc/etcd.env
+        else
+          sed -i '1i ETCD_FORCE_NEW_CLUSTER=true' /etc/etcd.env
+        fi
+
+        systemctl restart etcd
+
+
+        for ((i=1; i<=12; i++)); do
+          if ETCDCTL_API=3 etcdctl \
+            --endpoints=https://localhost:{{ .etcd.port }} \
+            --cacert=/etc/ssl/etcd/ssl/ca.crt \
+            --cert=/etc/ssl/etcd/ssl/server.crt \
+            --key=/etc/ssl/etcd/ssl/server.key \
+            endpoint health >/dev/null 2>&1; then
+            echo "✅ etcd is healthy with FORCE_NEW_CLUSTER"
+            break
+          fi
+          sleep 5
+        done
+
+        # Remove ETCD_FORCE_NEW_CLUSTER and restart again for clean single node
+        sed -i '/^ETCD_FORCE_NEW_CLUSTER=/d' /etc/etcd.env
+        systemctl restart etcd
+
+        for ((i=1; i<=12; i++)); do
+          if ETCDCTL_API=3 etcdctl \
+            --endpoints=https://localhost:{{ .etcd.port }} \
+            --cacert=/etc/ssl/etcd/ssl/ca.crt \
+            --cert=/etc/ssl/etcd/ssl/server.crt \
+            --key=/etc/ssl/etcd/ssl/server.key \
+            endpoint health >/dev/null 2>&1; then
+            echo "✅ etcd is healthy as clean single node"
+            exit 0
+          fi
+          sleep 5
+        done
+        echo "❌ etcd did not become healthy within 1 minute"
+        exit 1

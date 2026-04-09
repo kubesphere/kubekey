@@ -1,0 +1,64 @@
+- name: AddNodes | Update kube-apiserver configuration
+  command: |
+    {{- $endpoints := list -}}
+    {{- range .groups.etcd | default list -}}
+      {{- if $.need_uninstall_etcd | default list | has . | not -}}
+        {{- $internalIPv4 := index $.hostvars . "internal_ipv4" | default "" -}}
+        {{- $internalIPv6 := index $.hostvars . "internal_ipv6" | default "" -}}
+        {{- if $internalIPv4 | empty | not -}}
+          {{- $endpoints = append $endpoints (printf "https://%s:%d" $internalIPv4 $.etcd.port) -}}
+        {{- end -}}
+        {{- if $internalIPv6 | empty | not -}}
+          {{- $endpoints = append $endpoints (printf "https://[%s]:%d" $internalIPv6 $.etcd.port) -}}
+        {{- end -}}
+      {{- end -}}
+    {{- end -}}
+    ETCD_ENDPOINTS="{{ join "," $endpoints }}"
+        
+    if ! grep -q 'ClusterConfiguration' /etc/kubernetes/kubeadm-config.yaml 2>/dev/null; then
+      kubectl get cm kubeadm-config -n kube-system -o=jsonpath='{.data.ClusterConfiguration}' > /etc/kubernetes/kubeadm-config.yaml
+    fi
+
+    awk -v ep="$ETCD_ENDPOINTS" '
+      BEGIN {
+        n = split(ep, arr, ",")
+        for (i = 1; i <= n; i++) {
+          print "      - " arr[i]
+        }
+      }
+    ' > /etc/kubernetes/kubeadm_new_endpoints.yaml
+    # delete old endpoint
+    sed -i '/^[[:space:]]*endpoints:/{
+      :loop
+      N
+      s/\n[[:space:]]\+-.*//; t loop
+      s/\n[[:space:]]*\n/\n/g
+      P
+      D
+    }' /etc/kubernetes/kubeadm-config.yaml
+    # insert new endpoint
+    sed -i "/^[[:space:]]*endpoints:/r /etc/kubernetes/kubeadm_new_endpoints.yaml" /etc/kubernetes/kubeadm-config.yaml        
+    rm /etc/kubernetes/kubeadm_new_endpoints.yaml
+    # update kubeadm-config
+    {{- if .kubernetes.kube_version | semverCompare "<v1.27.0" }}
+    kubeadm config upload from-file --config /etc/kubernetes/kubeadm-config.yaml
+    {{- else }}
+    kubeadm init phase upload-config kubeadm --config /etc/kubernetes/kubeadm-config.yaml
+    {{- end }}
+    # regenerate kube-apiserver
+    kubeadm init phase control-plane apiserver --config /etc/kubernetes/kubeadm-config.yaml
+    
+# wait for current node's kube-apiserver to be ready
+- name: AddNodes | Wait for kube-apiserver to be ready on current node
+  shell: |
+    for i in $(seq 1 30); do
+      if nc -z localhost 6443 2>/dev/null || \
+         curl -sk https://localhost:6443/healthz 2>/dev/null | grep -q "ok"; then
+        echo "✅ kube-apiserver is ready"
+        exit 0
+      fi
+      sleep 10
+    done
+    echo "❌ timeout after 5 minutes"
+    exit 1
+

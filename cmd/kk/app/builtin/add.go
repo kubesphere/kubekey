@@ -46,14 +46,17 @@ func newAddNodeCommand() *cobra.Command {
 		Use:     "nodes",
 		Aliases: []string{"node"},
 		Short:   "Add nodes to the cluster according to the new nodes information from the specified configuration file",
-		Long: `There are two executors available for adding nodes:
+		Long: `There are two ways to add nodes to the cluster:
 
 1. kk add nodes
-   This will add all nodes listed in the inventory that are not yet installed in the cluster.
+   Requires all nodes to be pre-defined in inventory.yaml with their assigned groups 
+   (kube_control_plane, kube_worker, etcd). This will add all nodes listed in the 
+   inventory that are not yet installed in the cluster.
 
-2. kk add nodes --control-plane node1,node2 --worker node1,node2
-   This will only add the specified nodes to the cluster as control-plane or worker nodes.
-   Ensure their connection details are provided in the inventory's hosts file.`,
+2. kk add nodes --control-plane node1,node2 --worker node1,node2 --etcd node1,node2
+   Only requires node connection details (hostname/IP) to be defined in inventory.yaml.
+   The nodes will be automatically assigned to the specified groups via command-line flags.
+   The --override flag will update the inventory.yaml with the new group assignments.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Complete the configuration and create a playbook for adding nodes
 			playbook, err := o.Complete(cmd, []string{"playbooks/add_nodes.yaml"})
@@ -62,7 +65,12 @@ func newAddNodeCommand() *cobra.Command {
 			}
 
 			// Execute the playbook to add the nodes
-			return o.Run(cmd.Context(), playbook)
+			if err := o.Run(cmd.Context(), playbook); err != nil {
+				return err
+			}
+
+			// Update inventory file only after successful execution
+			return o.OverrideInventory()
 		},
 	}
 	flags := cmd.Flags()

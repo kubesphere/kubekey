@@ -7,6 +7,7 @@
     tar -zxvf {{ .download.artifact_file }} -C {{ .binary_dir }}
 
 - name: Artifact | Load architecture-specific download URLs for each artifact version
+  tags: ["always"]
   when: printf "%s/manifests.yaml" .binary_dir | fileExists
   include_vars: "{{ .binary_dir }}/manifests.yaml"
 
@@ -19,11 +20,10 @@
     - include_tasks: helm.yaml
     # Download remote images to the local images directory
     - include_tasks: images.yaml
-      tags: ["image_registry"]
+    # Download iso
     - include_tasks: iso.yaml
     # Download tools file
     - include_tasks: tools.yaml
-    
 
 - name: Artifact | Set ownership of working directory to sudo user
   tags: ["always"]

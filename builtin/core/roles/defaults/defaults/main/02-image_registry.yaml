@@ -13,7 +13,7 @@ image_registry:
   # Image registry authentication settings
   auth:
     registry: >-
-      {{- if .image_registry.type | empty | not }}
+      {{- if .image_registry.type | empty | not -}}
         {{- if .image_registry.ha_vip | empty | not -}}
       {{ .image_registry.ha_vip }}
         {{- else if .groups.image_registry | default list | empty | not -}}
@@ -30,8 +30,14 @@ image_registry:
       hub.kubesphere.com.cn
         {{- end -}}
       {{- end -}}
-    username: admin
-    password: Harbor12345
+    username: >-
+      {{- if .zone | ne "cn" -}}
+      admin
+      {{- end -}}
+    password: >-
+      {{- if .zone | ne "cn" -}}
+      Harbor12345
+      {{- end -}}
     skip_tls_verify: >-
       {{- if .image_registry.type | empty -}}
       true

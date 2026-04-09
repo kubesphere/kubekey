@@ -7,12 +7,14 @@
 # Load default variables and perform prechecks on all hosts
 - hosts:
     - localhost
-  tags: ["always"]
   roles:
     - defaults
 
 - hosts:
     - localhost
   roles:
-    - image-registry/pull
-    - image-registry/push
+    - role: download
+    - role: image-registry/pull
+      tags: ["pull", "image_registry"]
+    - role: image-registry/push
+      tags: ["push", "image_registry"]

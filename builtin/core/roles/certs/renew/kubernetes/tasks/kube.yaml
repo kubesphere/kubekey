@@ -42,12 +42,6 @@
     dest: >-
       {{ .binary_dir }}/kubeconfig
 
-- name: Kubernetes | Distribute kubeconfig to remote host of current user
-  copy:
-    src: >-
-      {{ .binary_dir }}/kubeconfig
-    dest: ~/.kube/config
-
 - name: Kubernetes | Distribute kubeconfig to remote host of root user
   copy:
     src: >-
@@ -56,5 +50,11 @@
 
 - name: Kubernetes | Set kubeconfig permissions
   command: |
-    chown "$SUDO_USER":root ~/.kube/config
     chown root:root /root/.kube/config
+    if [ "$SUDO_USER" != "root" ]; then
+      if [ ! -d /home/$SUDO_USER/.kube ]; then
+        mkdir -p /home/$SUDO_USER/.kube
+      fi
+      cp /root/.kube/config /home/$SUDO_USER/.kube/config
+      chown "$SUDO_USER":root /home/$SUDO_USER/.kube/config
+    fi

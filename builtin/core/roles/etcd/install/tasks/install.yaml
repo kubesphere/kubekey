@@ -12,11 +12,6 @@
       loop:
        - "{{ .etcd.env.data_dir }}"
 
-- name: Install | Generate etcd environment configuration file
-  template:
-    src: etcd.env
-    dest: /etc/etcd.env
-
 - name: Install | Deploy etcd systemd service file
   copy:
     src: etcd.service
@@ -31,10 +26,10 @@
 - name: Install | Configure network traffic priority for etcd
   command: |
     tc qdisc add dev eth0 root handle 1: prio bands 3
-    tc filter add dev eth0 parent 1: protocol ip prio 1 u32 match ip sport 2380 0xffff flowid 1:1
-    tc filter add dev eth0 parent 1: protocol ip prio 1 u32 match ip dport 2380 0xffff flowid 1:1
-    tc filter add dev eth0 parent 1: protocol ip prio 2 u32 match ip sport 2379 0xffff flowid 1:1
-    tc filter add dev eth0 parent 1: protocol ip prio 2 u32 match ip dport 2379 0xffff flowid 1:1
+    tc filter add dev eth0 parent 1: protocol ip prio 1 u32 match ip sport {{ .etcd.peer_port }} 0xffff flowid 1:1
+    tc filter add dev eth0 parent 1: protocol ip prio 1 u32 match ip dport {{ .etcd.peer_port }} 0xffff flowid 1:1
+    tc filter add dev eth0 parent 1: protocol ip prio 2 u32 match ip sport {{ .etcd.port }} 0xffff flowid 1:1
+    tc filter add dev eth0 parent 1: protocol ip prio 2 u32 match ip dport {{ .etcd.port }} 0xffff flowid 1:1
   when: .etcd.traffic_priority
 
 - name: Install | Start and enable etcd systemd service

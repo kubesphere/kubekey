@@ -36,8 +36,48 @@
     - etcd
   gather_facts: true
   roles:
-    - role: etcd
+    - role: etcd/prepare
       when: .etcd.deployment_type | eq "external"
+    - role: etcd/backup
+      when: .etcd.deployment_type | eq "external"
+- hosts:
+    - etcd
+  serial: 1
+  roles:
+    - role: etcd/scaling_up/learner
+      when:
+        - .etcd.deployment_type | eq "external"  
+        - .installed_etcd | empty | not      
+        - .need_installed_etcd | default list | has .inventory_hostname
+    - role: etcd/install
+      when: 
+        - .etcd.deployment_type | eq "external"
+        - .installed_etcd | empty | not      
+        - .need_installed_etcd | default list | has .inventory_hostname
+    - role: etcd/scaling_up/promote
+      when:
+        - .etcd.deployment_type | eq "external"
+        - .installed_etcd | empty | not      
+        - .need_installed_etcd | default list | has .inventory_hostname
+- hosts:
+    - etcd
+  gather_facts: true
+  roles:
+    - role: etcd/postprocess
+      when:
+        - .etcd.deployment_type | eq "external"
+        - .installed_etcd | empty | not      
+        - .need_installed_etcd | default list | has .inventory_hostname
+        
+- hosts:
+    - kube_control_plane
+  serial: 1
+  roles:
+    - role: kubernetes/sync-etcd-config
+      when:
+        - .need_installed_etcd | empty | not
+        - .etcd.deployment_type | eq "external"
+        - .kubernetes_install_ActiveState.stdout | eq "active"
 
 - hosts:
     - k8s_cluster
@@ -47,7 +87,6 @@
     - role: kubernetes/pre-kubernetes
       when: or (.add_nodes | default list | empty) (.add_nodes | default list | has .inventory_hostname)
     - role: kubernetes/init-kubernetes
-      when: or (.add_nodes | default list | empty) (.add_nodes | default list | has .inventory_hostname)
     - role: kubernetes/join-kubernetes
       when:
         - or (.add_nodes | default list | empty) (.add_nodes | default list | has .inventory_hostname)

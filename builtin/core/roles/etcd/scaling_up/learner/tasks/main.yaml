@@ -1,0 +1,42 @@
+- name: ScalingUp | Waiting installed etcd node become healthy
+  delegate_to: "{{ .installed_etcd }}"
+  command: |
+    unset ETCDCTL_ENDPOINTS ETCDCTL_KEY ETCDCTL_CERT ETCDCTL_CACERT
+
+    for ((i=1; i<=12; i++)); do
+      if ETCDCTL_API=3 etcdctl \
+        --endpoints=https://localhost:{{ .etcd.port }} \
+        --cacert=/etc/ssl/etcd/ssl/ca.crt \
+        --cert=/etc/ssl/etcd/ssl/server.crt \
+        --key=/etc/ssl/etcd/ssl/server.key \
+        endpoint health >/dev/null 2>&1; then
+        echo "✅ etcd is healthy"
+        exit 0
+      fi
+      sleep 5
+    done
+    echo "❌ etcd did not become healthy within 60 seconds"
+    exit 1
+
+
+- name: ScalingUp | Add new etcd member as learner from existing node
+  delegate_to: "{{ .installed_etcd }}"
+  command: |
+    unset ETCDCTL_ENDPOINTS ETCDCTL_KEY ETCDCTL_CERT ETCDCTL_CACERT
+
+    {{- $listenPeerURLs := list }}
+    {{- if .internal_ipv4 | empty | not }}
+      {{- $listenPeerURLs = append $listenPeerURLs (printf "https://%s:%d" .internal_ipv4 .etcd.peer_port) }}
+    {{- end }}
+    {{- if .internal_ipv6 | empty | not }}
+      {{- $listenPeerURLs = append $listenPeerURLs (printf "https://[%s]:%d" .internal_ipv6 .etcd.peer_port) }}
+    {{- end }}
+    ETCDCTL_API=3 etcdctl \
+      --endpoints=https://localhost:{{ .etcd.port }} \
+      --cacert=/etc/ssl/etcd/ssl/ca.crt \
+      --cert=/etc/ssl/etcd/ssl/server.crt \
+      --key=/etc/ssl/etcd/ssl/server.key \
+      member add {{ .inventory_hostname }} \
+      --peer-urls={{ $listenPeerURLs | join "," }} --learner -w json
+  register: etcd_member_list
+  register_type: json

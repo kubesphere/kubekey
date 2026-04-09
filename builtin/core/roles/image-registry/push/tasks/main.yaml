@@ -1,5 +1,6 @@
 ---
 - name: ImageRegistry | Ensure Harbor project exists for each image
+  tags: ["push", "image_registry"]
   when: .image_registry.type | eq "harbor"
   command: |
     # Traverse first-level subdirectories in images_dir, skipping 'blobs'
@@ -41,6 +42,7 @@
     fi
 
 - name: ImageRegistry | Push images package to image registry
+  tags: ["push", "image_registry"]
   run_once: true
   image:
     platform: >

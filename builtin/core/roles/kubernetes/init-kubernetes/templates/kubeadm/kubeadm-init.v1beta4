@@ -17,7 +17,16 @@ etcd:
   external:
     endpoints:
     {{- range .groups.etcd | default list }}
-      - https://{{ index $.hostvars . "internal_ipv4" }}:2379
+      {{- if $.need_uninstall_etcd | default list | has . | not }}
+        {{- $internalIPv4 := index $.hostvars . "internal_ipv4" | default "" }}
+        {{- $internalIPv6 := index $.hostvars . "internal_ipv6" | default "" }}
+        {{- if $internalIPv4 | empty | not }}
+      - {{ printf "https://%s:%d" $internalIPv4 $.etcd.port }}
+        {{- end }}
+        {{- if $internalIPv6 | empty | not }}
+      - https://{{ printf "https://[%s]:%d" $internalIPv6 $.etcd.port }}
+        {{- end }}
+      {{- end }}
     {{- end }}
     caFile: /etc/kubernetes/pki/etcd/ca.crt
     certFile: /etc/kubernetes/pki/etcd/client.crt
@@ -191,6 +200,9 @@ nodeRegistration:
       value: {{ .cri.cgroup_driver }}
     - name: pod-infra-container-image
       value: "{{ .kubernetes.sandbox_image.registry }}/{{ .kubernetes.sandbox_image.repository }}:{{ .kubernetes.sandbox_image.tag }}"
+{{- if .kubernetes.kubelet.extra_args | empty | not }}
+{{ mapToNamedStringArgs .kubernetes.kubelet.extra_args | toYaml | indent 4 }}
+{{- end }}
 skipPhases:
 {{ .kubernetes.skip_phases | toYaml | indent 2 }}
 {{- if .kubernetes.patches | empty | not }}
@@ -251,6 +263,3 @@ featureGates:
 cgroupDriver: {{ .cri.cgroup_driver }}
 containerLogMaxSize: {{ .kubernetes.kubelet.container_log_max_size }}
 containerLogMaxFiles: {{ .kubernetes.kubelet.container_log_max_files }}
-{{- if .kubernetes.kubelet.extra_args | empty | not }}
-{{ .kubernetes.kubelet.extra_args | toYaml }}
-{{- end }}
