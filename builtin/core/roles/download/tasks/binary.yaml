@@ -119,7 +119,6 @@
     timeout: "{{ .download.timeout }}"
 
 - name: Binary | Ensure Docker binary is present
-  tags: ["image_registry"]
   loop: >
     {{- $result := list -}}
     {{- range $arch := .download.arch }}
@@ -214,7 +213,6 @@
     timeout: "{{ .download.timeout }}"
 
 - name: Binary | Ensure Docker Registry binary is present
-  tags: ["image_registry"]
   loop: >
     {{- $result := list -}}
     {{- range $arch := .download.arch }}
@@ -233,7 +231,6 @@
     timeout: "{{ .download.timeout }}"
 
 - name: Binary | Ensure docker-compose binary is present
-  tags: ["image_registry"]
   loop: >
     {{- $result := list -}}
     {{- range $arch := .download.arch }}
@@ -252,7 +249,6 @@
     timeout: "{{ .download.timeout }}"
 
 - name: Binary | Ensure Harbor binary is present
-  tags: ["image_registry"]
   loop: >
     {{- $result := list -}}
     {{- range $arch := .download.arch }}
