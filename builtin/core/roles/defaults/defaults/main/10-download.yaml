@@ -131,7 +131,10 @@ download:
   images:
     manifests: []
     # Architectures for which images should be downloaded.
-    registry: ""
+    registry: >
+      {{- if .zone | eq "cn" }}
+      hub.kubesphere.com.cn
+      {{- end }}
     # Determines the image pull policy. support strict, warn
     policy: "strict"
     # kubernetes images list
