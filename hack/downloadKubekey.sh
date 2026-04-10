@@ -135,24 +135,24 @@ fi
 
 if ! echo "$VERSION" | grep -E '^v3\.[0-9]+\.[0-9]+$' >/dev/null; then
   # generate package.sh
-cat > package.sh << 'EOF'
+cat > package.sh << EOF
 #!/bin/sh
 
 set -e
 
 # Get the configuration file path from the first argument, default to config.yaml if not provided
-if [ -n "$1" ]; then
-  CONFIG_FILE="$1"
+if [ -n "\$1" ]; then
+  CONFIG_FILE="\$1"
 else
   CONFIG_FILE="config.yaml"
 fi
-if [ ! -f "$CONFIG_FILE" ]; then
-  echo "Configuration file $CONFIG_FILE does not exist. Please check the file path."
+if [ ! -f "\$CONFIG_FILE" ]; then
+  echo "Configuration file \$CONFIG_FILE does not exist. Please check the file path."
   exit 1
 fi
 
 echo "Exporting artifact with kk..."
-./kk artifact export -c "$CONFIG_FILE" --workdir prepare --set download.tools.kubekey="$DOWNLOAD_PREFIX"/releases/download/"$VERSION"/kubekey-"$VERSION"-linux-{{ "{{ \"{{ .arch }}\" }}" }}.tar.gz
+./kk artifact export -c "\$CONFIG_FILE" --workdir prepare --set download.tools.kubekey=$DOWNLOAD_PREFIX/releases/download/$VERSION/kubekey-$VERSION-linux-"{{ \"{{ .arch }}\" }}".tar.gz
 if [ $? -ne 0 ]; then
   echo "Failed to export artifact with kk. Please check the command output above."
   exit 1
@@ -160,7 +160,7 @@ fi
 
 if [ -f "web-installer.tgz" ]; then
   echo "Extracting web-installer.tgz to artifacts/web-installer/ ..."
-  tar -xzf web-installer.tgz -C prepare/artifacts --no-same-owner
+  tar -xzf web-installer.tgz -C prepare/artifact --no-same-owner
 fi
 
 cd prepare/ && tar -czf ../artifact.tgz artifact
