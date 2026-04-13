@@ -52,12 +52,12 @@ func NewAddNodesPipeline(runtime *common.KubeRuntime) error {
 		&artifact.UnArchiveModule{Skip: noArtifact},
 		&os.RepositoryModule{Skip: noArtifact || !runtime.Arg.InstallPackages},
 		&binaries.NodeBinariesModule{},
+		&kubernetes.StatusModule{},
 		&os.ConfigureOSModule{Skip: runtime.Cluster.System.SkipConfigureOS},
 		&registry.RegistryCertsModule{Skip: len(runtime.GetHostsByRole(common.Registry)) == 0},
 		//for one master to multi master kube-vip
 		&loadbalancer.KubevipModule{Skip: !runtime.Cluster.ControlPlaneEndpoint.IsInternalLBEnabledVip()},
 		&kubernetes.RestartKubeletModule{},
-		&kubernetes.StatusModule{},
 		&container.InstallContainerModule{},
 		&container.InstallCriDockerdModule{Skip: runtime.Cluster.Kubernetes.ContainerManager != "docker"},
 		&images.PullModule{Skip: runtime.Arg.SkipPullImages},

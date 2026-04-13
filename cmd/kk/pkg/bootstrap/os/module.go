@@ -25,6 +25,7 @@ import (
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/prepare"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/task"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/util"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/kubernetes"
 )
 
 type ConfigureOSModule struct {
@@ -40,10 +41,13 @@ func (c *ConfigureOSModule) Init() {
 	c.Name = "ConfigureOSModule"
 	c.Desc = "Init os dependencies"
 
+	c.PipelineCache.GetOrSet(common.ClusterStatus, kubernetes.NewKubernetesStatus())
+
 	getOSData := &task.RemoteTask{
 		Name:     "GetOSData",
 		Desc:     "Get OS release",
 		Hosts:    c.Runtime.GetAllHosts(),
+		Prepare:  &kubernetes.NodeInCluster{Not: true},
 		Action:   new(GetOSData),
 		Parallel: true,
 	}
@@ -52,14 +56,16 @@ func (c *ConfigureOSModule) Init() {
 		Name:     "InitOS",
 		Desc:     "Prepare to init OS",
 		Hosts:    c.Runtime.GetAllHosts(),
+		Prepare:  &kubernetes.NodeInCluster{Not: true},
 		Action:   new(NodeConfigureOS),
 		Parallel: true,
 	}
 
 	GenerateScript := &task.RemoteTask{
-		Name:  "GenerateScript",
-		Desc:  "Generate init os script",
-		Hosts: c.Runtime.GetAllHosts(),
+		Name:    "GenerateScript",
+		Desc:    "Generate init os script",
+		Hosts:   c.Runtime.GetAllHosts(),
+		Prepare: &kubernetes.NodeInCluster{Not: true},
 		Action: &action.Template{
 			Template: templates.InitOsScriptTmpl,
 			Dst:      filepath.Join(common.KubeScriptDir, "initOS.sh"),
@@ -75,6 +81,7 @@ func (c *ConfigureOSModule) Init() {
 		Name:     "ExecScript",
 		Desc:     "Exec init os script",
 		Hosts:    c.Runtime.GetAllHosts(),
+		Prepare:  &kubernetes.NodeInCluster{Not: true},
 		Action:   new(NodeExecScript),
 		Parallel: true,
 	}
