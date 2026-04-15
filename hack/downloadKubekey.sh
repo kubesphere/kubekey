@@ -14,77 +14,49 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ISLINUX=true
 LATEST_VERSION=
 LATEST_WEB_INSTALLER_VERSION=
 
-OSTYPE="linux"
+# Fetch latest version if VERSION not set
+if [ "x${VERSION}" = "x" ]; then
+  VERSION="${LATEST_VERSION}"
+fi
 
-check_version() {
-    version="$1"
-    if echo "$version" | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' >/dev/null; then
-        return 0
-    else
-        return 1
-    fi
+is_valid_version() {
+  echo "$1" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+$'
 }
 
-if [ "x$(uname)" != "xLinux" ]; then
-  echo ""
-  echo 'Warning: Non-Linux operating systems are not supported! After downloading, please copy the tar.gz file to linux.'  
-  ISLINUX=false
-fi
+case "$(uname -m)" in
+x86_64|amd64) ARCH=amd64 ;;
+armv8*|aarch64*|arm64) ARCH=arm64 ;;
+*)
+  echo "$(uname -m) isn't supported"
+  exit 1
+  ;;
+esac
 
-if [ "x${VERSION}" = "xlatest" ]; then
-  VERSION=${LATEST_VERSION}
-  WEB_INSTALLER_VERSION=${LATEST_WEB_INSTALLER_VERSION}
-fi
-
-# Fetch latest version of 3.x
-if [ "x${VERSION}" = "x" ]; then
-  VERSION="$(curl -sL https://api.github.com/repos/kubesphere/kubekey/releases |
-    grep -o 'download/v3*.[0-9]*.[0-9]*/' |
-    sort --version-sort |
-    tail -1 | awk -F'/' '{ print $2}')"
-  VERSION="${VERSION##*/}"
-fi
-
-if [ -z "${ARCH}" ]; then
-  case "$(uname -m)" in
-  x86_64)
-    ARCH=amd64
-    ;;
-  armv8*)
-    ARCH=arm64
-    ;;
-  aarch64*)
-    ARCH=arm64
-    ;;
-  *)
-    echo "${ARCH}, isn't supported"
-    exit 1
-    ;;
-  esac
-fi
-
-if [ "x${VERSION}" = "x" ]; then
-  echo "Unable to get latest Kubekey version. Set VERSION env var and re-run. For example: export VERSION=v1.0.0"
-  echo ""
-  exit
-fi
+case "$(uname -s)" in
+Linux) OSTYPE=linux ;;
+Darwin) OSTYPE=darwin ;;
+*)
+  echo "Unsupported OS. Use Linux or macOS"
+  exit 1
+  ;;
+esac
 
 DOWNLOAD_PREFIX="https://github.com/kubesphere/kubekey"
-if [ "x${KKZONE}" = "xcn" ] && check_version "${VERSION}"; then
+if [ "x${KKZONE}" = "xcn" ] && is_valid_version "${VERSION}"; then
+  DOWNLOAD_PREFIX="https://kubekey.pek3b.qingstor.com/github.com/kubesphere/kubekey"
   if echo "$VERSION" | grep -E '^v3\.[0-9]+\.[0-9]+$' >/dev/null; then
     DOWNLOAD_PREFIX="https://kubernetes.pek3b.qingstor.com/kubekey"
-  else
-    DOWNLOAD_PREFIX="https://kubekey.pek3b.qingstor.com/github.com/kubesphere/kubekey"
   fi
 fi
-DOWNLOAD_URL="${DOWNLOAD_PREFIX}/releases/download/${VERSION}/kubekey-${VERSION}-${OSTYPE}-${ARCH}.tar.gz"
+
+FILENAME="kubekey-${VERSION}-${OSTYPE}-${ARCH}.tar.gz"
+DOWNLOAD_URL="${DOWNLOAD_PREFIX}/releases/download/${VERSION}/${FILENAME}"
 
 echo ""
-echo "Downloading kubekey ${VERSION} from ${DOWNLOAD_URL} ..."
+echo "Downloading kubekey ${VERSION} for ${OSTYPE}/${ARCH} from ${DOWNLOAD_URL} ..."
 echo ""
 
 curl -fsLO "$DOWNLOAD_URL"
@@ -94,46 +66,37 @@ if [ $? -ne 0 ]; then
   echo ""
   echo "Please verify the version you are trying to download."
   echo ""
-  exit
+  exit 1
 fi
 
-if [ "${ISLINUX}" = "true" ]; then
-  filename="kubekey-${VERSION}-${OSTYPE}-${ARCH}.tar.gz"
-  ret='0'
-  command -v tar >/dev/null 2>&1 || { ret='1'; }
-  if [ "$ret" -eq 0 ]; then
-    tar -xzf "${filename}" --no-same-owner
-  else
-    echo "Kubekey ${VERSION} Download Complete!"
-    echo ""
-    echo "Try to unpack the ${filename} failed."
-    echo "tar: command not found, please unpack the ${filename} manually."
-    exit
-  fi
+ret=0
+command -v tar >/dev/null 2>&1 || ret=1
 
+if [ ${ret} -eq 0 ]; then
+  tar -xzf "${FILENAME}" --no-same-owner
+else
+  echo "Kubekey ${VERSION} Download Complete!"
+  echo ""
+  echo "tar command not found. Please unpack ${FILENAME} manually."
+  echo "Then run: sudo mv kk /usr/local/bin/"
+  exit 1
 fi
 
-if check_version "${WEB_INSTALLER_VERSION}"; then
-  WEB_DOWNLOAD_URL=https://kubekey.pek3b.qingstor.com/github.com/kubesphere/web-installer/releases/download/${WEB_INSTALLER_VERSION}/web-installer.tgz
+if [ "${SKIP_WEB_INSTALLER}" != "true" ] && [ -n "${LATEST_WEB_INSTALLER_VERSION}" ] && is_valid_version "${LATEST_WEB_INSTALLER_VERSION}"; then
+  WEB_DOWNLOAD_URL=https://kubekey.pek3b.qingstor.com/github.com/kubesphere/web-installer/releases/download/${LATEST_WEB_INSTALLER_VERSION}/web-installer.tgz
   echo ""
-  echo "Downloading kubekey web_installer ${WEB_INSTALLER_VERSION} from ${WEB_DOWNLOAD_URL} ..."
-  echo ""
+  echo "Downloading kubekey web_installer ${LATEST_WEB_INSTALLER_VERSION} from ${WEB_DOWNLOAD_URL} ..."
 
   curl -fsLO "$WEB_DOWNLOAD_URL"
-  ret='0'
-  command -v tar >/dev/null 2>&1 || { ret='1'; }
-  if [ "$ret" -eq 0 ]; then
-    tar -xzf "web-installer.tgz" --no-same-owner
+  if tar -xzf "web-installer.tgz" --no-same-owner 2>/dev/null; then
+    :
   else
-    echo "Web Installer Download Complete!"
-    echo ""
-    echo "Try to unpack the web-installer.tgz failed."
-    echo "tar: command not found, please unpack the web-installer.tgz manually."
-    exit
+    echo "tar not found. Please unpack web-installer.tgz manually."
+    exit 1
   fi
 fi
 
-if ! echo "$VERSION" | grep -E '^v3\.[0-9]+\.[0-9]+$' >/dev/null; then
+if [ "${SKIP_PACKAGE}" != "true" ] && ! echo "$VERSION" | grep -E '^v3\.[0-9]+\.[0-9]+$' >/dev/null; then
   # generate package.sh
 cat > package.sh << EOF
 #!/bin/sh
