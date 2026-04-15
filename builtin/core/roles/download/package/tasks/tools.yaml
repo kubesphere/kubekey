@@ -1,8 +1,14 @@
 - name: Package | Copy manifests to artifact directory
   when: printf "%s/manifests.yaml" .work_dir | fileExists
-  copy:
-    src: "{{ .binary_dir }}/manifests.yaml"
-    dest: "{{ .artifact_dir }}/kubekey/manifests.yaml"
+  block:
+    - name: Package | Copy manifests to artifact/kubekey directory
+      copy:
+        src: "{{ .binary_dir }}/manifests.yaml"
+        dest: "{{ .artifact_dir }}/kubekey/manifests.yaml"
+    - name: Package | Copy manifests to artifact directory
+      copy:
+        src: "{{ .binary_dir }}/manifests.yaml"
+        dest: "{{ .artifact_dir }}/manifests.yaml"
 
 - name: Package | Download tools to artifact directory
   loop: >

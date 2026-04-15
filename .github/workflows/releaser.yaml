@@ -77,5 +77,9 @@ jobs:
           
           qsctl -c qsctl-config.yaml cp dist/kubekey-${{ steps.prepare.outputs.version }}-linux-amd64.tar.gz qs://kubekey/github.com/kubesphere/kubekey/releases/download/${{ steps.prepare.outputs.version }}/kubekey-${{ steps.prepare.outputs.version }}-linux-amd64.tar.gz
           qsctl -c qsctl-config.yaml cp dist/kubekey-${{ steps.prepare.outputs.version }}-linux-arm64.tar.gz qs://kubekey/github.com/kubesphere/kubekey/releases/download/${{ steps.prepare.outputs.version }}/kubekey-${{ steps.prepare.outputs.version }}-linux-arm64.tar.gz
+          qsctl -c qsctl-config.yaml cp dist/kubekey-${{ steps.prepare.outputs.version }}-darwin-amd64.tar.gz qs://kubekey/github.com/kubesphere/kubekey/releases/download/${{ steps.prepare.outputs.version }}/kubekey-${{ steps.prepare.outputs.version }}-darwin-amd64.tar.gz
+          qsctl -c qsctl-config.yaml cp dist/kubekey-${{ steps.prepare.outputs.version }}-darwin-arm64.tar.gz qs://kubekey/github.com/kubesphere/kubekey/releases/download/${{ steps.prepare.outputs.version }}/kubekey-${{ steps.prepare.outputs.version }}-darwin-arm64.tar.gz
+          qsctl -c qsctl-config.yaml cp dist/kubekey-${{ steps.prepare.outputs.version }}-windows-amd64.tar.gz qs://kubekey/github.com/kubesphere/kubekey/releases/download/${{ steps.prepare.outputs.version }}/kubekey-${{ steps.prepare.outputs.version }}-windows-amd64.tar.gz
+          qsctl -c qsctl-config.yaml cp dist/kubekey-${{ steps.prepare.outputs.version }}-windows-arm64.tar.gz qs://kubekey/github.com/kubesphere/kubekey/releases/download/${{ steps.prepare.outputs.version }}/kubekey-${{ steps.prepare.outputs.version }}-windows-arm64.tar.gz
 
           rm -rf qsctl-config.yaml
