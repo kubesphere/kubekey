@@ -26,6 +26,7 @@ import (
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/bootstrap/os/repository"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/connector"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/kubernetes"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/utils"
 	"github.com/kubesphere/kubekey/v3/util/osrelease"
 )
@@ -122,12 +123,34 @@ type NodeExecScript struct {
 }
 
 func (n *NodeExecScript) Execute(runtime connector.Runtime) error {
+	host := runtime.RemoteHost()
+	nodeInCluster := false
+	if v, ok := n.PipelineCache.Get(common.ClusterStatus); ok {
+		cluster := v.(*kubernetes.KubernetesStatus)
+		var versionOk bool
+		if res, ok := cluster.NodesInfo[host.GetName()]; ok && res != "" {
+			versionOk = true
+		}
+		_, ipOk := cluster.NodesInfo[host.GetInternalAddress()]
+		nodeInCluster = versionOk || ipOk
+	}
 	if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("chmod +x %s/initOS.sh", common.KubeScriptDir), false); err != nil {
 		return errors.Wrap(errors.WithStack(err), "Failed to chmod +x init os script")
 	}
-
-	if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("%s/initOS.sh", common.KubeScriptDir), true); err != nil {
-		return errors.Wrap(errors.WithStack(err), "Failed to configure operating system")
+	// New nodes (not in cluster): always execute actual init script
+	// Existing nodes (in cluster): execute dry-run check if DryRunConfigureOS is enabled, otherwise skip
+	if !nodeInCluster {
+		if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("%s/initOS.sh", common.KubeScriptDir), false); err != nil {
+			return errors.Wrap(errors.WithStack(err), "Failed to configure operating system")
+		}
+	} else if n.KubeConf.Cluster.System.ApplyConfigureOS {
+		if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("%s/initOS.sh", common.KubeScriptDir), true); err != nil {
+			return errors.Wrap(errors.WithStack(err), "Failed to configure operating system")
+		}
+	} else {
+		if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("%s/initOS.sh --dry-run", common.KubeScriptDir), true); err != nil {
+			return errors.Wrap(errors.WithStack(err), "Failed to configure operating system")
+		}
 	}
 	return nil
 }
