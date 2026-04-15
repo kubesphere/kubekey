@@ -57,13 +57,12 @@ func ParseFunc[C ~map[string]any, Output any](ctx C, input string, f func([]byte
 	if includesDir, ok := ctx["includes_dir"]; ok {
 		if includesDirStr, ok := includesDir.(string); ok && includesDir != "" {
 			if _, err := tl.ParseGlob(path.Join(includesDirStr, "*.tpl")); err != nil {
-				return f(nil), errors.Wrapf(err, "failed to parse builtin template %q", includesDir)
+				return f(nil), errors.Wrapf(err, "failed to parse include template %q", includesDir)
 			}
 		}
-	} else {
-		if _, err := tl.ParseFS(builtinIncludes, "includes/*.tpl"); err != nil {
-			return f(nil), errors.Wrapf(err, "failed to parse builtin template %q", "includes/*.tpl")
-		}
+	}
+	if _, err := tl.ParseFS(builtinIncludes, "includes/*.tpl"); err != nil {
+		return f(nil), errors.Wrapf(err, "failed to parse builtin template %q", "includes/*.tpl")
 	}
 	// Parse the template string
 	_, err := tl.Parse(input)
