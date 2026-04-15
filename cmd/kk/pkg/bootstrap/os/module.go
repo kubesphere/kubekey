@@ -47,7 +47,6 @@ func (c *ConfigureOSModule) Init() {
 		Name:     "GetOSData",
 		Desc:     "Get OS release",
 		Hosts:    c.Runtime.GetAllHosts(),
-		Prepare:  &kubernetes.NodeInCluster{Not: true},
 		Action:   new(GetOSData),
 		Parallel: true,
 	}
@@ -56,16 +55,14 @@ func (c *ConfigureOSModule) Init() {
 		Name:     "InitOS",
 		Desc:     "Prepare to init OS",
 		Hosts:    c.Runtime.GetAllHosts(),
-		Prepare:  &kubernetes.NodeInCluster{Not: true},
 		Action:   new(NodeConfigureOS),
 		Parallel: true,
 	}
 
 	GenerateScript := &task.RemoteTask{
-		Name:    "GenerateScript",
-		Desc:    "Generate init os script",
-		Hosts:   c.Runtime.GetAllHosts(),
-		Prepare: &kubernetes.NodeInCluster{Not: true},
+		Name:  "GenerateScript",
+		Desc:  "Generate init os script",
+		Hosts: c.Runtime.GetAllHosts(),
 		Action: &action.Template{
 			Template: templates.InitOsScriptTmpl,
 			Dst:      filepath.Join(common.KubeScriptDir, "initOS.sh"),
@@ -81,7 +78,6 @@ func (c *ConfigureOSModule) Init() {
 		Name:     "ExecScript",
 		Desc:     "Exec init os script",
 		Hosts:    c.Runtime.GetAllHosts(),
-		Prepare:  &kubernetes.NodeInCluster{Not: true},
 		Action:   new(NodeExecScript),
 		Parallel: true,
 	}
