@@ -32,12 +32,18 @@ helm upgrade --install --create-namespace -n kubekey-system kubekey config/kubek
 
 **UI 页面仅在 v4.0.0 及以上版本提供支持**
 
+**前提：** `hack/downloadKubekey.sh` 默认会下载 web-installer，除非设置 **`export SKIP_WEB_INSTALLER=true`**。
+
 ```shell
-VERSION=v4.0.0 WEB_INSTALLER_VERSION=v1.0.0 hack/downloadKubekey.sh
+export SKIP_WEB_INSTALLER=false
+KKZONE=cn curl -sfL https://get-kk.kubesphere.io | sh -
 # run with UI
 kk web --schema-path schema --ui-path dist
 ```
-> 如果当前目录有config.yaml文件。执行`./package.sh config.yaml`来构建离线包
+
+### 使用 config.yaml 构建离线包
+
+执行 `hack/downloadKubekey.sh` 结束后，视版本与参数可能在当前目录生成 `package.sh`。将 `config.yaml` 放在该目录下，执行 `./package.sh config.yaml` 即可构建离线制品包。需要生成或补全 `config.yaml`（含镜像列表等）时，可使用在线工具 **[KubeSphere Images](https://get-images.kubesphere.io/)**。
 
 # 部署kubernetes
 
@@ -48,7 +54,7 @@ kk web --schema-path schema --ui-path dist
     - kylin: V10SP3 (未充分测试)
     - ubuntu: 18.04, 20.04, 22.04, 24.04.
 
-- 支持的Kubernetes版本：v1.23.x ~ v1.33.x
+- 支持的Kubernetes版本：v1.23.x ~ v1.34.x
 
 ## requirement
 
@@ -130,11 +136,43 @@ kubekey使用 `config` 资源来定义节点的连接信息。
 - [安装 v1.34.x 版本的kubernetes 配置](builtin/core/defaults/config/v1.34.yaml)
 
 ## 安装集群
+
+创建集群有 **两种方式**：**Web 页面** 或 **命令行**。环境与 `inventory` / `config` 的含义见上文各节。
+
+### 方式一：Web（页面）
+
+需要 **KubeKey v4.0.0 及以上** 且带 Web 安装包。获取方式见上文 *安装 kubekey* 中的 **包含UI页面的kubekey**，启动例如：
+
+```shell
+kk web --schema-path schema --ui-path dist
+```
+
+在浏览器中维护节点与配置，并按界面流程执行创建集群（对应 playbook `playbooks/create_cluster.yaml`）。
+
+### 方式二：命令行
+
+准备好 `inventory.yaml` 与 `config.yaml` 后，执行内置子命令 `kk create cluster`，会自动运行 `playbooks/create_cluster.yaml`，无需再单独指定 playbook 路径。
+
 ```shell
 kk create cluster -i inventory.yaml -c config.yaml
 ```
+
 `-i inventory.yaml`不传时，使用默认的inventory.yaml. 只会在执行的机器上安装kubernetes.
-`-c config.yaml`不传时，使用默认的config.yaml. 安装 v1.33.1 版本的kubernetes
+`-c config.yaml`不传时，使用默认的config.yaml. 安装 v1.34.1 版本的kubernetes
+
+常用参数：
+
+- `--workdir`：KubeKey 工作目录（默认：`<当前目录>/kubekey`）。
+- `--with-kubernetes`：Kubernetes 版本（例如 `v1.33.1`），在 `config.yaml` 未指定版本时使用。
+- `-a` / `--artifact`：离线制品包路径（`.tgz`）；指定后通常会关闭在线拉取依赖。
+- `--set`：覆盖配置项，例如 `--set download.fetch=false`，具体嵌套键以 KubeKey 支持的 `--set` 语法为准。
+- `-n` / `--namespace`：本地运行时与 playbook 关联资源的命名空间。
+
+离线安装示例：
+
+```shell
+kk create cluster -i inventory.yaml -c config.yaml --workdir ./kubekey --artifact /path/to/kubekey-artifact.tgz
+```
 
 # 文档
 **[自定义 任务](docs/zh/custom/README.md)**    

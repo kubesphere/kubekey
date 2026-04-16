@@ -32,12 +32,18 @@ Get the corresponding binary files from the [release](https://github.com/kubesph
 
 **UI only support after v4.0.0**
 
+**Prerequisite:** `hack/downloadKubekey.sh` downloads the web-installer bundle unless **`SKIP_WEB_INSTALLER` is set to `true`**.
+
 ```shell
-VERSION=v4.0.0 WEB_INSTALLER_VERSION=v1.0.0 hack/downloadKubekey.sh
+export SKIP_WEB_INSTALLER=false
+curl -sfL https://get-kk.kubesphere.io | sh -
 # run with UI
 kk web --schema-path schema --ui-path dist
 ```
-> If there is a config.yaml file in the current directory, running `./package.sh config.yaml` to build an offline package.
+
+### Build an offline package with config.yaml
+
+After `hack/downloadKubekey.sh` finishes, you may have `package.sh` in the current directory (depending on version and options). Put your `config.yaml` there and run `./package.sh config.yaml` to produce the offline bundle. To generate or fill in `config.yaml`—including image lists and related fields—use the online tool **[KubeSphere Images](https://get-images.kubesphere.io/)**.
 
 # Deploy Kubernetes
 
@@ -48,7 +54,7 @@ kk web --schema-path schema --ui-path dist
     - kylin: V10SP3 (not fully tested)
     - ubuntu: 18.04, 20.04, 22.04, 24.04.
 
-- Supported Kubernetes versions: v1.23.x ~ v1.33.x
+- Supported Kubernetes versions: v1.23.x ~ v1.34.x
 
 ## Requirements
 
@@ -130,11 +136,43 @@ Default config configurations are provided as references for different Kubernete
 - [Config for installing Kubernetes v1.34.x](builtin/core/defaults/config/v1.34.yaml)
 
 ## Install cluster
+
+You can create a cluster in **two ways**: use the **Web UI**, or use the **command line**. The prerequisites and the meaning of `inventory` / `config` are described in the sections above.
+
+### Method one: Web (UI)
+
+Requires **KubeKey v4.0.0 or newer** with the web installer bundle. Install or download that build (see **Download Binary with UI** under *Install kubekey*), then start the UI:
+
+```shell
+kk web --schema-path schema --ui-path dist
+```
+
+In the browser, edit inventory and configuration, then follow the UI flow to run the cluster creation playbook (equivalent to `playbooks/create_cluster.yaml`).
+
+### Method two: Command line
+
+Prepare `inventory.yaml` and `config.yaml`, then run the built-in `kk create cluster` subcommand; it runs `playbooks/create_cluster.yaml` for you, so you do not pass the playbook path explicitly.
+
 ```shell
 kk create cluster -i inventory.yaml -c config.yaml
 ```
+
 If `-i inventory.yaml` is not provided, the default inventory.yaml is used. Kubernetes will only be installed on the executing machine.
-If `-c config.yaml` is not provided, the default config.yaml is used. Installs Kubernetes version v1.33.1.
+If `-c config.yaml` is not provided, the default config.yaml is used. Installs Kubernetes version v1.34.1.
+
+Other useful flags:
+
+- `--workdir`: KubeKey working directory (default: `<current-dir>/kubekey`).
+- `--with-kubernetes`: Kubernetes version (for example `v1.33.1`) when it is not set in `config.yaml`.
+- `-a` / `--artifact`: path to an offline KubeKey artifact package (`.tgz`); also turns off online fetching when set.
+- `--set`: override config fields, for example `--set download.fetch=false` or nested keys supported by KubeKey.
+- `-n` / `--namespace`: namespace for local runtime resources tied to the playbook.
+
+Offline install example:
+
+```shell
+kk create cluster -i inventory.yaml -c config.yaml --workdir ./kubekey --artifact /path/to/kubekey-artifact.tgz
+```
 
 # Documentation
 **[Custom Playbook](docs/en/custom/README.md)**    
