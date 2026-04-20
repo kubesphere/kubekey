@@ -18,6 +18,8 @@ package tmpl
 
 import (
 	"bytes"
+	"embed"
+	"path"
 	"text/template"
 
 	"github.com/cockroachdb/errors"
@@ -28,6 +30,9 @@ import (
 var (
 	StringFunc = func(b []byte) string { return string(b) }
 )
+
+//go:embed includes
+var builtinIncludes embed.FS
 
 // ParseFunc parses a template string using the provided context and parse function.
 // It takes a context map C, an input string that may contain template syntax,
@@ -48,8 +53,19 @@ func ParseFunc[C ~map[string]any, Output any](ctx C, input string, f func([]byte
 	// Add the template-rendering functions here so we can close over t.
 	funcMap["include"] = includeFun(tl, includedNames)
 	funcMap["tpl"] = tplFun(tl, includedNames, false)
+	_ = tl.Funcs(funcMap)
+	if includesDir, ok := ctx["includes_dir"]; ok {
+		if includesDirStr, ok := includesDir.(string); ok && includesDir != "" {
+			if _, err := tl.ParseGlob(path.Join(includesDirStr, "*.tpl")); err != nil {
+				return f(nil), errors.Wrapf(err, "failed to parse include template %q", includesDir)
+			}
+		}
+	}
+	if _, err := tl.ParseFS(builtinIncludes, "includes/*.tpl"); err != nil {
+		return f(nil), errors.Wrapf(err, "failed to parse builtin template %q", "includes/*.tpl")
+	}
 	// Parse the template string
-	_, err := tl.Funcs(funcMap).Parse(input)
+	_, err := tl.Parse(input)
 	if err != nil {
 		return f(nil), errors.Wrapf(err, "failed to parse template '%s'", input)
 	}
