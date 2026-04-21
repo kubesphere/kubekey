@@ -24,9 +24,26 @@
     src: "{{ .work_dir }}/tools/{{ .item.arch }}/{{ base (tpl .item.url .item) }}"
     dest: "{{ .artifact_dir }}/tools/{{ .item.arch }}/{{ base (tpl .item.url .item) }}"
 
-- name: Package | Download charts to artifact directory
+- name: Tools | Download charts to artifact directory
   loop: "{{ .download.charts | toJson }}"
-  when: printf "%s/charts/%s" .artifact_dir (base .item) | fileExists | not
-  copy:
-    src: "{{ .work_dir }}/charts/{{ base .item }}"
-    dest: "{{ .artifact_dir }}/charts/{{ base .item }}"
+  command: |
+    url={{ .item.url }}
+    version={{ .item.version }}
+    mkdir -p "{{ .artifact_dir }}/charts"
+    # OCI
+    if [[ "$url" == oci://* ]]; then
+      if [[ -z "$version" ]]; then
+        helm pull "$url" --destination "{{ .artifact_dir }}/charts"
+      else
+        helm pull "$url" --version "$version" --destination "{{ .artifact_dir }}/charts"
+      fi
+    else
+      # HTTP - url format: chart@repo
+      chart=$(echo "$url" | cut -d'@' -f1)
+      repo=$(echo "$url" | cut -d'@' -f2)
+      if [[ -z "$version" ]]; then
+        helm pull "$chart" --repo "$repo" --destination "{{ .artifact_dir }}/charts"
+      else
+        helm pull "$chart" --repo "$repo" --version "$version" --destination "{{ .artifact_dir }}/charts"
+      fi
+    fi

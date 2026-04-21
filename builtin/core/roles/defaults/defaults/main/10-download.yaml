@@ -101,6 +101,13 @@ download:
       {{- .zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
       github.com/containerd/nerdctl/releases/download/v2.2.1/nerdctl-2.2.1-linux-{{ "{{ \"{{ .arch }}\" }}" }}.tar.gz
   charts: []
+  # charts:
+  #   # repo chart
+  #   - url: flannel@https://flannel-io.github.io/flannel/
+  #     version: 0.28.1
+  #   # OCI chart
+  #   - url: oci://ghcr.io/flannel-io/flannel-chart
+  #     version: 0.28.1
   iso: 
     - "almalinux-9.0-rpms" 
     - "centos-8-rpms" 
