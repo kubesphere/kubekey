@@ -14,7 +14,6 @@
       include_vars: >-
         {{ slice (.kubernetes.kube_version | splitList ".") 0 2 | join "." }}.yaml
     - name: Defaults | Load default templates download
-      when: .download.kubernetes.kube_version | empty | not
       template:
         src: manifests.yaml
         dest: >-

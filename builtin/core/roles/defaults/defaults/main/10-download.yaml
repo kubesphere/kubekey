@@ -116,6 +116,11 @@ download:
     - "ubuntu-24.04-debs"
   cni:
     type: []
+  storage_class:
+    local:
+      enabled: true
+    nfs:
+      enabled: false
   cri:
     container_manager: >
       {{- $container_manager := list }}

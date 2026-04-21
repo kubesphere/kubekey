@@ -568,11 +568,11 @@ download:
   storage_class:
     # Local storage class settings.
     local:
-      enabled: {{ .download.storage_class.local.enabled | default true }}   # Enable the local storage class.
+      enabled: {{ .download.storage_class.local.enabled }}   # Enable the local storage class.
     # openebs/dynamic-localpv-provisioner helm chart version.
     localpv_provisioner_version: {{ .download.storage_class.localpv_provisioner_version | default (list "4.4.0") | toJson }}
     nfs:
-      enabled: {{ .download.storage_class.nfs.enabled | default false }}   # Enable the nfs storage class.
+      enabled: {{ .download.storage_class.nfs.enabled }}   # Enable the nfs storage class.
     # nfs-provisioner Helm chart version.
     nfs_provisioner_version: {{ .download.storage_class.nfs_provisioner_version | default (list "4.0.18") | toJson }}
   iso: {{ .download.iso | default list | toJson }}
@@ -660,7 +660,7 @@ download:
       - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/kubernetes/etcd:{{ . }}{{ else }}registry.k8s.io/etcd:{{ . }}{{ end }}
 {{- end }}
       # StorageClass
-{{- if .download.storage_class.local.enabled | default true }}
+{{- if .download.storage_class.local.enabled }}
   {{- range .download.storage_class.localpv_provisioner_version | default (list "4.4.0") }}
       ## StorageClass/local-{{ . }}
     {{- range index $.download.images "openebs-localpv/localpv-provisioner" . }}
