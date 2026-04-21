@@ -456,19 +456,16 @@ func (i *imageArgs) copyWithPlatformFilter(ctx context.Context, src, dst *remote
 			return errors.Errorf("failed to get config from manifest for %s", img)
 		}
 
-		// Get config digest and mediaType
+		// Get config digest, mediaType, and size
 		configDigest, ok := config["digest"].(string)
 		if !ok {
 			return errors.Errorf("failed to get config digest from manifest for %s", img)
 		}
-		configMediaType, _ := config["mediaType"].(string)
 
 		// Fetch config to get platform info
-		configDesc := ocispec.Descriptor{
-			MediaType: configMediaType,
-			Digest:    digest.Digest(configDigest),
-		}
-		configRC, err := src.Blobs().Fetch(ctx, configDesc)
+		// Use FetchReference instead of Fetch to avoid Content-Length validation issues
+		// Some registries return different Content-Length than what the manifest declares
+		_, configRC, err := src.Blobs().FetchReference(ctx, configDigest)
 		if err != nil {
 			return errors.Wrapf(err, "failed to fetch config for %s", img)
 		}
