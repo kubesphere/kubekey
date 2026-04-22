@@ -28,6 +28,7 @@ import (
 	"github.com/cockroachdb/errors"
 	kkcorev1alpha1 "github.com/kubesphere/kubekey/api/core/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 
@@ -227,7 +228,7 @@ func handleRelativeDir(ctx context.Context, pj project.Project, relPath string, 
 			}
 			dest = filepath.Join(ta.dest, rel)
 		}
-		tmpDest := filepath.Join("/tmp", dest)
+		tmpDest := filepath.Join("/tmp", dest+"."+rand.String(5))
 
 		if err = conn.PutFile(ctx, result, tmpDest, mode); err != nil {
 			return err
@@ -254,7 +255,7 @@ func (ta templateArgs) readFile(ctx context.Context, data string, mode fs.FileMo
 	if ta.mode != nil {
 		mode = os.FileMode(*ta.mode)
 	}
-	tmpDest := filepath.Join("/tmp", dest)
+	tmpDest := filepath.Join("/tmp", dest+"."+rand.String(5))
 
 	if err = conn.PutFile(ctx, result, tmpDest, mode); err != nil {
 		return err
@@ -303,7 +304,7 @@ func (ta templateArgs) absDir(ctx context.Context, conn connector.Connector, var
 			dest = filepath.Join(ta.dest, rel)
 		}
 
-		tmpDest := filepath.Join("/tmp", dest)
+		tmpDest := filepath.Join("/tmp", dest+"."+rand.String(5))
 
 		if err = conn.PutFile(ctx, result, tmpDest, mode); err != nil {
 			return err

@@ -28,6 +28,7 @@ import (
 	"github.com/cockroachdb/errors"
 	kkcorev1alpha1 "github.com/kubesphere/kubekey/api/core/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 
@@ -250,7 +251,7 @@ func (ca copyArgs) copyAbsoluteDir(ctx context.Context, conn connector.Connector
 		}
 		dest := filepath.Join(ca.dest, rel)
 
-		tmpDest := filepath.Join("/tmp", dest)
+		tmpDest := filepath.Join("/tmp", dest+"."+rand.String(5))
 
 		if err = conn.PutFile(ctx, data, tmpDest, mode); err != nil {
 			return err
@@ -294,7 +295,7 @@ func (ca copyArgs) copyRelativeDir(ctx context.Context, pj project.Project, relP
 		}
 		dest := filepath.Join(ca.dest, rel)
 
-		tmpDest := filepath.Join("/tmp", dest)
+		tmpDest := filepath.Join("/tmp", dest+"."+rand.String(5))
 
 		err = conn.PutFile(ctx, data, tmpDest, mode)
 		if err != nil {
@@ -329,7 +330,7 @@ func (ca copyArgs) copyContent(ctx context.Context, mode fs.FileMode, conn conne
 		mode = os.FileMode(*ca.mode)
 	}
 
-	tmpDest := filepath.Join("/tmp", ca.dest)
+	tmpDest := filepath.Join("/tmp", ca.dest+"."+rand.String(5))
 
 	if err := conn.PutFile(ctx, []byte(ca.content), tmpDest, mode); err != nil {
 		return internal.StdoutFailed, "failed to copy file", err
@@ -355,7 +356,7 @@ func (ca copyArgs) copyFile(ctx context.Context, data []byte, mode fs.FileMode, 
 	if ca.mode != nil {
 		mode = os.FileMode(*ca.mode)
 	}
-	tmpDest := filepath.Join("/tmp", dest)
+	tmpDest := filepath.Join("/tmp", dest+"."+rand.String(5))
 
 	if err := conn.PutFile(ctx, data, tmpDest, mode); err != nil {
 		return err
