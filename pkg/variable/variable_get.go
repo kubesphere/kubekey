@@ -90,11 +90,11 @@ var GetAllVariable = func(hostname string) GetFunc {
 
 		for _, addr := range addrs {
 			if ipNet, ok := addr.(*net.IPNet); ok && !ipNet.IP.IsLoopback() {
-				if ipType == _const.VariableIPv4 && ipNet.IP.To4() != nil {
+				if ipType == _const.VariableIPv4 && ipNet.IP.To4() != nil && ipNet.IP.IsGlobalUnicast() {
 					return ipNet.IP.String()
 				}
 
-				if ipType == _const.VariableIPv6 && ipNet.IP.To16() != nil && ipNet.IP.To4() == nil {
+				if ipType == _const.VariableIPv6 && ipNet.IP.To4() == nil && ipNet.IP.IsGlobalUnicast() {
 					return ipNet.IP.String()
 				}
 			}
