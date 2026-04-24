@@ -268,68 +268,86 @@ download:
     cilium/cilium:
       "1.14.19":
         - quay.io/cilium/cilium:v1.14.19
-        - quay.io/cilium/clustermesh-apiserver:v1.14.19
-        - quay.io/cilium/docker-plugin:v1.14.19
+        - quay.io/cilium/certgen:v0.1.16
         - quay.io/cilium/hubble-relay:v1.14.19
-        - quay.io/cilium/kvstoremesh:v1.14.19
-        # - quay.io/cilium/operator-alibabacloud:v1.14.19
-        # - quay.io/cilium/operator-aws:v1.14.19
-        # - quay.io/cilium/operator-azure:v1.14.19
-        - quay.io/cilium/operator-generic:v1.14.19
+        - quay.io/cilium/hubble-ui-backend:v0.13.1
+        - quay.io/cilium/hubble-ui:v0.13.1
+        - quay.io/cilium/cilium-envoy:v1.30.9-1734953328-6db0e437ba7ed2169f032ceec25922dd06e0b12b
+        - quay.io/cilium/cilium-etcd-operator:v2.0.7
         - quay.io/cilium/operator:v1.14.19
+        - quay.io/cilium/startup-script:c54c7edeab7fde4da68e59acd319ab24af242c3f
+        - quay.io/cilium/clustermesh-apiserver:v1.14.19
+        - quay.io/coreos/etcd:v3.5.4
+        - quay.io/cilium/kvstoremesh:v1.14.19
+        - ghcr.io/spiffe/spire-agent:1.6.3
+        - ghcr.io/spiffe/spire-server:1.6.3
       "1.15.19":
         - quay.io/cilium/cilium:v1.15.19
-        - quay.io/cilium/clustermesh-apiserver:v1.15.19
-        - quay.io/cilium/docker-plugin:v1.15.19
+        - quay.io/cilium/certgen:v0.1.19
         - quay.io/cilium/hubble-relay:v1.15.19
-        # - quay.io/cilium/operator-alibabacloud:v1.15.19
-        # - quay.io/cilium/operator-aws:v1.15.19
-        # - quay.io/cilium/operator-azure:v1.15.19
+        - quay.io/cilium/hubble-ui-backend:v0.13.2
+        - quay.io/cilium/hubble-ui:v0.13.2
+        - quay.io/cilium/cilium-envoy:v1.33.4-1752151664-7c2edb0b44cf95f326d628b837fcdd845102ba68
+        - quay.io/cilium/cilium-etcd-operator:v2.0.7
         - quay.io/cilium/operator:v1.15.19
-      "1.16.18":
-        - quay.io/cilium/cilium-envoy:v1.34.12-1765374555-6a93b0bbba8d6dc75b651cbafeedb062b2997716
-        - quay.io/cilium/cilium:v1.16.18
-        - quay.io/cilium/clustermesh-apiserver:v1.16.18
-        - quay.io/cilium/docker-plugin:v1.16.18
-        - quay.io/cilium/hubble-relay:v1.16.18
-        # - quay.io/cilium/operator-alibabacloud:v1.16.18
-        # - quay.io/cilium/operator-aws:v1.16.18
-        # - quay.io/cilium/operator-azure:v1.16.18
-        - quay.io/cilium/operator-generic:v1.16.18
-        - quay.io/cilium/operator:v1.16.18
-      "1.17.11":
-        - quay.io/cilium/cilium-envoy:v1.34.12-1765374555-6a93b0bbba8d6dc75b651cbafeedb062b2997716 
-        - quay.io/cilium/cilium:v1.17.11
-        - quay.io/cilium/clustermesh-apiserver:v1.17.11
-        - quay.io/cilium/docker-plugin:v1.17.11
-        - quay.io/cilium/hubble-relay:v1.17.11
-        # - quay.io/cilium/operator-alibabacloud:v1.17.11
-        # - quay.io/cilium/operator-aws:v1.17.11
-        # - quay.io/cilium/operator-azure:v1.17.11
-        - quay.io/cilium/operator-generic:v1.17.11
-        - quay.io/cilium/operator:v1.17.11
-      "1.18.7":
-        - quay.io/cilium/cilium-envoy:v1.35.9-1770554954-8ce3bb4eca04188f4a0a1bfbd0a06a40f90883de
-        - quay.io/cilium/cilium:v1.18.7
-        - quay.io/cilium/clustermesh-apiserver:v1.18.7
-        - quay.io/cilium/docker-plugin:v1.18.7
-        - quay.io/cilium/hubble-relay:v1.18.7
-        # - quay.io/cilium/operator-alibabacloud:v1.18.7
-        # - quay.io/cilium/operator-aws:v1.18.7
-        # - quay.io/cilium/operator-azure:v1.18.7
-        - quay.io/cilium/operator-generic:v1.18.7
-        - quay.io/cilium/operator:v1.18.7
-      "1.19.1":
-        - quay.io/cilium/cilium-envoy:v1.35.9-1770979049-232ed4a26881e4ab4f766f251f258ed424fff663
-        - quay.io/cilium/cilium:v1.19.1
-        - quay.io/cilium/clustermesh-apiserver:v1.19.1
-        - quay.io/cilium/docker-plugin:v1.19.1
-        - quay.io/cilium/hubble-relay:v1.19.1
-        # - quay.io/cilium/operator-alibabacloud:v1.19.1
-        # - quay.io/cilium/operator-aws:v1.19.1
-        # - quay.io/cilium/operator-azure:v1.19.1
-        - quay.io/cilium/operator-generic:v1.19.1
-        - quay.io/cilium/operator:v1.19.1
+        - quay.io/cilium/startup-script:c54c7edeab7fde4da68e59acd319ab24af242c3f
+        - quay.io/cilium/clustermesh-apiserver:v1.15.19
+        - docker.io/library/busybox:1.36.1
+        - ghcr.io/spiffe/spire-agent:1.8.5
+        - ghcr.io/spiffe/spire-server:1.8.5
+      "1.16.19":
+        - quay.io/cilium/cilium:v1.16.19
+        - quay.io/cilium/certgen:v0.3.1
+        - quay.io/cilium/hubble-relay:v1.16.19
+        - quay.io/cilium/hubble-ui-backend:v0.13.3
+        - quay.io/cilium/hubble-ui:v0.13.3
+        - quay.io/cilium/cilium-envoy:v1.34.12-1767177245-7935d4d711cb6f8020385a50c996b90896e16a71
+        - quay.io/cilium/operator:v1.16.19
+        - quay.io/cilium/startup-script:1755531540-60ee83e
+        - quay.io/cilium/clustermesh-apiserver:v1.16.19
+        - docker.io/library/busybox:1.36.1
+        - ghcr.io/spiffe/spire-agent:1.9.6
+        - ghcr.io/spiffe/spire-server:1.9.6
+      "1.17.15":
+        - quay.io/cilium/cilium:v1.17.15
+        - quay.io/cilium/certgen:v0.4.1
+        - quay.io/cilium/hubble-relay:v1.17.15
+        - quay.io/cilium/hubble-ui-backend:v0.13.3
+        - quay.io/cilium/hubble-ui:v0.13.3
+        - quay.io/cilium/cilium-envoy:v1.36.6-1776000132-2437d2edeaf4d9b56ef279bd0d71127440c067aa
+        - quay.io/cilium/operator:v1.17.15
+        - quay.io/cilium/startup-script:1755531540-60ee83e
+        - quay.io/cilium/clustermesh-apiserver:v1.17.15
+        - docker.io/library/busybox:1.37.0
+        - ghcr.io/spiffe/spire-agent:1.9.6
+        - ghcr.io/spiffe/spire-server:1.9.6
+      "1.18.9":
+        - quay.io/cilium/cilium:v1.18.9
+        - quay.io/cilium/certgen:v0.4.1
+        - quay.io/cilium/hubble-relay:v1.18.9
+        - quay.io/cilium/hubble-ui-backend:v0.13.3
+        - quay.io/cilium/hubble-ui:v0.13.3
+        - quay.io/cilium/cilium-envoy:v1.36.6-1776000132-2437d2edeaf4d9b56ef279bd0d71127440c067aa
+        - quay.io/cilium/operator:v1.18.9
+        - quay.io/cilium/startup-script:1755531540-60ee83e
+        - quay.io/cilium/clustermesh-apiserver:v1.18.9
+        - docker.io/library/busybox:1.37.0
+        - ghcr.io/spiffe/spire-agent:1.12.4
+        - ghcr.io/spiffe/spire-server:1.12.4
+      "1.19.3":
+        - quay.io/cilium/cilium:v1.19.3
+        - docker.io/istio/ztunnel:1.28.0-distroless
+        - quay.io/cilium/certgen:v0.4.1
+        - quay.io/cilium/hubble-relay:v1.19.3
+        - quay.io/cilium/hubble-ui-backend:v0.13.3
+        - quay.io/cilium/hubble-ui:v0.13.3
+        - quay.io/cilium/cilium-envoy:v1.36.6-1776000132-2437d2edeaf4d9b56ef279bd0d71127440c067aa
+        - quay.io/cilium/operator:v1.19.3
+        - quay.io/cilium/startup-script:1763560095-8f36c34
+        - quay.io/cilium/clustermesh-apiserver:v1.19.3
+        - docker.io/library/busybox:1.37.0
+        - ghcr.io/spiffe/spire-agent:1.9.6
+        - ghcr.io/spiffe/spire-server:1.9.6
     flannel/flannel:
       v0.27.4:
         - ghcr.io/flannel-io/flannel-cni-plugin:v1.8.0-flannel1
