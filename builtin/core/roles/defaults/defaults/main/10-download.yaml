@@ -273,7 +273,7 @@ download:
         - quay.io/cilium/hubble-ui-backend:v0.13.1
         - quay.io/cilium/hubble-ui:v0.13.1
         - quay.io/cilium/cilium-envoy:v1.30.9-1734953328-6db0e437ba7ed2169f032ceec25922dd06e0b12b
-        - quay.io/cilium/cilium-etcd-operator:v2.0.7
+        # - quay.io/cilium/cilium-etcd-operator:v2.0.7
         - quay.io/cilium/operator:v1.14.19
         - quay.io/cilium/startup-script:c54c7edeab7fde4da68e59acd319ab24af242c3f
         - quay.io/cilium/clustermesh-apiserver:v1.14.19
@@ -288,7 +288,7 @@ download:
         - quay.io/cilium/hubble-ui-backend:v0.13.2
         - quay.io/cilium/hubble-ui:v0.13.2
         - quay.io/cilium/cilium-envoy:v1.33.4-1752151664-7c2edb0b44cf95f326d628b837fcdd845102ba68
-        - quay.io/cilium/cilium-etcd-operator:v2.0.7
+        # - quay.io/cilium/cilium-etcd-operator:v2.0.7
         - quay.io/cilium/operator:v1.15.19
         - quay.io/cilium/startup-script:c54c7edeab7fde4da68e59acd319ab24af242c3f
         - quay.io/cilium/clustermesh-apiserver:v1.15.19
