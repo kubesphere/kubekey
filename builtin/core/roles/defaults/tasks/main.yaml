@@ -59,6 +59,24 @@
       register: etcd_install_version
       register_type: yaml
 
+- name: Defaults | Align target etcd version with installed cluster version
+  run_once: true
+  when: .groups.etcd | default list | empty | not
+  add_hostvars:
+    hosts: all
+    vars:
+      etcd:
+        etcd_version: >-
+          {{- $resolvedEtcdVersion := .etcd.etcd_version -}}
+          {{- range .groups.etcd -}}
+            {{- $loadState := index $.hostvars . "etcd_install_LoadState" "stdout" | default "" -}}
+            {{- $installedEtcdVersion := index $.hostvars . "etcd_install_version" "stdout" "etcd Version" | default "" -}}
+            {{- if and ($loadState | eq "loaded") ($installedEtcdVersion | empty | not) ((printf "v%s" $installedEtcdVersion) | semverCompare (printf ">%s" $resolvedEtcdVersion)) -}}
+              {{- $resolvedEtcdVersion = printf "v%s" $installedEtcdVersion -}}
+            {{- end -}}
+          {{- end -}}
+          {{ $resolvedEtcdVersion }}
+
 - name: Defaults | Select the initialization node for the cluster
   run_once: true
   add_hostvars:

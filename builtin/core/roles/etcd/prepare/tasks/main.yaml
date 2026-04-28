@@ -39,7 +39,7 @@
       assert:
         that: .etcd.etcd_version | semverCompare (printf ">=v%s" (index .etcd_install_version "stdout" "etcd Version"))
         fail_msg: >-
-          Installed etcd version: {{ index .etcd_install_version "stdout" "etcd Version" }} is lower than target etcd version: {{ .etcd.etcd_version }}
+          Target etcd version: {{ .etcd.etcd_version }} is lower than installed etcd version: {{ index .etcd_install_version "stdout" "etcd Version" }}. Downgrading etcd is not supported.
 
 - name: Prepare | Distribute etcd package for install or upgrade
   when: >-
