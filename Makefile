@@ -117,7 +117,11 @@ KK_EXECUTOR_IMG ?= $(REGISTRY)/$(KK_EXECUTOR_IMG_NAME)
 TAG ?= dev
 
 # Set build time variables including version details
-LDFLAGS := $(shell hack/version.sh)
+LDFLAGS = $(shell hack/version.sh)
+CURRENT_BRANCH ?= $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null || echo dev)
+SANITIZED_BRANCH ?= $(shell printf '%s' '$(CURRENT_BRANCH)' | sed -E 's/[^0-9A-Za-z.-]+/-/g; s/^-+//; s/-+$$//')
+DEV_GIT_VERSION ?= v0.0.0-$(if $(SANITIZED_BRANCH),$(SANITIZED_BRANCH),dev)
+DEV_LDFLAGS = $(shell GIT_VERSION=$(DEV_GIT_VERSION) hack/version.sh)
 # Set kk build tags
 #BUILDTAGS = exclude_graphdriver_devicemapper exclude_graphdriver_btrfs containers_image_openpgp
 BUILDTAGS ?= builtin
@@ -158,7 +162,7 @@ generate-manifests-capkk: $(CONTROLLER_GEN) $(KUSTOMIZE) clean-crds-capkk ## Gen
 	@$(CONTROLLER_GEN) \
 		paths=./api/capkk/... \
 		crd \
-		output:crd:dir=./config/capkk/crds/ 
+		output:crd:dir=./config/capkk/crds/
 	@$(CONTROLLER_GEN) \
 		paths=./pkg/controllers/... \
 		rbac:roleName=capkk output:rbac:dir=./config/capkk/rbac \
@@ -186,7 +190,7 @@ generate-goimports:  ## Format all import, `goimports` is required.
 
 .PHONY: lint
 lint: $(GOLANGCI_LINT) ## Lint the codebase
-	@$(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS) 
+	@$(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS)
 	@cd $(TEST_DIR); $(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS)
 
 .PHONY: verify-dockerfiles
@@ -234,7 +238,11 @@ verify-releaser: $(GORELEASER) ## Verify goreleaser
 kk: ## build kk binary
 	@CGO_ENABLED=0 GOARCH=$(GOARCH) GOOS=$(GOOS) go build -trimpath -tags "$(BUILDTAGS)" -ldflags "$(LDFLAGS)" -o $(OUTPUT_BIN_DIR)/kk cmd/kk/kubekey.go
 
-.PHONY: kk-releaser 
+.PHONY: build-kk-dev
+build-kk-dev: ## build kk binary with a branch-based dev version when no git tag is available
+	@CGO_ENABLED=0 GOARCH=$(GOARCH) GOOS=$(GOOS) go build -trimpath -tags "$(BUILDTAGS)" -ldflags "$(DEV_LDFLAGS)" -o $(OUTPUT_BIN_DIR)/kk cmd/kk/kubekey.go
+
+.PHONY: kk-releaser
 kk-releaser: $(GORELEASER) ## build releaser in dist. it will show in https://github.com/kubesphere/kubekey/releases
 	@LDFLAGS=$(bash ./hack/version.sh) $(GORELEASER) release --clean --skip validate --skip publish
 
