@@ -8,6 +8,8 @@ cluster_require:
   supported_os_distributions:
     - ubuntu
     - '"ubuntu"'
+    - debian
+    - '"debian"'
     - centos
     - '"centos"'
     - kylin
@@ -48,7 +50,7 @@ cluster_require:
     v3.29: ["v1.23", "v1.24", "v1.25", "v1.26", "v1.27", "v1.28", "v1.29", "v1.30", "v1.31", "v1.32"]
     v3.30: ["v1.23", "v1.24", "v1.25", "v1.26", "v1.27", "v1.28", "v1.29", "v1.30", "v1.31", "v1.32", "v1.33"]
     v3.31: ["v1.23", "v1.24", "v1.25", "v1.26", "v1.27", "v1.28", "v1.29", "v1.30", "v1.31", "v1.32", "v1.33", "v1.34"]
-  
+
   # Allowed Cilium versions for each Kubernetes version
   cilium_allowed_versions:
     "1.14": ["v1.23", "v1.24", "v1.25", "v1.26", "v1.27"]
