@@ -3,7 +3,7 @@
   delegate_to: "{{ .installed_etcd }}"
   command: |
     unset ETCDCTL_ENDPOINTS ETCDCTL_KEY ETCDCTL_CERT ETCDCTL_CACERT
-    
+
     # Get leader ID from endpoint status (text format: endpoint, ID, version, size, leader, term, index)
     LEADER_ID=$(ETCDCTL_API=3 etcdctl \
       --endpoints=https://localhost:{{ .etcd.port }} \
@@ -11,10 +11,10 @@
       --cert=/etc/ssl/etcd/ssl/server.crt \
       --key=/etc/ssl/etcd/ssl/server.key \
       endpoint status | awk -F',' '{gsub(/^[ \t]+|[ \t]+$/, "", $5); print $5}')
-    
+
     # Convert decimal ID to hex (member list shows hex ID)
     LEADER_ID_HEX=$(printf "%x" "$LEADER_ID")
-    
+
     # Get leader name from member list (format: ID,name,peerURL,clientURL,learners)
     ETCDCTL_API=3 etcdctl \
       --endpoints=https://localhost:{{ .etcd.port }} \
@@ -26,4 +26,4 @@
 
 - name: Backup | Backup on leader node
   when: .inventory_hostname | eq .etcd_backup_leader_name.stdout
-  command: BACKUP_DIR="{{ .etcd.backup.backup_dir }}/install/etcd-v{{ index .etcd_install_version "stdout" "etcd Version" }}-$(date +%Y-%m-%d-%H-%M-%S)" /usr/local/bin/kube-scripts/backup_etcd.sh
+  command: BACKUP_DIR="{{ .etcd.backup.backup_dir }}/install/etcd-v{{ .etcd_installed_version }}-$(date +%Y-%m-%d-%H-%M-%S)" /usr/local/bin/kube-scripts/backup_etcd.sh

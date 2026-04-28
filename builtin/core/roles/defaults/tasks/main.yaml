@@ -59,6 +59,12 @@
       register: etcd_install_version
       register_type: yaml
 
+    - name: Defaults | Normalize installed etcd version
+      set_fact:
+        etcd_installed_version: >-
+          {{- $versionOutput := .etcd_install_version.stdout | default "" | toYaml -}}
+          {{- $versionOutput | regexFind "etcd Version:[[:space:]]*[0-9]+\\.[0-9]+\\.[0-9]+" | trimPrefix "etcd Version: " | trim -}}
+
 - name: Defaults | Align target etcd version with installed cluster version
   run_once: true
   when: .groups.etcd | default list | empty | not
@@ -70,7 +76,7 @@
           {{- $resolvedEtcdVersion := .etcd.etcd_version -}}
           {{- range .groups.etcd -}}
             {{- $loadState := index $.hostvars . "etcd_install_LoadState" "stdout" | default "" -}}
-            {{- $installedEtcdVersion := index $.hostvars . "etcd_install_version" "stdout" "etcd Version" | default "" -}}
+            {{- $installedEtcdVersion := index $.hostvars . "etcd_installed_version" | default "" -}}
             {{- if and ($loadState | eq "loaded") ($installedEtcdVersion | empty | not) ((printf "v%s" $installedEtcdVersion) | semverCompare (printf ">%s" $resolvedEtcdVersion)) -}}
               {{- $resolvedEtcdVersion = printf "v%s" $installedEtcdVersion -}}
             {{- end -}}

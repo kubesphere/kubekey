@@ -32,20 +32,22 @@
             {{ $needUnInstalled | toJson }}            
 
 - name: Prepare | Validate installed etcd version
-  when: .etcd_install_LoadState.stdout | eq "loaded"
+  when:
+    - .etcd_install_LoadState.stdout | eq "loaded"
+    - .etcd_installed_version | empty | not
   block:
     - name: Prepare | Ensure target etcd version is not lower than installed version
-      when: .etcd_install_LoadState.stdout | eq "loaded"
       assert:
-        that: .etcd.etcd_version | semverCompare (printf ">=v%s" (index .etcd_install_version "stdout" "etcd Version"))
+        that: .etcd.etcd_version | semverCompare (printf ">=v%s" .etcd_installed_version)
         fail_msg: >-
-          Target etcd version: {{ .etcd.etcd_version }} is lower than installed etcd version: {{ index .etcd_install_version "stdout" "etcd Version" }}. Downgrading etcd is not supported.
+          Target etcd version: {{ .etcd.etcd_version }} is lower than installed etcd version: {{ .etcd_installed_version }}. Downgrading etcd is not supported.
 
 - name: Prepare | Distribute etcd package for install or upgrade
   when: >-
     or 
       (.etcd_install_version.error | empty | not)
-      (.etcd.etcd_version | semverCompare (printf ">v%s" (index .etcd_install_version "stdout" "etcd Version")))
+      (.etcd_installed_version | empty)
+      (.etcd.etcd_version | semverCompare (printf ">v%s" .etcd_installed_version))
   block:
     - name: Prepare | Copy etcd binary package to node
       copy:
