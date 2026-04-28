@@ -75,6 +75,7 @@ jobs:
           echo "access_key_id: ${{secrets.KS_QSCTL_ACCESS_KEY_ID}}" > qsctl-config.yaml
           echo "secret_access_key: ${{ secrets.KS_QSCTL_SECRET_ACCESS_KEY }}" >> qsctl-config.yaml
 
-          qsctl -c qsctl-config.yaml cp -r dist/ qs://kubekey/github.com/kubesphere/kubekey/releases/download/${{ steps.prepare.outputs.version }}/
+          mkdir -p dist-output && mv dist/*.tar.gz dist-output/
+          qsctl -c qsctl-config.yaml cp -r dist-output/ qs://kubekey/github.com/kubesphere/kubekey/releases/download/${{ steps.prepare.outputs.version }}/
 
-          rm -rf qsctl-config.yaml
+          rm -rf qsctl-config.yaml dist-output/
