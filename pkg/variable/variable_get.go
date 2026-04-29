@@ -130,29 +130,28 @@ var GetAllVariable = func(hostname string) GetFunc {
 		}
 	}
 
-	// getHostsVariable builds a complete variable map for all hosts
-	// by combining variables from multiple sources in a specific order
 	getHostsVariable := func(v *variable) map[string]any {
 		globalHosts := make(map[string]any)
 		for hostname := range v.value.Hosts {
 			hostVars := make(map[string]any)
-			// Merge inventory-level variables first (lower priority than group vars)
+
+			// 1. Merge remote variables (lowest priority)
+			hostVars = CombineVariables(hostVars, v.value.Hosts[hostname].RemoteVars)
+			// 2. Merge runtime variables
+			hostVars = CombineVariables(hostVars, v.value.Hosts[hostname].RuntimeVars)
+			// 3. Merge inventory-level variables (vars)
 			hostVars = CombineVariables(hostVars, Extension2Variables(v.value.Inventory.Spec.Vars))
-			// Set group variables for hosts that belong to groups (override spec.vars)
+			// 4. Merge group variables (groups > vars)
 			for _, gv := range v.value.Inventory.Spec.Groups {
 				if slices.Contains(gv.Hosts, hostname) {
 					hostVars = CombineVariables(hostVars, Extension2Variables(gv.Vars))
 				}
 			}
-			// Merge remote variables (variables collected from the actual host)
-			hostVars = CombineVariables(hostVars, v.value.Hosts[hostname].RemoteVars)
-			// Merge runtime variables (variables set during playbook execution)
-			hostVars = CombineVariables(hostVars, v.value.Hosts[hostname].RuntimeVars)
-
-			// Merge host-specific variables from inventory (override group vars)
+			// 5. Merge host-specific variables from inventory (host > groups)
 			hostVars = CombineVariables(hostVars, Extension2Variables(v.value.Inventory.Spec.Hosts[hostname]))
-			// Merge configuration variables
+			// 6. Merge configuration variables (highest priority)
 			hostVars = CombineVariables(hostVars, Extension2Variables(v.value.Config.Spec))
+
 			// Set default variables for localhost
 			defaultHostVariable(hostname, hostVars)
 			globalHosts[hostname] = hostVars
