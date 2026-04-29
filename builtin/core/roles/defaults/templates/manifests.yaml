@@ -582,13 +582,11 @@ download:
   {{- range .download.images.manifests }}
       - {{ . }}
   {{- end }}
-{{- else }}
-{{- if .download.kubernetes.kube_version | empty | not }}
+{{- else if .download.kubernetes.kube_version | empty | not }}
       # kubernetes
       ## kubernetes/high-availability
       - {{ if .download.images.registry | empty | not }}{{ .download.images.registry }}/library/haproxy:2.9.6-alpine{{ else }}docker.io/library/haproxy:2.9.6-alpine{{ end }}
       - {{ if .download.images.registry | empty | not }}{{ .download.images.registry }}/plndr/kube-vip:v0.7.2{{ else }}docker.io/plndr/kube-vip:v0.7.2{{ end }}
-{{- end }}
 {{- range .download.kubernetes.kube_version }}
       ## kubernetes/{{ . }}
       - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/kubernetes/kube-apiserver:{{ . }}{{ else }}registry.k8s.io/kube-apiserver:{{ . }}{{ end }}
@@ -734,10 +732,10 @@ download:
     {{- end }}
   {{- end }}
 {{- end }}
+{{- end }}
 {{- if .image_manifests | empty | not }}
       # External images
     {{- range .image_manifests }}
       - {{ . }}
     {{- end }}
-{{- end }}
 {{- end }}
