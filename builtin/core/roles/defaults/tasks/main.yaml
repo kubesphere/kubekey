@@ -7,7 +7,7 @@
     mkdir -m 777 -p {{ .tmp_dir }}
 
 - name: Defaults | Load defaults based on Kubernetes version
-  tags: ["package", "image_registry"]
+  tags: ["always"]
   block:
     - name: Defaults | Load version-specific settings for Kubernetes
       when: .kubernetes.kube_version | empty | not

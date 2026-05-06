@@ -15,6 +15,6 @@
   roles:
     - role: download
     - role: image-registry/pull
-      tags: ["pull", "image_registry"]
+      tags: ["pull"]
     - role: image-registry/push
-      tags: ["push", "image_registry"]
+      tags: ["push"]

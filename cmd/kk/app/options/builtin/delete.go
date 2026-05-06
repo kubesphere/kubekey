@@ -130,10 +130,10 @@ func (o *DeleteClusterOptions) completeConfig() error {
 		if err := unstructured.SetNestedField(o.Config.Value(), true, "delete", "image_registry"); err != nil {
 			return errors.Wrapf(err, "failed to set %q to config", "delete_image_registry")
 		}
-		if o.DeleteData {
-			if err := unstructured.SetNestedField(o.Config.Value(), true, "delete", "data"); err != nil {
-				return errors.Wrapf(err, "failed to set %q to config", "delete_data")
-			}
+	}
+	if o.DeleteData {
+		if err := unstructured.SetNestedField(o.Config.Value(), true, "delete", "data"); err != nil {
+			return errors.Wrapf(err, "failed to set %q to config", "delete_data")
 		}
 	}
 
@@ -248,10 +248,10 @@ func (o *DeleteNodesOptions) completeConfig(nodes []string) error {
 		if err := unstructured.SetNestedField(o.Config.Value(), true, "delete", "image_registry"); err != nil {
 			return errors.Wrapf(err, "failed to set %q to config", "delete_image_registry")
 		}
-		if o.DeleteData {
-			if err := unstructured.SetNestedField(o.Config.Value(), true, "delete", "data"); err != nil {
-				return errors.Wrapf(err, "failed to set %q to config", "delete_data")
-			}
+	}
+	if o.DeleteData {
+		if err := unstructured.SetNestedField(o.Config.Value(), true, "delete", "data"); err != nil {
+			return errors.Wrapf(err, "failed to set %q to config", "delete_data")
 		}
 	}
 
@@ -422,8 +422,9 @@ func NewDeleteRegistryOptions() *DeleteRegistryOptions {
 type DeleteRegistryOptions struct {
 	options.CommonOptions
 	// kubernetes version which the config will install.
-	Kubernetes string
-	DeleteData bool
+	Kubernetes          string
+	DeleteAllComponents bool
+	DeleteData          bool
 }
 
 // Flags returns the flag sets for DeleteImageRegistryOptions
@@ -431,6 +432,7 @@ func (o *DeleteRegistryOptions) Flags() cliflag.NamedFlagSets {
 	fss := o.CommonOptions.Flags()
 	kfs := fss.FlagSet("config")
 	kfs.StringVar(&o.Kubernetes, "with-kubernetes", o.Kubernetes, fmt.Sprintf("Specify a supported version of kubernetes. default is %s", o.Kubernetes))
+	kfs.BoolVar(&o.DeleteAllComponents, "all", o.DeleteAllComponents, "Delete all cluster components, including cri, dns.")
 	kfs.BoolVar(&o.DeleteData, "with-data", o.DeleteData, "Also delete data directories (harbor data, registry data, etc.). Use with caution.")
 
 	return fss
@@ -465,13 +467,27 @@ func (o *DeleteRegistryOptions) Complete(cmd *cobra.Command, args []string) (*kk
 		return nil, err
 	}
 
+	// Complete config specific to delete image registry
+	return playbook, o.completeConfig()
+}
+
+// completeConfig updates the configuration with container manager settings
+func (o *DeleteRegistryOptions) completeConfig() error {
 	// Set delete data option if specified
+	if o.DeleteAllComponents {
+		if err := unstructured.SetNestedField(o.Config.Value(), true, "delete", "cri"); err != nil {
+			return errors.Wrapf(err, "failed to set %q to config", "delete_cri")
+		}
+
+		if err := unstructured.SetNestedField(o.Config.Value(), true, "delete", "dns"); err != nil {
+			return errors.Wrapf(err, "failed to set %q to config", "delete_dns")
+		}
+	}
 	if o.DeleteData {
 		if err := unstructured.SetNestedField(o.Config.Value(), true, "delete", "data"); err != nil {
-			return nil, errors.Wrapf(err, "failed to set %q to config", "delete_data")
+			return errors.Wrapf(err, "failed to set %q to config", "delete_data")
 		}
 	}
 
-	// Complete config specific to delete image registry
-	return playbook, nil
+	return nil
 }
