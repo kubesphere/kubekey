@@ -116,3 +116,22 @@ KubeKey 支持**在线安装**和**离线安装**两种方式。
 ### 方式二：离线安装
 
 离线安装适用于无外网环境，需提前准备制品包（artifact）和系统依赖。详细步骤请参考 [离线安装](offline.md)。
+
+## 启用 kubectl 自动补全
+
+KubeKey 默认不启用 kubectl 自动补全。参考以下指南开启：
+
+**前置条件**：确保已安装 bash-autocompletion 并正常工作。
+
+```shell script
+# 安装 bash-completion
+apt-get install bash-completion
+
+# 将补全脚本添加到 ~/.bashrc
+echo 'source <(kubectl completion bash)' >>~/.bashrc
+
+# 将补全脚本添加到 /etc/bash_completion.d 目录
+kubectl completion bash >/etc/bash_completion.d/kubectl
+```
+
+更多详情请参考[官方文档](https://kubernetes.io/docs/tasks/tools/install-kubectl/#enabling-shell-autocompletion)。
