@@ -10,7 +10,7 @@ Configure Prometheus connection information in the [inventory](../201-variable.m
 prometheus:
   connector:
     type: prometheus
-    host: http://prometheus-server:9090   # Prometheus address
+    url: http://prometheus-server:9090    # Prometheus address
     username: admin                       # Optional: Basic auth username
     password: password                    # Optional: Basic auth password
     token: my-token                       # Optional: Bearer Token

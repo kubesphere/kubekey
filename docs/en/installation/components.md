@@ -11,7 +11,7 @@ The built-in playbook implements a complete lifecycle management of Kubernetes, 
 > - Default versions are typically the latest stable versions within the Kubernetes version range
 > - Component versions can be customized through configuration parameters, but version compatibility must be ensured
 
-### [Private Image Registry](./image_registry.md)
+### [Private Image Registry](../image-registry/README.md)
 
 > **Note**: KubeKey supports deploying private image registries for storing and managing container images in offline or internal network environments. Choosing the appropriate image registry solution depends on your specific requirements (such as security, feature richness, deployment complexity, etc.).
 
@@ -122,8 +122,6 @@ Recommended etcd versions for each Kubernetes version:
 > **Installation**:
 > - Use `--set cni.type="calico"` to specify Calico as the container network plugin
 > - Use `--set cni.calico_version="v3.31.3"` to specify the Calico version to install (if not specified, the default version will be used)
-
-> **Key Features**: Network policies, BGP routing, IP pool management, multi-tenant support, eBPF data plane
 
 | kubernetes version | recommended calico version | kubekey default version | source |
 |---|---|---|---|
