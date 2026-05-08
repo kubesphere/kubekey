@@ -1,4 +1,4 @@
-# image_registry
+# Image Registry Installation
 
 The image_registry module allows users to install an image registry. It supports both `harbor` and `docker-registry` types.
 
@@ -95,6 +95,62 @@ Installation example:
 ```shell
 ./kk init registry -i inventory.yaml --set image_registry.ha_vip=xx.xx.xx.xx --set harbor_version=v2.10.2,docker_version=24.0.7,dockercompose_version=v2.20.3 --set keepalived_version=2.0.20,artifact.artifact_url.keepalived.amd64=keepalived-2.0.20-linux-amd64.tgz
 ```
+
+#### Add HA configuration in inventory.yaml
+
+```yaml
+apiVersion: kubekey.kubesphere.io/v1
+kind: Inventory
+metadata:
+  name: default
+spec:
+  hosts:
+    harbor1:
+      connector:
+        host: 172.16.66.6
+      internal_ipv4: 172.16.66.6
+    harbor2:
+      connector:
+        host: 172.16.66.7
+        private_key: /root/.ssh/id_rsa
+      internal_ipv4: 172.16.66.7
+  groups:
+    image_registry:
+      hosts:
+        - harbor1
+        - harbor2
+  vars:
+    zone: cn
+    image_registry:
+      ha_vip: 172.16.66.8
+      type: harbor
+      auth:
+        registry: dockerhub.kubekey.local
+```
+
+Inventory field descriptions:
+
+| Field | Type | Required | Description |
+|------|------|------|------|
+| `spec.hosts` | Object | Yes | Host list, key is the host name, value is the host configuration |
+| `spec.hosts.<name>.connector` | Object | Yes | Host connection configuration |
+| `spec.hosts.<name>.connector.host` | String | Yes | SSH target host IP or domain name |
+| `spec.hosts.<name>.connector.private_key` | String | No | SSH private key path, uses system default key if not specified |
+| `spec.hosts.<name>.internal_ipv4` | String | No | Internal IPv4 address of the host, used for /etc/hosts domain resolution |
+| `spec.groups` | Object | Yes | Node group configuration |
+| `spec.groups.image_registry` | Object | Yes | Image registry node group, specifies which hosts are used to deploy the image registry |
+| `spec.groups.image_registry.hosts` | Array | Yes | Image registry node name list, HA requires 2 or more nodes |
+| `spec.vars` | Object | No | Global variable configuration |
+| `spec.vars.zone` | String | No | Download zone for files and images. Set to `cn` if access to GitHub/GoogleAPIs is restricted |
+| `spec.vars.image_registry` | Object | No | Image registry-related configuration |
+| `spec.vars.image_registry.ha_vip` | String | Yes (HA scenario) | Virtual IP for load balancing, used as the unified access entry for the image registry |
+| `spec.vars.image_registry.type` | String | No | Image registry type, supports `harbor` or `docker-registry` |
+| `spec.vars.image_registry.auth` | Object | No | Image registry authentication configuration |
+| `spec.vars.image_registry.auth.registry` | String | No | Image registry access domain name, corresponding to the VIP domain name for external client access |
+
+> **Notes for HA configuration:**
+> - Multiple nodes must be set in the `image_registry` group for multi-instance deployment.
+> - `ha_vip` must be in the same subnet as the nodes and must not be already in use.
 
 Steps:
 1. Set multiple nodes in the `image_registry` group in the inventory.
