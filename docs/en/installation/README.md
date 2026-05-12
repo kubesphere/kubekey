@@ -117,6 +117,15 @@ When installing online, KubeKey automatically downloads required Kubernetes comp
 
 Offline installation is suitable for air-gapped environments, requiring an artifact package and system dependencies in advance. For detailed steps, see [Offline Installation](offline.md).
 
+## Cluster Node Management
+
+After the cluster is created, you can scale nodes according to business requirements.
+
+> **Note**: Web Installer does not currently support adding or deleting cluster nodes. Please use the command line instead.
+
+- **Add Nodes**: Add new control plane, worker, or etcd nodes to an existing Kubernetes cluster. For detailed steps, see [Add Cluster Nodes](add-nodes.md).
+- **Delete Nodes**: Safely remove specified nodes from a Kubernetes cluster. For detailed steps, see [Delete Cluster Nodes](delete-nodes.md).
+
 ## Enable kubectl autocompletion
 
 KubeKey doesn't enable kubectl autocompletion. Refer to the guide below and turn it on:

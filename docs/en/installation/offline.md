@@ -2,7 +2,7 @@
 
 This section describes how to deploy Kubernetes and KubeSphere using offline packages in an environment without Internet access.
 
-> **Prerequisite**: The installation process depends on the `tar` utility for compression and decompression. Please ensure it is pre-installed in your system environment.
+> **Prerequisite**: The installation process depends on the `tar` utility for compression and decompression. Please ensure it is pre-installed in your system environment. If `charts` is configured in `config.yaml`, make sure Helm is pre-installed on the packaging node.
 
 ---
 
@@ -200,10 +200,21 @@ uname -m
 Extract KubeKey to the offline package directory
 
 ```shell
+cd artifact/
 tar -zxvf tools/{arch}/kubekey-v4.x.x-linux-{arch}.tar.gz .
 ```
 
-#### 2. Start the Web Installer
+#### 2. Push Images to the Private Image Registry
+
+Execute the following command to push images from the offline package to the deployed private image registry:
+
+```shell
+kk artifact images --push -c config.yaml -a kubekey-artifact.tgz
+```
+
+> **Note**: Before executing, make sure the private image registry address is correctly configured in `config.yaml`.
+
+#### 3. Start the Web Installer
 
 ```shell
 kk web --port 8080 --schema-path web-installer/schema --ui-path web-installer/dist
@@ -236,7 +247,17 @@ Extract KubeKey to the offline package directory
 tar -zxvf tools/{arch}/kubekey-v4.x.x-linux-{arch}.tar.gz .
 ```
 
-#### 2. Create Node Configuration File
+#### 2. Push Images to the Private Image Registry
+
+Execute the following command to push images from the offline package to the deployed private image registry:
+
+```shell
+kk artifact images --push -c config.yaml -a kubekey-artifact.tgz
+```
+
+> **Note**: Before executing, make sure the private image registry address is correctly configured in `config.yaml`.
+
+#### 3. Create Node Configuration File
 
 Execute the following command to create the node configuration file `inventory.yaml`:
 

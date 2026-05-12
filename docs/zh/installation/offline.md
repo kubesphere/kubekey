@@ -2,7 +2,9 @@
 
 本节介绍如何在无法访问 Internet 的环境下，使用离线安装包部署 Kubernetes 和 KubeSphere。
 
-> **前置依赖**：安装过程依赖 `tar` 工具完成软件包的压缩和解压，请提前确认系统环境已预装该命令。
+> **前置依赖**：
+> 安装过程依赖 `tar` 工具完成软件包的压缩和解压，请提前确认系统环境已预装该命令。
+> 若 `config.yaml` 中配置了 `charts` 参数，请确保打包节点已提前安装 Helm。
 
 ---
 
@@ -201,10 +203,21 @@ uname -m
 解压KubeKey 到离线包目录
 
 ```shell
+cd artifact/
 tar -zxvf tools/{arch}/kubekey-v4.x.x-linux-{arch}.tar.gz .
 ```
 
-#### 2. 启动 Web Installer
+#### 2. 推送镜像到私有镜像仓库
+
+执行以下命令将离线包中的镜像推送到已部署的私有镜像仓库：
+
+```shell
+kk artifact images --push -c config.yaml -a kubekey-artifact.tgz
+```
+
+> **注意**：执行前请确保 `config.yaml` 中已正确配置私有镜像仓库地址。
+
+#### 3. 启动 Web Installer
 
 ```shell
 kk web --port 8080 --schema-path web-installer/schema --ui-path web-installer/dist
@@ -236,7 +249,17 @@ uname -m
 tar -zxvf tools/{arch}/kubekey-v4.x.x-linux-{arch}.tar.gz .
 ```
 
-#### 2. 创建节点配置文件
+#### 2. 推送镜像到私有镜像仓库
+
+执行以下命令将离线包中的镜像推送到已部署的私有镜像仓库：
+
+```shell
+kk artifact images --push -c config.yaml -a kubekey-artifact.tgz
+```
+
+> **注意**：执行前请确保 `config.yaml` 中已正确配置私有镜像仓库地址。
+
+#### 3. 创建节点配置文件
 
 执行以下命令创建节点配置文件 `inventory.yaml`：
 
