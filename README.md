@@ -57,6 +57,8 @@ kk web --schema-path schema --ui-path dist
   - [Component Versions](docs/en/installation/components.md)
   - [Online Installation](docs/en/installation/online.md)
   - [Offline Installation](docs/en/installation/offline.md)
+  - [Add Cluster Nodes](docs/en/installation/add-nodes.md)
+  - [Delete Cluster Nodes](docs/en/installation/delete-nodes.md)
 - **[Configuration Reference](docs/en/reference/config.md)**
 - **Playbooks**
   - [Create Kubernetes Cluster](docs/en/reference/playbooks/create_cluster.md)

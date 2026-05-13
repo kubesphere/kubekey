@@ -55,6 +55,8 @@ kk web --schema-path schema --ui-path dist
   - [安装组件说明](docs/zh/installation/components.md)
   - [在线安装](docs/zh/installation/online.md)
   - [离线安装](docs/zh/installation/offline.md)
+  - [添加集群节点](docs/zh/installation/add-nodes.md)
+  - [删除集群节点](docs/zh/installation/delete-nodes.md)
 - **[配置参考](docs/zh/reference/config.md)**
 - **任务模板**
   - [创建 Kubernetes 集群](docs/zh/reference/playbooks/create_cluster.md)
