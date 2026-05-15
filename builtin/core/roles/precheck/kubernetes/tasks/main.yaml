@@ -36,10 +36,17 @@
             fail_msg: >-
               The kubelet service must be running and active when it is loaded.
         - name: Kubernetes | Ensure installed Kubernetes version matches expected version
+          when: .upgrade | default dict | empty
           assert:
             that: .kubernetes_install_version.stdout | default "" | trimPrefix "Kubernetes " | eq .kubernetes.kube_version
             fail_msg: >-
               The installed Kubernetes version ({{ .kubernetes_install_version.stdout | default "" | trimPrefix "Kubernetes " }}) does not match the expected version ({{ .kubernetes.kube_version }}).
+        - name: Kubernetes | Validate Kubernetes upgrade path
+          when: .upgrade | default dict | empty | not
+          assert:
+            that: .kubernetes_install_version.stdout | default "" | trimPrefix "Kubernetes " | semverCompare (printf "<%s" .kubernetes.kube_version)
+            fail_msg: >-
+              Cannot upgrade: the installed Kubernetes version ({{ .kubernetes_install_version.stdout | default "" | trimPrefix "Kubernetes " }}) is not lower than the target version ({{ .kubernetes.kube_version }}).
 
 # - name: ImageRegistry | Verify successful authentication to image registry
 #   when:
