@@ -1,0 +1,61 @@
+---
+- name: UpgradeKubernetes | Backup Kubernetes configurations and binaries before upgrade
+  command: |
+    BACKUP_DIR="/etc/kubekey/backup/kubernetes/$(date +%Y%m%d-%H%M%S)"
+    mkdir -p "${BACKUP_DIR}"
+    cp /etc/kubernetes/kubeadm-config.yaml "${BACKUP_DIR}/" 2>/dev/null || true
+    cp /usr/local/bin/kubeadm "${BACKUP_DIR}/" 2>/dev/null || true
+    cp /usr/local/bin/kubelet "${BACKUP_DIR}/" 2>/dev/null || true
+    cp /usr/local/bin/kubectl "${BACKUP_DIR}/" 2>/dev/null || true
+    echo "✅ Kubernetes backup saved to ${BACKUP_DIR}"
+
+- name: UpgradeKubernetes | Fail if kubelet service is not active
+  assert:
+    that: .kubernetes_install_ActiveState.stdout | eq "active"
+    fail_msg: >-
+      The kubelet service must be running and active before upgrade.
+
+- name: UpgradeKubernetes | Ensure kubeadm configuration exists locally on control plane
+  when: .groups.kube_control_plane | default list | has .inventory_hostname
+  command: |
+    if [ ! -f /etc/kubernetes/kubeadm-config.yaml ] || ! grep -q 'ClusterConfiguration' /etc/kubernetes/kubeadm-config.yaml 2>/dev/null; then
+      mkdir -p /etc/kubernetes
+      kubectl get cm kubeadm-config -n kube-system -o=jsonpath='{.data.ClusterConfiguration}' > /etc/kubernetes/kubeadm-config.yaml
+    fi
+
+- name: UpgradeKubernetes | Upgrade Kubernetes cluster on first control plane node
+  when:
+    - .groups.kube_control_plane | default list | has .inventory_hostname
+    - .init_kubernetes_node | eq .inventory_hostname
+  command: |
+    # In Kubernetes, the ImagePullCheck for the pause image uses a hardcoded tag.
+    # Adding --ignore-preflight-errors=ImagePull allows customization of the pause image reference.
+    /usr/local/bin/kubeadm upgrade apply {{ .kubernetes.kube_version }} --config=/etc/kubernetes/kubeadm-config.yaml --yes --ignore-preflight-errors=ImagePull
+
+- name: UpgradeKubernetes | Upgrade node configuration on other control plane nodes
+  when:
+    - .groups.kube_control_plane | default list | has .inventory_hostname
+    - .init_kubernetes_node | eq .inventory_hostname | not
+  command: |
+    /usr/local/bin/kubeadm upgrade node --ignore-preflight-errors=ImagePull
+
+- name: UpgradeKubernetes | Upgrade node configuration on worker nodes
+  when: .groups.kube_worker | default list | has .inventory_hostname
+  command: |
+    /usr/local/bin/kubeadm upgrade node --ignore-preflight-errors=ImagePull
+
+- name: UpgradeKubernetes | Restart kubelet service after upgrade
+  command: |
+    systemctl daemon-reload && systemctl restart kubelet.service
+
+- name: UpgradeKubernetes | Wait for kubelet to be ready after restart
+  command: |
+    for ((i=1; i<=30; i++)); do
+      if systemctl is-active kubelet.service >/dev/null 2>&1; then
+        echo "✅ kubelet is active"
+        exit 0
+      fi
+      sleep 5
+    done
+    echo "❌ kubelet is not active within 150 seconds"
+    exit 1

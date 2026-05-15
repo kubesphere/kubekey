@@ -1,15 +1,63 @@
 ---
+# The following checks validate cluster-wide CRI configuration and should only
+# run once on the localhost.
 - name: CRI | Fail if container manager is not docker or containerd
+  when: .inventory_hostname | eq "localhost"
   assert:
     that: .cluster_require.require_container_manager | has .cri.container_manager
     fail_msg: >-
       The specified container manager "{{ .cri.container_manager }}" is not supported. Please use one of the following: {{ .cluster_require.require_container_manager | toJson }}.
 
-- name: CRI | Validate minimum required containerd version
+- name: CRI | Validate target containerd version when upgrading cri
   when:
+    - .inventory_hostname | eq "localhost"
     - .cri.containerd_version | empty | not
     - .cri.container_manager | eq "containerd"
+    - .upgrade.cri
   assert:
     that: .cri.containerd_version | semverCompare (printf ">=%s" .cluster_require.containerd_min_version_required)
     fail_msg: >-
-      The detected containerd version ({{ .containerd_version }}) is below the minimum required version: {{ .cluster_require.containerd_min_version_required }}.
+      The specified containerd version ({{ .cri.containerd_version }}) is below the minimum required version: {{ .cluster_require.containerd_min_version_required }}.
+
+# The following checks inspect the actual container runtime state on each
+# Kubernetes node.
+- name: CRI | Validate installed containerd version when not upgrading cri
+  when:
+    - .groups.k8s_cluster | default list | has .inventory_hostname
+    - .cri.container_manager | eq "containerd"
+    - .upgrade.cri | not
+    - .upgrade | default dict | empty | not
+    - .containerd_current_version.stdout | empty | not
+  assert:
+    that: .containerd_current_version.stdout | semverCompare (printf ">=%s" .cluster_require.containerd_min_version_required)
+    fail_msg: >-
+      The installed containerd version ({{ .containerd_current_version.stdout }}) is below the minimum required version ({{ .cluster_require.containerd_min_version_required }}) for Kubernetes {{ .kubernetes.kube_version }}. Set --all or --set upgrade.cri=true to upgrade containerd.
+
+- name: CRI | Check Docker live-restore status before upgrading CRI
+  when:
+    - .groups.k8s_cluster | default list | has .inventory_hostname
+    - .cri.container_manager | eq "docker"
+    - .upgrade.cri
+    - .upgrade | default dict | empty | not
+  block:
+    - name: CRI | Detect live-restore in Docker daemon.json
+      ignore_errors: true
+      command: |
+        if [ -f /etc/docker/daemon.json ] && grep -qE '"live-restore"[[:space:]]*:[[:space:]]*true' /etc/docker/daemon.json; then
+          echo "enabled"
+        else
+          echo "disabled"
+        fi
+      register: docker_live_restore_status
+
+    - name: CRI | Warn if Docker live-restore is disabled
+      when:
+        - .docker_live_restore_status.error | empty
+        - .docker_live_restore_status.stdout | eq "disabled"
+      debug:
+        msg: >-
+          WARNING: Docker live-restore is not enabled on this node.
+          When upgrade.cri=true, the Docker daemon will be restarted and running
+          containers may be interrupted. To reduce the risk, enable
+          "live-restore": true in /etc/docker/daemon.json, or ensure workload
+          replicas are distributed across worker nodes.

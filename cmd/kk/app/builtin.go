@@ -29,4 +29,5 @@ func init() {
 	registerInternalCommand(builtin.NewDeleteCommand())
 	registerInternalCommand(builtin.NewInitCommand())
 	registerInternalCommand(builtin.NewPreCheckCommand())
+	registerInternalCommand(builtin.NewUpgradeCommand())
 }

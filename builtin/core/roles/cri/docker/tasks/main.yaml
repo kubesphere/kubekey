@@ -1,3 +1,22 @@
+# Scenario 2: Create cluster or upgrading CRI together.
+# Perform full Docker installation/upgrade (backup, install, certs).
+# cri-dockerd is handled inside the block for K8s >= v1.24.0.
+- name: Docker | Full Docker installation or upgrade
+  when:
+    - or (.kubernetes_install_LoadState.stdout | default "" | ne "loaded") (.upgrade.cri)
+  block:
+    - name: Docker | Backup Docker configuration and binaries before upgrade
+      when:
+        - .kubernetes_install_LoadState.stdout | default "" | eq "loaded"
+      command: |
+        BACKUP_DIR="/etc/kubekey/backup/docker/$(date +%Y%m%d-%H%M%S)"
+        mkdir -p "${BACKUP_DIR}"
+        cp /etc/docker/daemon.json "${BACKUP_DIR}/" 2>/dev/null || true
+        cp /usr/local/bin/docker "${BACKUP_DIR}/" 2>/dev/null || true
+        cp /usr/local/bin/dockerd "${BACKUP_DIR}/" 2>/dev/null || true
+        cp /usr/local/bin/ctr "${BACKUP_DIR}/" 2>/dev/null || true
+        echo "✅ Docker backup saved to ${BACKUP_DIR}"
+
 ---
 # sync docker binary
 - name: Docker | Sync Docker binaries

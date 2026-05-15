@@ -5,7 +5,7 @@
   register: crictl_install_version
 
 - name: Crictl | Install and configure crictl if not present or version mismatch
-  when: or (.crictl_install_version.error | empty | not) (.crictl_install_version.stdout | ne (printf "crictl version %s" .cri.crictl_version))
+  when: or (.upgrade.cri) (.crictl_install_version.error | empty | not) (.crictl_install_version.stdout | ne (printf "crictl version %s" .cri.crictl_version))
   block:
     - name: Crictl | Copy crictl binary archive to the remote node
       copy:
