@@ -209,6 +209,30 @@ tar -zxvf tools/{arch}/kubekey-v4.x.x-linux-{arch}.tar.gz .
 
 #### 2. 推送镜像到私有镜像仓库
 
+在config.yaml中添加私有镜像仓库信息。示例
+```yaml
+apiVersion: kubekey.kubesphere.io/v1
+kind: Config
+spec:
+  image_registry:
+    auth:
+      registry: dockerhub.kubekey.local
+      username: admin
+      password: Harbor12345
+      skip_tls_verify: false
+      plain_http: false
+```
+
+各字段说明如下：
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `spec.image_registry.auth.registry` | String | 是 | 私有镜像仓库地址 |
+| `spec.image_registry.auth.username` | String | 是 | 私有镜像仓库登录用户名 |
+| `spec.image_registry.auth.password` | String | 是 | 私有镜像仓库登录密码 |
+| `spec.image_registry.auth.skip_tls_verify` | Boolean | 否 | 是否跳过 TLS 证书验证，默认为 `false` |
+| `spec.image_registry.auth.plain_http` | Boolean | 否 | 是否使用 HTTP 明文传输，默认为 `false` |
+
 执行以下命令将离线包中的镜像推送到已部署的私有镜像仓库：
 
 ```shell

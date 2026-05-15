@@ -214,6 +214,29 @@ kk artifact images --push -c config.yaml -a kubekey-artifact.tgz
 
 > **Note**: Before executing, make sure the private image registry address is correctly configured in `config.yaml`.
 
+Example `config.yaml`:
+
+```yaml
+apiVersion: kubekey.kubesphere.io/v1
+kind: Config
+spec:
+  image_registry:
+    auth:
+      registry: dockerhub.kubekey.local
+      username: admin
+      password: Harbor12345
+      skip_tls_verify: false
+      plain_http: false
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `spec.image_registry.auth.registry` | String | Yes | Private image registry address |
+| `spec.image_registry.auth.username` | String | Yes | Username for the private image registry |
+| `spec.image_registry.auth.password` | String | Yes | Password for the private image registry |
+| `spec.image_registry.auth.skip_tls_verify` | Boolean | No | Whether to skip TLS certificate verification. Default is `false` |
+| `spec.image_registry.auth.plain_http` | Boolean | No | Whether to use plain HTTP. Default is `false` |
+
 #### 3. Start the Web Installer
 
 ```shell
