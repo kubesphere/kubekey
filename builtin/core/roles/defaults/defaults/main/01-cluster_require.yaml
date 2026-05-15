@@ -90,3 +90,20 @@ cluster_require:
     v1.34.0: v3.5.21-0
     v1.34.1: v3.5.21-0
     v1.34: v3.5.24-0
+
+  # Kubernetes upgrade path: the highest recommended patch version for each minor release.
+  # When a user specifies a minor version (e.g., v1.23) for upgrade, the corresponding
+  # patch version below will be used as the target version.
+  kube_upgrade_path:
+    v1.23: v1.23.17
+    v1.24: v1.24.17
+    v1.25: v1.25.16
+    v1.26: v1.26.15
+    v1.27: v1.27.16
+    v1.28: v1.28.15
+    v1.29: v1.29.15
+    v1.30: v1.30.14
+    v1.31: v1.31.14
+    v1.32: v1.32.13
+    v1.33: v1.33.7
+    v1.34: v1.34.3

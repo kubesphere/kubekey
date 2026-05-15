@@ -31,16 +31,6 @@
             {{- end -}}
             {{ $needUnInstalled | toJson }}            
 
-- name: Prepare | Validate installed etcd version
-  when: .etcd_install_LoadState.stdout | eq "loaded"
-  block:
-    - name: Prepare | Ensure target etcd version is not lower than installed version
-      when: .etcd_install_LoadState.stdout | eq "loaded"
-      assert:
-        that: .etcd.etcd_version | semverCompare (printf ">=v%s" (index .etcd_install_version "stdout" "etcd Version"))
-        fail_msg: >-
-          Installed etcd version: {{ index .etcd_install_version "stdout" "etcd Version" }} is lower than target etcd version: {{ .etcd.etcd_version }}
-
 - name: Prepare | Distribute etcd package for install or upgrade
   when: >-
     or 

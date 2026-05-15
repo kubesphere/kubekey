@@ -1,0 +1,91 @@
+---
+- hosts:
+    - all
+  gather_facts: true
+  roles:
+    - native/root
+
+- import_playbook: hook/pre_install.yaml
+
+# Load default variables and perform prechecks on all hosts
+- hosts:
+    - all
+  gather_facts: true
+  roles:
+    - defaults
+    - precheck
+
+# Download all required software and generate certificates on the localhost
+- hosts:
+    - localhost
+  roles:
+    - certs/init
+    - download
+
+# Initialize all nodes and install necessary software packages
+- hosts:
+    - etcd
+    - k8s_cluster
+    - image_registry
+    - nfs
+  roles:
+    - native
+
+# Upgrade external etcd cluster one by one (only when upgrade.etcd is set)
+- hosts:
+    - etcd
+  serial: 1
+  gather_facts: true
+  roles:
+    - role: etcd/backup
+      when:
+        - .etcd.deployment_type | eq "external"
+        - .upgrade.etcd
+        - .etcd.etcd_version | semverCompare (printf ">v%s" (index .etcd_install_version "stdout" "etcd Version"))
+    - role: etcd/prepare
+      when:
+        - .etcd.deployment_type | eq "external"
+        - .upgrade.etcd
+    - role: etcd/upgrade
+      when:
+        - .etcd.deployment_type | eq "external"
+        - .upgrade.etcd
+
+# Upgrade Kubernetes binaries and container runtime on all cluster nodes
+# cri sub-roles control their own behavior via upgrade.cri internally
+- hosts:
+    - k8s_cluster
+  gather_facts: true
+  roles:
+    - cri
+    - kubernetes/pre-kubernetes
+
+# Upgrade control plane nodes one by one using kubeadm upgrade
+- hosts:
+    - kube_control_plane
+  serial: 1
+  gather_facts: true
+  roles:
+    - role: kubernetes/upgrade-kubernetes
+      when: .kubernetes_install_ActiveState.stdout | eq "active"
+
+# Upgrade worker nodes using kubeadm upgrade node
+- hosts:
+    - kube_worker
+  gather_facts: true
+  roles:
+    - role: kubernetes/upgrade-kubernetes
+      when: .kubernetes_install_ActiveState.stdout | eq "active"
+
+# Upgrade network and storage components if their versions changed
+# Only when upgrade.cni / upgrade.storage_class is set
+- hosts:
+    - kube_control_plane|random
+  gather_facts: true
+  roles:
+    - role: cni
+      when: .upgrade.cni
+    - role: storageclass
+      when: .upgrade.storage_class
+
+- import_playbook: hook/post_install.yaml
