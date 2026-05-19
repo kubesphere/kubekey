@@ -39,14 +39,14 @@ curl -sfL https://get-kk.kubesphere.io | sh -
 ## 方式一：命令行
 
 ```shell
-kk create cluster
+./kk create cluster
 ```
 
 ## 方式二：Web 页面
 **UI 页面仅在 v4.0.0 及以上版本提供支持**
 
 ```shell
-kk web --schema-path schema --ui-path dist
+./kk web --schema-path web-installer/schema --ui-path web-installer/dist
 ```
 
 # 文档导航

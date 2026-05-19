@@ -40,7 +40,7 @@ curl -sfL https://get-kk.kubesphere.io | sh -
 ## Method 1: Command Line
 
 ```shell
-kk create cluster
+./kk create cluster
 ```
 
 ## Method 2: Web UI
@@ -48,7 +48,7 @@ kk create cluster
 **UI only supported after v4.0.0**
 
 ```shell
-kk web --schema-path schema --ui-path dist
+./kk web --schema-path web-installer/schema --ui-path web-installer/dist
 ```
 
 # Documentation Navigation
