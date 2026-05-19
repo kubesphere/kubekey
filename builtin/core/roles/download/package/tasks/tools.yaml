@@ -1,5 +1,5 @@
 - name: Package | Copy manifests to artifact directory
-  when: printf "%s/manifests.yaml" .work_dir | fileExists
+  when: printf "%s/manifests.yaml" .binary_dir | fileExists
   block:
     - name: Package | Copy manifests to artifact/kubekey directory
       copy:
