@@ -7,58 +7,16 @@
     cat >> {{ .item }} <<EOF
     # kubekey hosts BEGIN
     # Kubernetes cluster nodes
-    {{- range .groups.k8s_cluster | default list }}
-      {{- $hostname := index $.hostvars . "hostname" -}}
-      {{- $clusterName := $.kubernetes.cluster_name | default "kubekey" -}}
-      {{- $dnsDomain := $.kubernetes.networking.dns_domain | default "cluster.local" -}}
-      {{- if (index $.hostvars . "internal_ipv4") | empty | not }}
-    {{ index $.hostvars . "internal_ipv4" }} {{ $hostname }} {{ printf "%s.%s" $hostname $clusterName }} {{ printf "%s.%s.%s" $hostname $clusterName $dnsDomain }}
-      {{- end }}
-      {{- if (index $.hostvars . "internal_ipv6") | empty | not }}
-    {{ index $.hostvars . "internal_ipv6" }} {{ $hostname }} {{ printf "%s.%s" $hostname $clusterName }} {{ printf "%s.%s.%s" $hostname $clusterName $dnsDomain }}
-      {{- end }}
-    {{- end }}
+    {{- $clusterName := $.kubernetes.cluster_name | default "kubernetes" -}}
+    {{- $dnsDomain := $.kubernetes.networking.dns_domain | default "cluster.local" -}}
+    {{- $hostDnsDomains := printf "%s.%s" $clusterName $dnsDomain|list $clusterName}}
+    {{- .groups.k8s_cluster    |dict "host_dns_domains" $hostDnsDomains "hostvars" .hostvars "hostnames"|include "host.dns.list" }}
     # etcd cluster nodes
-    {{- range .groups.etcd | default list }}
-      {{- if (index $.hostvars . "internal_ipv4") | empty | not }}
-    {{ index $.hostvars . "internal_ipv4" }} {{ index $.hostvars . "hostname" }}
-      {{- end }}
-      {{- if (index $.hostvars . "internal_ipv6") | empty | not }}
-    {{ index $.hostvars . "internal_ipv6" }} {{ index $.hostvars . "hostname" }}
-      {{- end }}
-    {{- end }}
+    {{- .groups.etcd           |dict "hostvars" .hostvars "hostnames"|include "host.dns.list" }}
     # Image registry nodes
-    {{- range .groups.image_registry | default list }}
-      {{- if (index $.hostvars . "internal_ipv4") | empty | not }}
-    {{ index $.hostvars . "internal_ipv4" }} {{ index $.hostvars . "hostname" }}
-      {{- end }}
-      {{- if (index $.hostvars . "internal_ipv6") | empty | not }}
-    {{ index $.hostvars . "internal_ipv6" }} {{ index $.hostvars . "hostname" }}
-      {{- end }}
-    {{- end }}
-    # kubekey image_registry control_plane_endpoint BEGIN
-    {{- if and (.image_registry.auth.registry | empty | not) (.image_registry.ha_vip | empty | not) }}
-    {{ .image_registry.ha_vip }} {{ .image_registry.auth.registry | splitList "/" | first }}
-    {{- else }}
-      {{- if .groups.image_registry | empty | not }}
-        {{- if (index .hostvars (.groups.image_registry | first) "internal_ipv4") | empty | not }}
-    {{ index .hostvars (.groups.image_registry | first) "internal_ipv4" }} {{ .image_registry.auth.registry | splitList "/" | first }}
-        {{- end }}
-        {{- if (index .hostvars (.groups.image_registry | first) "internal_ipv6") | empty | not }}
-    {{ index .hostvars (.groups.image_registry | first) "internal_ipv6" }} {{ .image_registry.auth.registry | splitList "/" | first }}
-        {{- end }}
-      {{- end }}
-    {{- end }}
-    # kubekey image_registry control_plane_endpoint END
+    {{- .groups.image_registry |dict "hostvars" .hostvars "hostnames"|include "host.dns.list" }}
     # NFS server nodes
-    {{- range .groups.nfs | default list }}
-      {{- if (index $.hostvars . "internal_ipv4") | empty | not }}
-    {{ index $.hostvars . "internal_ipv4" }} {{ index $.hostvars . "hostname" }}
-      {{- end }}
-      {{- if (index $.hostvars . "internal_ipv6") | empty | not }}
-    {{ index $.hostvars . "internal_ipv6" }} {{ index $.hostvars . "hostname" }}
-      {{- end }}
-    {{- end }}
+    {{- .groups.nfs            |dict "hostvars" .hostvars "hostnames"|include "host.dns.list" }}
     # kubekey hosts END
     EOF
 
@@ -70,21 +28,25 @@
     # Write the latest Kubekey image registry control plane endpoint DNS configuration
     cat >> {{ .item }} <<EOF
     # kubekey image_registry control_plane_endpoint BEGIN
+    {{- $registryDnsDomain := .image_registry.auth.registry | splitList "/" | first -}}
     {{- if and (.image_registry.auth.registry | empty | not) (.image_registry.ha_vip | empty | not) }}
-    {{ .image_registry.ha_vip }} {{ .image_registry.auth.registry | splitList "/" | first }}
+    {{ .image_registry.ha_vip }} {{ $registryDnsDomain }}
     {{- else }}
       {{- if .groups.image_registry | empty | not }}
-        {{- if (index .hostvars (.groups.image_registry | first) "internal_ipv4") | empty | not }}
-    {{ index .hostvars (.groups.image_registry | first) "internal_ipv4" }} {{ .image_registry.auth.registry | splitList "/" | first }}
+        {{- $hostname := .groups.image_registry | first }}
+        {{- $ipv4 := index .hostvars $hostname "internal_ipv4" }}
+        {{- $ipv6 := index .hostvars $hostname "internal_ipv6" }}
+        {{- if $ipv4 | empty | not }}
+    {{ $ipv4 }} {{ $registryDnsDomain }}
         {{- end }}
-        {{- if (index .hostvars (.groups.image_registry | first) "internal_ipv6") | empty | not }}
-    {{ index .hostvars (.groups.image_registry | first) "internal_ipv6" }} {{ .image_registry.auth.registry | splitList "/" | first }}
+        {{- if $ipv6 | empty | not }}
+    {{ $ipv6 }} {{ $registryDnsDomain }}
         {{- end }}
       {{- end }}
     {{- end }}
     # kubekey image_registry control_plane_endpoint END
     EOF
-  
+
 
 # High Availability: Local DNS configuration for each .kubernetes.control_plane_endpoint.type
 #
