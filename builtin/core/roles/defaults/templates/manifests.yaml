@@ -565,6 +565,12 @@ download:
       image:  
         repository: {{ .download.cni.multus.image.repository | default "k8snetworkplumbingwg/multus-cni" | toJson }}
         tag: {{ .download.cni.multus.image.tag | default (list "v4.2.4") | toJson }}
+    # ========== cni: multi-cni - spiderpool ==========
+    {{- if .download.cni.multi_cni | has "spiderpool" }}
+    spiderpool_version: {{ .download.cni.spiderpool_version | default (list "v1.1.1") | toJson }}
+    {{- else }}
+    spiderpool_version: []
+    {{- end }}
   storage_class:
     # Local storage class settings.
     local:
