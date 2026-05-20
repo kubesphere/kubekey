@@ -169,19 +169,43 @@ func pow(base, pow float64) (float64, error) {
 // subtractList returns a new list containing elements from list a that are not in list b.
 // It first creates a set from list b for O(1) lookups, then builds a result list by
 // including only elements from a that don't exist in the set.
-func subtractList(a, b []any) ([]any, error) {
-	set := make(map[any]struct{}, len(b))
-	for _, v := range b {
+func subtractList(a, b any) ([]any, error) {
+	aSlice, err := toAnySlice(a)
+	if err != nil {
+		return nil, err
+	}
+	bSlice, err := toAnySlice(b)
+	if err != nil {
+		return nil, err
+	}
+
+	set := make(map[any]struct{}, len(bSlice))
+	for _, v := range bSlice {
 		set[v] = struct{}{}
 	}
 
-	result := make([]any, 0, len(a))
-	for _, v := range a {
+	result := make([]any, 0, len(aSlice))
+	for _, v := range aSlice {
 		if _, exists := set[v]; !exists {
 			result = append(result, v)
 		}
 	}
 
+	return result, nil
+}
+
+func toAnySlice(v any) ([]any, error) {
+	if v == nil {
+		return nil, nil
+	}
+	rv := reflect.ValueOf(v)
+	if rv.Kind() != reflect.Slice && rv.Kind() != reflect.Array {
+		return nil, fmt.Errorf("expected slice or array, got %T", v)
+	}
+	result := make([]any, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		result[i] = rv.Index(i).Interface()
+	}
 	return result, nil
 }
 

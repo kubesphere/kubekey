@@ -76,7 +76,7 @@ func (o ExecOptions) GetConnector(ctx context.Context) (connector.Connector, err
 	if o.Task.Spec.DelegateTo != "" {
 		host, err = tmpl.ParseFunc(ha, o.Task.Spec.DelegateTo, tmpl.StringFunc)
 		if err != nil {
-			return nil, errors.Errorf("failed to delegate %q to %q", o.Host, o.Task.Spec.DelegateTo)
+			return nil, errors.Errorf("failed to delegate %q to %q. error: %v", o.Host, o.Task.Spec.DelegateTo, err)
 		}
 	}
 	if val := ctx.Value(ConnKey); val != nil {
