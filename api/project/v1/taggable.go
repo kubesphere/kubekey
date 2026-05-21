@@ -52,6 +52,8 @@ func (t Taggable) IsEnabled(onlyTags []string, skipTags []string) bool {
 		default:
 			shouldRun = false
 		}
+	} else if slices.Contains(t.Tags, NeverTag) {
+		shouldRun = false
 	}
 
 	if shouldRun && len(skipTags) > 0 {
