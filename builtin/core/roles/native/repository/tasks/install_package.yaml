@@ -43,7 +43,7 @@
         esac
       fi
     done
-    if [ -f "{{ .tmp_dir }}/iso" ]; then
+    if [ -f "{{ .tmp_dir }}/repository.iso" ]; then
       # Backup current APT sources
       mv /etc/apt/sources.list /etc/apt/sources.list.kubekey-$now.bak
       mv /etc/apt/sources.list.d /etc/apt/sources.list.d.kubekey-$now.bak
@@ -59,8 +59,8 @@
       fi
       # Restore original APT sources
       rm -rf /etc/apt/sources.list.d
-      mv /etc/apt/sources.list.kubekey.bak-$now /etc/apt/sources.list
-      mv /etc/apt/sources.list.d.kubekey.bak-$now /etc/apt/sources.list.d
+      mv /etc/apt/sources.list.kubekey-$now.bak /etc/apt/sources.list
+      mv /etc/apt/sources.list.d.kubekey-$now.bak /etc/apt/sources.list.d
     else
       # No local ISO found, using default repositories
       apt-get update
@@ -104,7 +104,7 @@
         esac      
       fi
     done
-    if [ -f "{{ .tmp_dir }}/iso" ]; then
+    if [ -f "{{ .tmp_dir }}/repository.iso" ]; then
       # Backup current YUM repositories
       mv /etc/yum.repos.d "$BACKUP_FILE"
       mkdir -p /etc/yum.repos.d
