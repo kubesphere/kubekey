@@ -52,11 +52,10 @@
       {{- end }}
       {{- $platform | toJson }}
     policy: "{{ .download.images.policy }}"
-    auths:
-      - registry: "{{ .image_registry.auth.registry }}"
-        username: "{{ .image_registry.auth.username }}"
-        password: "{{ .image_registry.auth.password }}"
-        skip_tls_verify: true
+    auths: >
+      {{- $auths := list }}
+      {{- $auths = append $auths .image_registry.auth }}
+      {{- $auths | toJson }}
     manifests: "{{ .download.images.manifests | toJson }}"
     src: "local://{{ .binary_dir }}/images/"
     dest: >-
