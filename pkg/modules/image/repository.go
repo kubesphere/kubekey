@@ -412,13 +412,50 @@ func (i imageTransport) get(request *http.Request) *http.Response {
 		}
 	} else if strings.HasSuffix(filepath.Dir(request.URL.Path), "manifests") { // manifests
 		filename := filepath.Join(i.baseDir, request.Host, strings.TrimPrefix(request.URL.Path, apiPrefix))
-		if _, err := os.Stat(filename); err != nil {
-			klog.V(4).ErrorS(err, "failed to stat blobs", "filename", filename)
 
+		pathBase := filepath.Base(filename)
+		digestParts := strings.Split(pathBase, "@")
+		var requestDigest string
+
+		if len(digestParts) > 1 {
+			// Format: tag@digest
+			requestDigest = digestParts[1]
+		} else {
+			requestDigest = pathBase
+		}
+
+		var actualDigest string
+		var actualFilename string
+
+		if strings.HasPrefix(requestDigest, "sha256:") {
+			// Direct digest request
+			actualDigest = requestDigest
+		} else {
+			// Tag request: Read layout file
+			layoutFilePath := filepath.Join(filepath.Dir(filename), "layout")
+			tagDigest := make(map[string]string)
+			layoutData, err := os.ReadFile(layoutFilePath)
+			if err != nil {
+				if !os.IsNotExist(err) {
+					klog.V(4).ErrorS(err, "failed to read layout file", "file", layoutFilePath)
+					return responseServerError
+				}
+			} else {
+				if err := json.Unmarshal(layoutData, &tagDigest); err != nil {
+					klog.V(4).ErrorS(err, "failed to unmarshal layout file", "file", layoutFilePath)
+					return responseServerError
+				}
+			}
+			actualDigest = tagDigest[requestDigest]
+		}
+
+		actualFilename = filepath.Join(filepath.Dir(filename), actualDigest)
+		if _, err := os.Stat(actualFilename); err != nil {
+			klog.V(4).ErrorS(err, "failed to stat manifest", "filename", actualFilename)
 			return responseNotFound
 		}
 
-		file, err := os.ReadFile(filename)
+		file, err := os.ReadFile(actualFilename)
 		if err != nil {
 			klog.V(4).ErrorS(err, "failed to read file", "filename", filename)
 

@@ -16,3 +16,13 @@
    - image_registry
   roles:
     - role: uninstall/image-registry
+  post_tasks:
+    - name: DeleteImageRegistry | Clean up local DNS configuration files
+      ignore_errors: true
+      loop: "{{ .native.localDNS | toJson }}"
+      command: |
+        sed -i '/# kubekey hosts BEGIN/,/# kubekey hosts END/d' {{ .item }}
+        sed -i '/# kubekey kubernetes control_plane_endpoint BEGIN/,/# kubekey kubernetes control_plane_endpoint END/d' {{ .item }}
+        sed -i '/# kubekey image_registry control_plane_endpoint BEGIN/,/# kubekey image_registry control_plane_endpoint END/d' {{ .item }}
+      when: 
+        - .delete.dns

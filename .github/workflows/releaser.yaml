@@ -74,8 +74,8 @@ jobs:
           mv qsctl_v2.4.3_linux_amd64 /usr/local/bin/qsctl
           echo "access_key_id: ${{secrets.KS_QSCTL_ACCESS_KEY_ID}}" > qsctl-config.yaml
           echo "secret_access_key: ${{ secrets.KS_QSCTL_SECRET_ACCESS_KEY }}" >> qsctl-config.yaml
-          
-          qsctl -c qsctl-config.yaml cp dist/kubekey-${{ steps.prepare.outputs.version }}-linux-amd64.tar.gz qs://kubekey/github.com/kubesphere/kubekey/releases/download/${{ steps.prepare.outputs.version }}/kubekey-${{ steps.prepare.outputs.version }}-linux-amd64.tar.gz
-          qsctl -c qsctl-config.yaml cp dist/kubekey-${{ steps.prepare.outputs.version }}-linux-arm64.tar.gz qs://kubekey/github.com/kubesphere/kubekey/releases/download/${{ steps.prepare.outputs.version }}/kubekey-${{ steps.prepare.outputs.version }}-linux-arm64.tar.gz
 
-          rm -rf qsctl-config.yaml
+          mkdir -p dist-output && mv dist/*.tar.gz dist-output/
+          qsctl -c qsctl-config.yaml cp -r dist-output/ qs://kubekey/github.com/kubesphere/kubekey/releases/download/${{ steps.prepare.outputs.version }}/
+
+          rm -rf qsctl-config.yaml dist-output/

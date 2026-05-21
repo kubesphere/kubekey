@@ -112,7 +112,6 @@
     dest: "{{ .artifact_dir }}/kubekey/crictl/{{ .item.version }}/{{ .item.arch }}/crictl-{{ .item.version }}-linux-{{ .item.arch }}.tar.gz"
 
 - name: Binary | Ensure Docker binary is present
-  tags: ["image_registry"]
   loop: >
     {{- $result := list -}}
     {{- range $arch := .download.arch }}
@@ -198,7 +197,6 @@
     dest: "{{ .artifact_dir }}/kubekey/cni/calico/{{ .item.version }}/{{ .item.arch }}/calicoctl-linux-{{ .item.arch }}"
 
 - name: Binary | Ensure Docker Registry binary is present
-  tags: ["image_registry"]
   loop: >
     {{- $result := list -}}
     {{- range $arch := .download.arch }}
@@ -216,7 +214,6 @@
     dest: "{{ .artifact_dir }}/kubekey/image-registry/docker-registry/{{ .item.version }}/{{ .item.arch }}/docker-registry-{{ .item.version }}-linux-{{ .item.arch }}.tgz"
 
 - name: Binary | Ensure docker-compose binary is present
-  tags: ["image_registry"]
   loop: >
     {{- $result := list -}}
     {{- range $arch := .download.arch }}
@@ -234,7 +231,6 @@
     dest: "{{ .artifact_dir }}/kubekey/image-registry/docker-compose/{{ .item.version }}/{{ .item.arch }}/docker-compose"
 
 - name: Binary | Ensure Harbor binary is present
-  tags: ["image_registry"]
   loop: >
     {{- $result := list -}}
     {{- range $arch := .download.arch }}
@@ -253,7 +249,6 @@
 
 
 - name: Binary | Ensure keepalived binary is present
-  tags: ["image_registry"]
   loop: >
     {{- $result := list -}}
     {{- range $arch := .download.arch }}

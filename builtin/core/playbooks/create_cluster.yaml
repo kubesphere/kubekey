@@ -49,7 +49,10 @@
 - hosts:
     - localhost
   roles:
-    - image-registry/push
+    - role: image-registry/push
+      when: 
+        - .groups.image_registry | empty | not
+        - .image_registry.type | empty | not
 
 # Install the Kubernetes cluster
 - hosts:

@@ -66,6 +66,7 @@
     - k8s_cluster
   pre_tasks:
     - name: DeleteNode | Remove node from Kubernetes cluster
+      delegate_to: "{{ subtractList .groups.kube_control_plane .delete_nodes | first }}"
       when: .delete_nodes | default list | has .inventory_hostname
       command: |
         if kubectl get node {{ .hostname }} > /dev/null 2>&1; then

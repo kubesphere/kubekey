@@ -158,6 +158,13 @@ func InitGOPS() error {
 func AddKlogFlags(fs *pflag.FlagSet) {
 	local := flag.NewFlagSet("klog", flag.ExitOnError)
 	klog.InitFlags(local)
+
+	// Opt into the new klog behavior so that -stderrthreshold is honored even
+	// when -logtostderr=true (the default).
+	// Ref: kubernetes/klog#212, kubernetes/klog#432
+	_ = local.Set("legacy_stderr_threshold_behavior", "false")
+	_ = local.Set("stderrthreshold", "INFO")
+
 	local.VisitAll(func(fl *flag.Flag) {
 		fl.Name = strings.ReplaceAll(fl.Name, "_", "-")
 		fs.AddGoFlag(fl)

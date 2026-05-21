@@ -116,7 +116,6 @@ func NewArtifactImagesOptions() *ArtifactImagesOptions {
 func (o *ArtifactImagesOptions) Flags() cliflag.NamedFlagSets {
 	fss := o.CommonOptions.Flags()
 	kfs := fss.FlagSet("config")
-	kfs.StringVar(&o.Kubernetes, "with-kubernetes", o.Kubernetes, fmt.Sprintf("Specify a supported version of kubernetes. default is %s", o.Kubernetes))
 	kfs.BoolVar(&o.Push, "push", o.Push, "Push image to image registry")
 	kfs.BoolVar(&o.Pull, "pull", o.Pull, "Pull image to binary dir")
 
@@ -149,7 +148,7 @@ func (o *ArtifactImagesOptions) Complete(cmd *cobra.Command, args []string) (*kk
 		tags = append(tags, "pull")
 	}
 	if !o.Pull && !o.Push {
-		tags = append(tags, "image_registry")
+		tags = append(tags, "pull", "push")
 	}
 
 	playbook.Spec = kkcorev1.PlaybookSpec{

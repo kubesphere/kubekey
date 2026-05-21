@@ -58,6 +58,8 @@ func (m webManager) Run(ctx context.Context) error {
 		_ = server.Shutdown(shutdownCtx)
 	}()
 
+	klog.Infof("Web server started successfully on port %d", m.port)
+
 	return server.ListenAndServe()
 }
 

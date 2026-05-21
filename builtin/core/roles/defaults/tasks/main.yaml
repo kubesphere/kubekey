@@ -7,14 +7,13 @@
     mkdir -m 777 -p {{ .tmp_dir }}
 
 - name: Defaults | Load defaults based on Kubernetes version
-  tags: ["package", "image_registry"]
+  tags: ["always"]
   block:
     - name: Defaults | Load version-specific settings for Kubernetes
       when: .kubernetes.kube_version | empty | not
       include_vars: >-
         {{ slice (.kubernetes.kube_version | splitList ".") 0 2 | join "." }}.yaml
     - name: Defaults | Load default templates download
-      when: .download.kubernetes.kube_version | empty | not
       template:
         src: manifests.yaml
         dest: >-

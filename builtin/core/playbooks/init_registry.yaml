@@ -26,6 +26,6 @@
     - image_registry
   tags: ["always"]
   roles:
-    - role: native/dns
     - role: native/init
+    - role: native/dns
     - role: image-registry

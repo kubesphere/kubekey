@@ -36,6 +36,7 @@
     {{ index $.hostvars . "internal_ipv6" }} {{ index $.hostvars . "hostname" }}
       {{- end }}
     {{- end }}
+    # kubekey image_registry control_plane_endpoint BEGIN
     {{- if and (.image_registry.auth.registry | empty | not) (.image_registry.ha_vip | empty | not) }}
     {{ .image_registry.ha_vip }} {{ .image_registry.auth.registry | splitList "/" | first }}
     {{- else }}
@@ -48,6 +49,7 @@
         {{- end }}
       {{- end }}
     {{- end }}
+    # kubekey image_registry control_plane_endpoint END
     # NFS server nodes
     {{- range .groups.nfs | default list }}
       {{- if (index $.hostvars . "internal_ipv4") | empty | not }}
@@ -145,12 +147,11 @@
     # kubekey kubernetes control_plane_endpoint BEGIN
     {{- if .kubernetes.control_plane_endpoint.type | eq "kube_vip" }}
     {{ .kubernetes.control_plane_endpoint.kube_vip.address }} {{ .kubernetes.control_plane_endpoint.host }}
+    {{- else if and (.kubernetes.control_plane_endpoint.type | eq "local") (.kubernetes.control_plane_endpoint.local.address | empty | not) }}
+    {{ .kubernetes.control_plane_endpoint.local.address }} {{ .kubernetes.control_plane_endpoint.host }}
     {{- else }}
     127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
     ::1 {{ .kubernetes.control_plane_endpoint.host }}
-    {{- end }}
-    {{- if and (.kubernetes.control_plane_endpoint.type | eq "local") (.kubernetes.control_plane_endpoint.local.address | empty | not) }}
-    {{ .kubernetes.control_plane_endpoint.local.address }} {{ .kubernetes.control_plane_endpoint.host }}
     {{- end }}
     # kubekey kubernetes control_plane_endpoint END
     EOF

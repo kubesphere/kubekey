@@ -12,11 +12,3 @@
     url: "{{ tpl .item.url .item }}"
     dest: "{{ .work_dir }}/tools/{{ .item.arch }}/{{ base (tpl .item.url .item) }}"
     timeout: "{{ .download.timeout }}"
-
-- name: Tools | Download charts to artifact directory
-  loop: "{{ .download.charts | toJson }}"
-  when: printf "%s/charts/%s" .work_dir (base .item) | fileExists | not
-  http_get_file:
-    url: "{{ .item }}"
-    dest: "{{ .work_dir }}/charts/{{ base .item }}"
-    timeout: "{{ .download.timeout }}"

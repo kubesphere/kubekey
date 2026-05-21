@@ -174,7 +174,7 @@ func (h *InventoryHandler) Patch(request *restful.Request, response *restful.Res
 				Namespace: namespace,
 				Name:      inventoryName,
 			},
-			Playbook: "host_check.yaml",
+			Playbook: "web-installer/host_check.yaml",
 		},
 		Status: kkcorev1.PlaybookStatus{
 			Phase: kkcorev1.PlaybookPhasePending,

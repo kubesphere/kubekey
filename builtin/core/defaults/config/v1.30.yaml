@@ -83,7 +83,7 @@ spec:
     calico_version: v3.29.7
     # ========== Cilium CNI ==========
     # Cilium version (effective only when type is cilium).
-    #cilium_version: 1.18.7
+    #cilium_version: 1.18.9
     # ========== Flannel CNI ==========
     # Flannel version (effective only when type is flannel).
     #flannel_version: v0.27.4

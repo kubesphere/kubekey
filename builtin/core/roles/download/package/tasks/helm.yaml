@@ -53,7 +53,7 @@
   loop: "{{ .download.storage_class.localpv_provisioner_version | default (list .storage_class.localpv_provisioner_version) | toJson }}"
   when:
     - .item | empty | not
-    - .download.storage_class.local.enabled | default true
+    - .download.storage_class.local.enabled
     - printf "%s/storageclass/local/localpv-provisioner-%s.tgz" .artifact_dir .item | fileExists | not
   copy:
     src: "{{ .binary_dir }}/storageclass/local/localpv-provisioner-{{ .item }}.tgz"

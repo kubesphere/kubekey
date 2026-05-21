@@ -18,7 +18,6 @@ package template
 
 import (
 	"context"
-	"fmt"
 	"io/fs"
 	"math"
 	"os"
@@ -227,15 +226,8 @@ func handleRelativeDir(ctx context.Context, pj project.Project, relPath string, 
 			}
 			dest = filepath.Join(ta.dest, rel)
 		}
-		tmpDest := filepath.Join("/tmp", dest)
 
-		if err = conn.PutFile(ctx, result, tmpDest, mode); err != nil {
-			return err
-		}
-
-		_, _, err = conn.ExecuteCommand(ctx, fmt.Sprintf("mkdir -p %s\nmv %s %s", filepath.Dir(dest), tmpDest, dest))
-
-		return err
+		return connector.PutData(ctx, result, dest, mode, conn)
 	})
 }
 
@@ -254,15 +246,8 @@ func (ta templateArgs) readFile(ctx context.Context, data string, mode fs.FileMo
 	if ta.mode != nil {
 		mode = os.FileMode(*ta.mode)
 	}
-	tmpDest := filepath.Join("/tmp", dest)
 
-	if err = conn.PutFile(ctx, result, tmpDest, mode); err != nil {
-		return err
-	}
-
-	_, _, err = conn.ExecuteCommand(ctx, fmt.Sprintf("mkdir -p %s\nmv %s %s", filepath.Dir(dest), tmpDest, dest))
-
-	return err
+	return connector.PutData(ctx, result, dest, mode, conn)
 }
 
 // absDir when template.src is absolute dir, get all files by os, parse it, and copy to remote.
@@ -303,15 +288,7 @@ func (ta templateArgs) absDir(ctx context.Context, conn connector.Connector, var
 			dest = filepath.Join(ta.dest, rel)
 		}
 
-		tmpDest := filepath.Join("/tmp", dest)
-
-		if err = conn.PutFile(ctx, result, tmpDest, mode); err != nil {
-			return err
-		}
-
-		_, _, err = conn.ExecuteCommand(ctx, fmt.Sprintf("mkdir -p %s\nmv %s %s", filepath.Dir(dest), tmpDest, dest))
-
-		return err
+		return connector.PutData(ctx, result, dest, mode, conn)
 	}); err != nil {
 		return errors.Wrapf(err, "failed to walk dir %q", ta.src)
 	}

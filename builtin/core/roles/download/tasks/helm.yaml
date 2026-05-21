@@ -64,7 +64,7 @@
     {{ index (.download.storage_class | default dict) "localpv_provisioner_version" | default (list .storage_class.localpv_provisioner_version) | toJson }}
   when: 
     - .item | empty | not
-    - index ((index (.download.storage_class | default dict) "local") | default dict) "enabled" | default true
+    - .download.storage_class.local.enabled
     - printf "%s/storageclass/local/localpv-provisioner-%s.tgz" .binary_dir .item | fileExists | not
   http_get_file:
     url: "{{ tpl .download.artifact_url.localpv_provisioner (dict \"version\" .item) }}"
@@ -76,7 +76,7 @@
     {{ index (.download.storage_class | default dict) "nfs_provisioner_version" | default (list .storage_class.nfs_provisioner_version) | toJson }}
   when: 
     - .item | empty | not
-    - index ((index (.download.storage_class | default dict) "nfs") | default dict) "enabled" | default false
+    - .download.storage_class.nfs.enabled
     - printf "%s/storageclass/nfs/nfs-subdir-external-provisioner-%s.tgz" .binary_dir .item | fileExists | not
   http_get_file:
     url: "{{ tpl .download.artifact_url.nfs_subdir_external_provisioner (dict \"version\" .item) }}"

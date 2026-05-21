@@ -1,5 +1,5 @@
 - name: PullImage | Download container images
-  tags: ["pull","image_registry"]
+  tags: ["pull"]
   when: .download.fetch
   image:
     platform: >

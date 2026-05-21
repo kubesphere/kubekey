@@ -1,4 +1,4 @@
-# architecture
+# 创建集群 (create_cluster.yaml)
 
 ![architecture](../../images/architecture.png)
 

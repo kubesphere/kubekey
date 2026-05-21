@@ -18,12 +18,17 @@ package connector
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"io/fs"
 	"net"
 	"os"
+	"path"
+	"path/filepath"
+	"strings"
 
 	"github.com/cockroachdb/errors"
+	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/klog/v2"
 
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
@@ -133,4 +138,24 @@ func isLocalIP(ipAddr string) bool {
 	}
 
 	return false
+}
+
+func PutData(ctx context.Context, data []byte, dest string, mode fs.FileMode, conn Connector) error {
+	dest = filepath.ToSlash(dest)
+	tmpDest := path.Join("/tmp", ".kk."+rand.String(10))
+
+	if err := conn.PutFile(ctx, data, tmpDest, mode); err != nil {
+		return err
+	}
+
+	// Escape single quotes to prevent shell injection
+	esc := func(s string) string {
+		return strings.ReplaceAll(s, "'", "'\\''")
+	}
+
+	cmd := fmt.Sprintf("mkdir -p '%s' && mv '%s' '%s' || { rm -f '%s'; exit 1; }",
+		esc(path.Dir(dest)), esc(tmpDest), esc(dest), esc(tmpDest))
+	_, _, err := conn.ExecuteCommand(ctx, cmd)
+
+	return err
 }

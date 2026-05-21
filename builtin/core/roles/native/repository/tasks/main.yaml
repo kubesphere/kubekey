@@ -25,9 +25,9 @@
           {{- if .os.release.ID | unquote | eq "kylin" }}
           kylin-{{ .os.release.VERSION_ID | replace "\"" "" | unquote | trim | lower }}{{ .sp_version | trim }}
           {{- else if .os.release.ID_LIKE | unquote | eq "rhel fedora" }}
-          {{ .os.release.ID | replace "\"" "" | unquote | trim | lower  }}{{ .os.release.VERSION_ID | trim }}
+          {{ .os.release.ID | replace "\"" "" | unquote | trim | lower  }}{{ .os.release.VERSION_ID | replace "\"" "" | unquote | trim }}
           {{- else }}
-          {{ .os.release.ID | replace "\"" "" | unquote | trim | lower  }}-{{ .os.release.VERSION_ID | trim }}
+          {{ .os.release.ID | replace "\"" "" | unquote | trim | lower  }}-{{ .os.release.VERSION_ID | replace "\"" "" | unquote | trim }}
           {{- end -}}
 
     - name: Repository | Define the package file type by system info

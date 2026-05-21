@@ -250,15 +250,7 @@ func (ca copyArgs) copyAbsoluteDir(ctx context.Context, conn connector.Connector
 		}
 		dest := filepath.Join(ca.dest, rel)
 
-		tmpDest := filepath.Join("/tmp", dest)
-
-		if err = conn.PutFile(ctx, data, tmpDest, mode); err != nil {
-			return err
-		}
-
-		_, _, err = conn.ExecuteCommand(ctx, fmt.Sprintf("mkdir -p %s\nmv %s %s", filepath.Dir(dest), tmpDest, dest))
-
-		return err
+		return connector.PutData(ctx, data, dest, mode, conn)
 	})
 }
 
@@ -294,16 +286,7 @@ func (ca copyArgs) copyRelativeDir(ctx context.Context, pj project.Project, relP
 		}
 		dest := filepath.Join(ca.dest, rel)
 
-		tmpDest := filepath.Join("/tmp", dest)
-
-		err = conn.PutFile(ctx, data, tmpDest, mode)
-		if err != nil {
-			return err
-		}
-
-		_, _, err = conn.ExecuteCommand(ctx, fmt.Sprintf("mkdir -p %s\nmv %s %s", filepath.Dir(dest), tmpDest, dest))
-
-		return err
+		return connector.PutData(ctx, data, dest, mode, conn)
 	})
 }
 
@@ -329,14 +312,7 @@ func (ca copyArgs) copyContent(ctx context.Context, mode fs.FileMode, conn conne
 		mode = os.FileMode(*ca.mode)
 	}
 
-	tmpDest := filepath.Join("/tmp", ca.dest)
-
-	if err := conn.PutFile(ctx, []byte(ca.content), tmpDest, mode); err != nil {
-		return internal.StdoutFailed, "failed to copy file", err
-	}
-
-	_, _, err := conn.ExecuteCommand(ctx, fmt.Sprintf("mkdir -p %s\nmv %s %s", filepath.Dir(ca.dest), tmpDest, ca.dest))
-
+	err := connector.PutData(ctx, []byte(ca.content), ca.dest, mode, conn)
 	if err != nil {
 		return internal.StdoutFailed, "failed to copy file", err
 	}
@@ -355,13 +331,6 @@ func (ca copyArgs) copyFile(ctx context.Context, data []byte, mode fs.FileMode, 
 	if ca.mode != nil {
 		mode = os.FileMode(*ca.mode)
 	}
-	tmpDest := filepath.Join("/tmp", dest)
 
-	if err := conn.PutFile(ctx, data, tmpDest, mode); err != nil {
-		return err
-	}
-
-	_, _, err := conn.ExecuteCommand(ctx, fmt.Sprintf("mkdir -p %s\nmv %s %s", filepath.Dir(dest), tmpDest, dest))
-
-	return err
+	return connector.PutData(ctx, data, dest, mode, conn)
 }

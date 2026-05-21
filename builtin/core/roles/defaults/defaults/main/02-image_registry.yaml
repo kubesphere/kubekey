@@ -31,17 +31,15 @@ image_registry:
         {{- end -}}
       {{- end -}}
     username: >-
-      {{- if .zone | ne "cn" -}}
+      {{- if .image_registry.type | empty | not -}}
       admin
-      {{- end -}}
+      {{- end }}
     password: >-
-      {{- if .zone | ne "cn" -}}
+      {{- if .image_registry.type | empty | not -}}
       Harbor12345
-      {{- end -}}
+      {{- end }}
     skip_tls_verify: >-
-      {{- if .image_registry.type | empty -}}
-      true
-      {{- end -}}
+      {{- .image_registry.type | empty -}}
     ca_file: >-
       {{- if .groups.image_registry | default list | empty | not -}}
       {{ .binary_dir }}/pki/root.crt
