@@ -61,7 +61,7 @@ state = "/run/containerd"
 {{- if or (.cri.registry.auths | empty | not) (.groups.image_registry | default list | empty | not) }}
         [plugins."io.containerd.grpc.v1.cri".registry.configs]
 {{- end }}
-{{- if .image_registry.auth.registry | empty | not }}
+{{- if and (.image_registry.auth.registry | empty | not) (ne (.image_registry.auth.registry | splitList "/" | first) "hub.kubesphere.com.cn") }}
   {{- $registry_parts := .image_registry.auth.registry | splitList "/" | first }}
           [plugins."io.containerd.grpc.v1.cri".registry.configs."{{ $registry_parts }}".auth]
             username = "{{ .image_registry.auth.username }}"
