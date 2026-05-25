@@ -108,19 +108,19 @@ download:
   #   # OCI chart
   #   - url: oci://ghcr.io/flannel-io/flannel-chart
   #     version: 0.28.1
-  iso: 
-    - "almalinux-9.0-rpms" 
-    - "centos-8-rpms" 
-    - "debian-10-debs" 
-    - "debian-11-debs" 
-    - "kylin-v10SP3-2403-rpms" 
-    - "kylin-v10SP3-rpms" 
-    - "kylin-v10SP2-rpms" 
-    - "kylin-v10SP1-rpms" 
-    - "ubuntu-18.04-debs" 
-    - "ubuntu-20.04-debs" 
-    - "ubuntu-22.04-debs" 
-    - "ubuntu-24.04-debs"
+  iso: []
+    # - "almalinux-9.0-rpms" 
+    # - "centos-8-rpms" 
+    # - "debian-10-debs" 
+    # - "debian-11-debs" 
+    # - "kylin-v10SP3-2403-rpms" 
+    # - "kylin-v10SP3-rpms" 
+    # - "kylin-v10SP2-rpms" 
+    # - "kylin-v10SP1-rpms" 
+    # - "ubuntu-18.04-debs" 
+    # - "ubuntu-20.04-debs" 
+    # - "ubuntu-22.04-debs" 
+    # - "ubuntu-24.04-debs"
   cni:
     type: []
   storage_class:
