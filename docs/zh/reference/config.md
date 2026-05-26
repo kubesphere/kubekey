@@ -295,9 +295,6 @@ image_registry:
   type: ""
   # 镜像仓库的高可用虚拟 IP（VIP）
   ha_vip: ""
-  # 待推送到镜像仓库的离线镜像存储路径
-  images_dir: >-
-    {{ .tmp_dir }}/images/
   # 镜像仓库认证设置
   auth:
     registry: >-
@@ -363,7 +360,6 @@ image_registry:
 |------|------|
 | `image_registry.type` | 要部署的镜像仓库类型：`harbor`、`docker-registry` 或 `""`（使用已有仓库）。 |
 | `image_registry.ha_vip` | 部署 Harbor 等高可用仓库时使用的虚拟 IP。 |
-| `image_registry.images_dir` | 离线镜像包在本地的存储目录。 |
 | `image_registry.auth.registry` | 集群实际使用的镜像仓库地址。若部署了仓库，会根据 `ha_vip` 或节点 IP 自动渲染；在线模式下为空；若 zone 为 `cn`，默认使用 `hub.kubesphere.com.cn`。 |
 | `image_registry.auth.username` | 登录镜像仓库的用户名。部署 Harbor 时默认为 `admin`。 |
 | `image_registry.auth.password` | 登录镜像仓库的密码。部署 Harbor 时默认为 `Harbor12345`。 |
@@ -738,8 +734,6 @@ cri:
     #     cert_file: /etc/docker/certs.d/docker.io/cert.crt
     #     key_file: /etc/docker/certs.d/docker.io/key.crt
 
-  # 对所有 auths 拉取镜像时是否跳过 TLS 验证
-  skip_tls_verify: false
 ```
 
 ### 参数说明
@@ -752,7 +746,6 @@ cri:
 | `cri.registry.mirrors` | 镜像加速地址，可配置国内镜像源以提高拉取速度。 |
 | `cri.registry.insecure_registries` | 允许使用 HTTP（非 HTTPS）访问的镜像仓库地址列表。 |
 | `cri.registry.auths` | 私有镜像仓库的认证信息列表，包含用户名、密码及可选的 TLS 证书配置。 |
-| `cri.skip_tls_verify` | 全局设置：对所有配置了认证的仓库拉取镜像时，是否跳过 TLS 证书校验。 |
 
 ---
 

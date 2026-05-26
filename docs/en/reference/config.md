@@ -297,9 +297,6 @@ image_registry:
   type: ""
   # Virtual IP (VIP) for high availability of the image registry
   ha_vip: ""
-  # Local storage path for offline images to be pushed to the image registry
-  images_dir: >-
-    {{ .tmp_dir }}/images/
   # Image registry authentication settings
   auth:
     registry: >-
@@ -365,7 +362,6 @@ image_registry:
 |-----------|-------------|
 | `image_registry.type` | Type of image registry to deploy: `harbor`, `docker-registry`, or `""` (use existing registry). |
 | `image_registry.ha_vip` | Virtual IP used when deploying high-availability registries such as Harbor. |
-| `image_registry.images_dir` | Local storage directory for offline image packages. |
 | `image_registry.auth.registry` | Actual image registry address used by the cluster. If a registry is deployed, it is automatically rendered based on `ha_vip` or node IP; empty in online mode; if zone is `cn`, defaults to `hub.kubesphere.com.cn`. |
 | `image_registry.auth.username` | Username for logging into the image registry. Defaults to `admin` when deploying Harbor. |
 | `image_registry.auth.password` | Password for logging into the image registry. Defaults to `Harbor12345` when deploying Harbor. |
@@ -739,9 +735,6 @@ cri:
     #     ca_cert: /etc/docker/certs.d/docker.io/ca.crt
     #     cert_file: /etc/docker/certs.d/docker.io/cert.crt
     #     key_file: /etc/docker/certs.d/docker.io/key.crt
-
-  # Whether to skip TLS verification for all auths when pulling images
-  skip_tls_verify: false
 ```
 
 ### Parameter Descriptions
@@ -754,7 +747,6 @@ cri:
 | `cri.registry.mirrors` | Image mirror addresses, can be configured with domestic mirror sources to improve pull speed. |
 | `cri.registry.insecure_registries` | List of image registry addresses allowed to access using HTTP (non-HTTPS). |
 | `cri.registry.auths` | List of authentication information for private image registries, including username, password, and optional TLS certificate configuration. |
-| `cri.skip_tls_verify` | Global setting: whether to skip TLS certificate verification when pulling images from all configured authenticated registries. |
 
 ---
 
