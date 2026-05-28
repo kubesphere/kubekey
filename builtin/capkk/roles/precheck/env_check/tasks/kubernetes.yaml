@@ -20,7 +20,7 @@
         {{ not $existIP }}
     fail_msg: >-
       "kubernetes.control_plane_endpoint.kube_vip.address" should be a un-used ip address.
-  when: .kubernetes.control_plane_endpoint.type | eq "kube_vip"
+  when: .kubernetes.control_plane_endpoint.type | eq "kube-vip"
 
 - name: Stop if unsupported version of Kubernetes
   run_once: true

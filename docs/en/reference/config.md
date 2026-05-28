@@ -526,7 +526,7 @@ kubernetes:
     host: lb.kubesphere.local
     # Control plane endpoint port, defaults to the apiserver port
     port: "{{ .kubernetes.apiserver.port }}"
-    # Load balancing type: local, kube_vip, haproxy
+    # Load balancing type: local, kube-vip, haproxy
     # When type is local, configure as follows:
     #   - On control-plane nodes: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
     #   - On worker nodes: {{ .init_kubernetes_node }} {{ .kubernetes.control_plane_endpoint.host }}
@@ -636,7 +636,7 @@ kubernetes:
 | `kubernetes.kubelet.container_log_max_files` | Number of old container log files to retain. |
 | `kubernetes.control_plane_endpoint.host` | Stable access address (IP or DNS) for the control plane. |
 | `kubernetes.control_plane_endpoint.port` | Control plane endpoint port. |
-| `kubernetes.control_plane_endpoint.type` | Load balancing implementation type: `local` (local resolution), `kube_vip` (VIP-based), `haproxy`. |
+| `kubernetes.control_plane_endpoint.type` | Load balancing implementation type: `local` (local resolution), `kube-vip` (VIP-based), `haproxy`. |
 | `kubernetes.control_plane_endpoint.local.address` | When using `local` mode, an external load balancer address can be specified for resolution only. |
 | `kubernetes.control_plane_endpoint.kube_vip.address` | Network interface name or IP bound by kube-vip. |
 | `kubernetes.control_plane_endpoint.kube_vip.mode` | kube-vip working mode: `ARP` or `BGP`. |

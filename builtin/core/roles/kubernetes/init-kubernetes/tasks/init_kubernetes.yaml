@@ -14,7 +14,7 @@
     - name: Init | Pre-initialization for kube-vip
       when: 
         - .kubernetes.kube_version | semverCompare ">=v1.29.0"
-        - eq .kubernetes.control_plane_endpoint.type "kube_vip"
+        - eq .kubernetes.control_plane_endpoint.type "kube-vip"
       command: |
         sed -i 's#path: /etc/kubernetes/admin.conf#path: /etc/kubernetes/super-admin.conf#' \
           /etc/kubernetes/manifests/kube-vip.yaml
@@ -26,7 +26,7 @@
     - name: Init | Post-initialization for kube-vip
       when: 
         - .kubernetes.kube_version | semverCompare ">=v1.29.0"
-        - eq .kubernetes.control_plane_endpoint.type "kube_vip"
+        - eq .kubernetes.control_plane_endpoint.type "kube-vip"
       command: |
         sed -i 's#path: /etc/kubernetes/super-admin.conf#path: /etc/kubernetes/admin.conf#' \
           /etc/kubernetes/manifests/kube-vip.yaml

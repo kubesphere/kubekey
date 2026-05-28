@@ -524,7 +524,7 @@ kubernetes:
     host: lb.kubesphere.local
     # 控制平面端点端口，默认继承 apiserver 端口
     port: "{{ .kubernetes.apiserver.port }}"
-    # 负载均衡类型：local, kube_vip, haproxy
+    # 负载均衡类型：local, kube-vip, haproxy
     # 当 type 为 local 时，配置如下：
     #   - 控制平面节点：127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
     #   - 工作节点：{{ .init_kubernetes_node }} {{ .kubernetes.control_plane_endpoint.host }}
@@ -634,7 +634,7 @@ kubernetes:
 | `kubernetes.kubelet.container_log_max_files` | 保留的旧容器日志文件数量。 |
 | `kubernetes.control_plane_endpoint.host` | 控制平面的稳定访问地址（IP 或 DNS）。 |
 | `kubernetes.control_plane_endpoint.port` | 控制平面端点端口。 |
-| `kubernetes.control_plane_endpoint.type` | 负载均衡实现方式：`local`（本地解析）、`kube_vip`（基于 VIP）、`haproxy`。 |
+| `kubernetes.control_plane_endpoint.type` | 负载均衡实现方式：`local`（本地解析）、`kube-vip`（基于 VIP）、`haproxy`。 |
 | `kubernetes.control_plane_endpoint.local.address` | 使用 `local` 模式时，可指定外部负载均衡器地址仅用于解析。 |
 | `kubernetes.control_plane_endpoint.kube_vip.address` | kube-vip 绑定的网卡名称或 IP。 |
 | `kubernetes.control_plane_endpoint.kube_vip.mode` | kube-vip 的工作模式：`ARP` 或 `BGP`。 |

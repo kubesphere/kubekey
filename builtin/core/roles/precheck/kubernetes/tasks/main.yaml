@@ -1,6 +1,6 @@
 - name: Kubernetes | Validate kube-vip address
   run_once: true
-  when: .kubernetes.control_plane_endpoint.type | eq "kube_vip"
+  when: .kubernetes.control_plane_endpoint.type | eq "kube-vip"
   assert:
     that:
       - .kubernetes.control_plane_endpoint.kube_vip.address | empty | not

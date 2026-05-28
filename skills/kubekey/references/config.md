@@ -159,7 +159,7 @@ spec:
     control_plane_endpoint:
       host: lb.kubesphere.local
       port: 6443
-      type: local  # local, kube_vip, haproxy
+      type: local  # local, kube-vip, haproxy
       local:
         address: ""
       kube_vip:
@@ -612,7 +612,7 @@ spec:
     control_plane_endpoint:
       host: lb.kubesphere.local
       port: 6443
-      type: kube_vip
+      type: kube-vip
       kube_vip:
         address: 192.168.1.100
         mode: ARP
