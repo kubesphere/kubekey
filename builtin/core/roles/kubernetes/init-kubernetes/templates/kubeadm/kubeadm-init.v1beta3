@@ -53,16 +53,16 @@ apiServer:
 {{- if .security_enhancement }}
     authorization-mode: Node,RBAC
     enable-admission-plugins: AlwaysPullImages,ServiceAccount,NamespaceLifecycle,NodeRestriction,LimitRanger,ResourceQuota,MutatingAdmissionWebhook,ValidatingAdmissionWebhook,PodNodeSelector,PodSecurity
-    profiling: false
+    profiling: "false"
     request-timeout: 120s
-    service-account-lookup: true
+    service-account-lookup: "true"
     tls-min-version: VersionTLS12
     tls-cipher-suites: TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
 {{- end }}
 {{- if .audit }}
     audit-log-format: json
-    audit-log-maxbackup: 2
-    audit-log-maxsize: 200
+    audit-log-maxbackup: "2"
+    audit-log-maxsize: "200"
     audit-policy-file: /etc/kubernetes/audit/policy.yaml
     audit-webhook-config-file: /etc/kubernetes/audit/webhook.yaml
 {{- end }}
@@ -117,9 +117,9 @@ controllerManager:
   {{- else if $internalIPv6 | empty | not }}
     bind-address: ::1
   {{- end }}
-    profiling: false
-    terminated-pod-gc-threshold: 50
-    use-service-account-credentials: true
+    profiling: "false"
+    terminated-pod-gc-threshold: "50"
+    use-service-account-credentials: "true"
 {{- else }}
   {{- if $internalIPv4 | empty | not }}
     bind-address: 0.0.0.0
@@ -143,7 +143,7 @@ scheduler:
   {{- else if $internalIPv6 | empty | not }}
     bind-address: ::1
   {{- end }}
-    profiling: false
+    profiling: "false"
 {{- else }}
   {{- if $internalIPv4 | empty | not }}
     bind-address: 0.0.0.0
