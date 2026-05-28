@@ -29,7 +29,7 @@ precheck 阶段验证集群节点是否满足安装要求。
 
 **kubernetes_precheck**：Kubernetes 相关检查，包括：
 - **IP 地址检查**：验证节点是否定义了 internal_ipv4 或 internal_ipv6，两者不能同时为空
-- **KubeVIP 检查**：当使用 kube_vip 作为控制平面端点时，验证 kube_vip 地址是否有效且未被使用
+- **KubeVIP 检查**：当使用 kube-vip 作为控制平面端点时，验证 kube-vip 地址是否有效且未被使用
 - **Kubernetes 版本检查**：验证 Kubernetes 版本是否满足最低版本要求
 - **已安装 Kubernetes 检查**：验证节点上是否已安装 Kubernetes，如果已安装则检查版本是否与配置的 kube_version 匹配
 

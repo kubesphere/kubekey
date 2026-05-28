@@ -145,7 +145,7 @@
     # Write the current control plane endpoint DNS configuration
     cat >> {{ .item }} <<EOF
     # kubekey kubernetes control_plane_endpoint BEGIN
-    {{- if .kubernetes.control_plane_endpoint.type | eq "kube_vip" }}
+    {{- if .kubernetes.control_plane_endpoint.type | eq "kube-vip" }}
     {{ .kubernetes.control_plane_endpoint.kube_vip.address }} {{ .kubernetes.control_plane_endpoint.host }}
     {{- else if and (.kubernetes.control_plane_endpoint.type | eq "local") (.kubernetes.control_plane_endpoint.local.address | empty | not) }}
     {{ .kubernetes.control_plane_endpoint.local.address }} {{ .kubernetes.control_plane_endpoint.host }}
