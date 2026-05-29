@@ -3,6 +3,7 @@
     "max-size": "{{ .kubernetes.kubelet.container_log_max_size | toLowerByteUnit }}",
     "max-file":"{{ .kubernetes.kubelet.container_log_max_files }}"
   },
+  "live-restore": true,
 {{- if .cri.docker.data_root }}
   "data-root": "{{ .cri.docker.data_root }}",
 {{- end }}

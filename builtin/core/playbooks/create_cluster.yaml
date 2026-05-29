@@ -45,6 +45,7 @@
 - hosts:
     - image_registry
   roles:
+    - cri/docker
     - image-registry
 - hosts:
     - localhost

@@ -1,21 +1,34 @@
 ---
-- name: Containerd | Verify if runc is installed on the system
-  ignore_errors: true
-  command: runc --version
-  register: runc_install_version
 
-- name: Containerd | Ensure the runc binary is present on the remote node
-  when: or (.runc_install_version.error | empty | not) (.runc_install_version.stdout | regexMatch (printf "runc version %s\\s+" (.cri.runc_version | default "" | trimPrefix "v" )) | not)
-  copy:
-    src: >-
-      {{ .binary_dir }}/runc/{{ .cri.runc_version }}/{{ .binary_type }}/runc.{{ .binary_type }}
-    dest: /usr/local/bin/runc
-    mode: 0755
-
-- name: Containerd | Check if containerd is installed on the system
-  ignore_errors: true
-  command: containerd --version
-  register: containerd_install_version
+- name: Containerd | Sync Containerd binaries
+  block:
+    - name: Containerd | Verify if runc is installed on the system
+      ignore_errors: true
+      command: runc --version
+      register: runc_install_version 
+    - name: Containerd | Ensure the runc binary is present on the remote node
+      when: or (.runc_install_version.error | empty | not) (.runc_install_version.stdout | regexMatch (printf "runc version %s\\s+" (.cri.runc_version | default "" | trimPrefix "v" )) | not)
+      copy:
+        src: >-
+          {{ .binary_dir }}/runc/{{ .cri.runc_version }}/{{ .binary_type }}/runc.{{ .binary_type }}
+        dest: /usr/local/bin/runc
+        mode: 0755
+    - name: Containerd | Check if containerd is installed on the system
+      ignore_errors: true
+      command: containerd --version
+      register: containerd_install_version
+    - name: Containerd | Install and configure containerd if not present or version mismatch
+      when: or (.containerd_install_version.error | empty | not) (.containerd_install_version.stdout | contains (printf " %s " .cri.containerd_version) | not)
+      block:
+        - name: Containerd | Copy containerd binary archive to the remote node
+          copy:
+            src: >-
+              {{ .binary_dir }}/containerd/{{ .cri.containerd_version }}/{{ .binary_type }}/containerd-{{ .cri.containerd_version | default "" | trimPrefix "v" }}-linux-{{ .binary_type }}.tar.gz
+            dest: >-
+              {{ .tmp_dir }}/containerd-{{ .cri.containerd_version | default "" | trimPrefix "v" }}-linux-{{ .binary_type }}.tar.gz
+        - name: Containerd | Extract containerd binaries to /usr/local/bin
+          command: |
+            tar -xvf {{ .tmp_dir }}/containerd-{{ .cri.containerd_version | default "" | trimPrefix "v" }}-linux-{{ .binary_type }}.tar.gz --strip-components=1 -C /usr/local/bin/
 
 - name: Containerd | Synchronize image registry TLS certificates to the remote node
   block:
@@ -43,26 +56,18 @@
         dest: >-
           /etc/containerd/certs.d/{{ .image_registry.auth.registry | splitList "/" | first }}/server.key
 
-- name: Containerd | Install and configure containerd if not present or version mismatch
-  when: or (.containerd_install_version.error | empty | not) (.containerd_install_version.stdout | contains (printf " %s " .cri.containerd_version) | not)
-  block:
-    - name: Containerd | Copy containerd binary archive to the remote node
-      copy:
-        src: >-
-          {{ .binary_dir }}/containerd/{{ .cri.containerd_version }}/{{ .binary_type }}/containerd-{{ .cri.containerd_version | default "" | trimPrefix "v" }}-linux-{{ .binary_type }}.tar.gz
-        dest: >-
-          {{ .tmp_dir }}/containerd-{{ .cri.containerd_version | default "" | trimPrefix "v" }}-linux-{{ .binary_type }}.tar.gz
-    - name: Containerd | Extract containerd binaries to /usr/local/bin
-      command: |
-        tar -xvf {{ .tmp_dir }}/containerd-{{ .cri.containerd_version | default "" | trimPrefix "v" }}-linux-{{ .binary_type }}.tar.gz --strip-components=1 -C /usr/local/bin/
-    - name: Containerd | Generate the containerd configuration file
-      template:
-        src: config.toml
-        dest: /etc/containerd/config.toml
-    - name: Containerd | Deploy the containerd systemd service file
-      copy:
-        src: containerd.service
-        dest: /etc/systemd/system/containerd.service
-    - name: Containerd | Start and enable the containerd service
-      command: |
-        systemctl daemon-reload && systemctl start containerd.service && systemctl enable containerd.service
+
+- name: Containerd | Generate the containerd configuration file
+  when: or .upgrade.cri (/etc/containerd/config.toml | fileExists | not)
+  template:
+    src: config.toml
+    dest: /etc/containerd/config.toml
+- name: Containerd | Deploy the containerd systemd service file
+  when: or .upgrade.cri (/etc/systemd/system/containerd.service | fileExists | not)
+  copy:
+    src: containerd.service
+    dest: /etc/systemd/system/containerd.service
+- name: Containerd | Start and enable the containerd service
+  when: or .upgrade.cri (or (.containerd_install_version.error | empty | not) (.containerd_install_version.stdout | contains (printf " %s " .cri.containerd_version) | not))
+  command: |
+    systemctl daemon-reload && systemctl restart containerd.service && systemctl enable containerd.service
