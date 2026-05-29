@@ -1,6 +1,4 @@
 ---
-- include_tasks: docker.yaml
-
 - name: DockerCompose | Verify if Docker Compose is installed on the system
   ignore_errors: true
   command: docker-compose --version

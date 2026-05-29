@@ -28,4 +28,5 @@
   roles:
     - role: native/init
     - role: native/dns
+    - role: cri/docker
     - role: image-registry
