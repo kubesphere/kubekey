@@ -6,10 +6,6 @@ image_registry:
   # If left empty, no image registry will be installed (assumes an existing registry is already available).
   type: ""
   ha_vip: ""
-  # Directory where images to be pushed to the registry are stored.
-  # Path for storing offline images
-  images_dir: >- 
-    {{ .tmp_dir }}/images/
   # Image registry authentication settings
   auth:
     registry: >-

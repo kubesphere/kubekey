@@ -12,12 +12,12 @@ spec:
     sandbox_image:
       tag: "3.6"
     control_plane_endpoint:
-      # Supported HA types: local, kube_vip, haproxy.
+      # Supported HA types: local, kube-vip, haproxy.
       # If set to local, configure local hostname resolution as follows:
       #   - Control-plane nodes: 127.0.0.1  .kubernetes.control_plane_endpoint.host
       #   - Worker nodes:  .init_kubernetes_node  .kubernetes.control_plane_endpoint.host
       type: local
-      # Kube-vip image tag used for static pod deployment (when type is kube_vip).
+      # Kube-vip image tag used for static pod deployment (when type is kube-vip).
       kube_vip:
         image:
           tag: v0.7.2

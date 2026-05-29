@@ -98,6 +98,8 @@ cat schema/config.json | jq '{spec: .["kubernetes.json"]}' > kkv4-config.json
    ./kk add nodes --control-plane node1 --worker node2 -i inventory.yaml -c config.yaml --override
    ```
 
+   > **PS**：在离线环境中，可以添加 `--set download.fetch=false` 参数，禁止从互联网下载资源。
+
    - `--control-plane`：指定作为控制平面节点的主机名列表，多个节点用逗号分隔。
    - `--worker`：指定作为工作节点的主机名列表，多个节点用逗号分隔。
    - `--etcd`：指定作为 etcd 节点的主机名列表，多个节点用逗号分隔。

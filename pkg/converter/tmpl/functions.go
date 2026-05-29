@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 	"text/template"
@@ -35,6 +36,7 @@ func funcMap() template.FuncMap {
 	f["fileExists"] = fileExists
 	f["unquote"] = unquote
 	f["getStringSlice"] = getStringSlice
+	f["toLowerByteUnit"] = toLowerByteUnit
 	f["mapToNamedStringArgs"] = mapToNamedStringArgs
 
 	return f
@@ -253,4 +255,16 @@ func mapToNamedStringArgs(input any) []map[string]string {
 		result = append(result, map[string]string{"name": key, "value": valueStr})
 	}
 	return result
+}
+
+// toLowerByteUnit converts storage size units from uppercase binary suffixes to lowercase.
+// For example: 5Mi -> 5m, 1Gi -> 1g, 512Ki -> 512k.
+// Inputs that are already lowercase, pure numbers, or unrecognizable formats are returned as-is.
+func toLowerByteUnit(input string) string {
+	re := regexp.MustCompile(`^(\d+)([KMGTPE]i)$`)
+	matches := re.FindStringSubmatch(input)
+	if len(matches) != 3 {
+		return input
+	}
+	return matches[1] + strings.ToLower(strings.TrimSuffix(matches[2], "i"))
 }

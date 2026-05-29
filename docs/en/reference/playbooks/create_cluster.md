@@ -28,7 +28,7 @@ The `precheck` phase verifies that cluster nodes meet the installation requireme
 - **Kernel version check**: Verify that the kernel version meets the minimum requirement
 **kubernetes_precheck**: Kubernetes-related checks, including:
 - **IP address check**: Verify that the node defines either `internal_ipv4` or `internal_ipv6` (both cannot be empty)
-- **KubeVIP check**: When using `kube_vip` type for the control plane endpoint, verify that the kube_vip address is valid and not already in use
+- **KubeVIP check**: When using `kube-vip` type for the control plane endpoint, verify that the kube-vip address is valid and not already in use
 - **Kubernetes version check**: Verify that the Kubernetes version meets the minimum version requirement
 - **Existing Kubernetes check**: Verify whether Kubernetes is already installed on the node; if so, check whether the version matches the configured `kube_version`
 **network_precheck**: Network connectivity checks, including:

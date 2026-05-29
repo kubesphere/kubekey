@@ -85,7 +85,7 @@ kubernetes:
   control_plane_endpoint:
     host: lb.kubesphere.local
     port: "{{ .kubernetes.apiserver.port }}"
-    # Supported types: local, kube_vip, haproxy
+    # Supported types: local, kube-vip, haproxy
     # When type is local, configure as follows:
     #   - On control-plane nodes: 127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
     #   - On worker nodes: {{ .init_kubernetes_node }} {{ .kubernetes.control_plane_endpoint.host }}

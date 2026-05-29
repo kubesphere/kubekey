@@ -98,6 +98,8 @@ This method only requires the nodes' connection information to be defined in `in
    ./kk add nodes --control-plane node1 --worker node2 -i inventory.yaml -c config.yaml --override
    ```
 
+   > **PS**: In an offline environment, you can add the `--set download.fetch=false` parameter to prevent downloading resources from the internet.
+
    - `--control-plane`: Specifies the hostnames to be added as control plane nodes. Multiple nodes are separated by commas.
    - `--worker`: Specifies the hostnames to be added as worker nodes. Multiple nodes are separated by commas.
    - `--etcd`: Specifies the hostnames to be added as etcd nodes. Multiple nodes are separated by commas.

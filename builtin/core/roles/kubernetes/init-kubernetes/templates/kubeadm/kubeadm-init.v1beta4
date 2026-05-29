@@ -59,11 +59,11 @@ apiServer:
     - name: enable-admission-plugins
       value: AlwaysPullImages,ServiceAccount,NamespaceLifecycle,NodeRestriction,LimitRanger,ResourceQuota,MutatingAdmissionWebhook,ValidatingAdmissionWebhook,PodNodeSelector,PodSecurity
     - name: profiling
-      value: false
+      value: "false"
     - name: request-timeout
       value: 120s
     - name: service-account-lookup
-      value: true
+      value: "true"
     - name: tls-min-version
       value: VersionTLS12
     - name: tls-cipher-suites
@@ -73,9 +73,9 @@ apiServer:
     - name: audit-log-format
       value: json
     - name: audit-log-maxbackup
-      value: 2
+      value: "2"
     - name: audit-log-maxsize
-      value: 200
+      value: "200"
     - name: audit-policy-file
       value: /etc/kubernetes/audit/policy.yaml
     - name: audit-webhook-config-file
@@ -137,11 +137,11 @@ controllerManager:
       value: ::1
   {{- end }}
     - name: profiling
-      value: false
+      value: "false"
     - name: terminated-pod-gc-threshold
-      value: 50
+      value: "50"
     - name: use-service-account-credentials
-      value: true
+      value: "true"
 {{- else }}
   {{- if $internalIPv4 | empty | not }}
     - name: bind-address
@@ -170,7 +170,7 @@ scheduler:
       value: ::1
   {{- end }}
     - name: profiling
-      value: false
+      value: "false"
 {{- else }}
   {{- if $internalIPv4 | empty | not }}
     - name: bind-address
