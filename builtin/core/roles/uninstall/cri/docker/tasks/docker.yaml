@@ -22,7 +22,7 @@
     - name: Docker | Terminate residual runtime shim processes
       ignore_errors: true
       command: |
-        ps -eo pid=,comm= | awk '$2 == "containerd-shim-runc-v2" || $2 == "containerd-shim" { print $1 }' | xargs -r kill -9
+        pgrep -f "containerd-shim" | xargs -r kill -9
 
     - name: Docker | Remove all containerd-related files and binaries
       command: |

@@ -117,11 +117,11 @@ KK_EXECUTOR_IMG ?= $(REGISTRY)/$(KK_EXECUTOR_IMG_NAME)
 TAG ?= dev
 
 # Set build time variables including version details
-LDFLAGS = $(shell hack/version.sh)
+LDFLAGS := $(shell hack/version.sh)
 CURRENT_BRANCH ?= $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null || echo dev)
 SANITIZED_BRANCH ?= $(shell printf '%s' '$(CURRENT_BRANCH)' | sed -E 's/[^0-9A-Za-z.-]+/-/g; s/^-+//; s/-+$$//')
 DEV_GIT_VERSION ?= v0.0.0-$(if $(SANITIZED_BRANCH),$(SANITIZED_BRANCH),dev)
-DEV_LDFLAGS = $(shell GIT_VERSION=$(DEV_GIT_VERSION) hack/version.sh)
+DEV_LDFLAGS := $(shell GIT_VERSION=$(DEV_GIT_VERSION) hack/version.sh)
 # Set kk build tags
 #BUILDTAGS = exclude_graphdriver_devicemapper exclude_graphdriver_btrfs containers_image_openpgp
 BUILDTAGS ?= builtin
