@@ -153,10 +153,10 @@
   when: 
     - index (.item | default dict) "version" | empty | not
     - (index (.download.cri | default dict) "container_manager" | default (list .cri.container_manager)) | has "docker"
-    - printf "%s/cri-dockerd/%s/%s/cri-dockerd-%s-%s.tgz" .binary_dir .item.version .item.arch (.item.version | trimPrefix "v") .item.arch | fileExists | not
+    - printf "%s/cri-dockerd/%s/%s/cri-dockerd-%s.%s.tgz" .binary_dir .item.version .item.arch (.item.version | trimPrefix "v") .item.arch | fileExists | not
   http_get_file:
     url: "{{ tpl .download.artifact_url.cridockerd .item }}"
-    dest: "{{ .binary_dir }}/cri-dockerd/{{ .item.version }}/{{ .item.arch }}/cri-dockerd-{{ .item.version | trimPrefix \"v\" }}-{{ .item.arch }}.tgz"
+    dest: "{{ .binary_dir }}/cri-dockerd/{{ .item.version }}/{{ .item.arch }}/cri-dockerd-{{ .item.version | trimPrefix \"v\" }}.{{ .item.arch }}.tgz"
     timeout: "{{ .download.timeout }}"
 
 - name: Binary | Ensure containerd binary is present
