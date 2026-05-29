@@ -58,12 +58,12 @@
 
 
 - name: Containerd | Generate the containerd configuration file
-  when: or .upgrade.cri (/etc/containerd/config.toml | fileExists | not)
+  when: or .upgrade.cri ("/etc/containerd/config.toml" | fileExists | not)
   template:
     src: config.toml
     dest: /etc/containerd/config.toml
 - name: Containerd | Deploy the containerd systemd service file
-  when: or .upgrade.cri (/etc/systemd/system/containerd.service | fileExists | not)
+  when: or .upgrade.cri ("/etc/systemd/system/containerd.service" | fileExists | not)
   copy:
     src: containerd.service
     dest: /etc/systemd/system/containerd.service

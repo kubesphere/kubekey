@@ -132,7 +132,7 @@
             {{- end }}
             rm -rf /etc/ssl/etcd/
             rm -rf /etc/etcd.env
-            for bin in containerd containerd-shim containerd-shim-runc-v2 ctr runc; do
+            for bin in etcd etcdctl etcdutl; do
               if path=$(command -v $bin 2>/dev/null); then
                 rm -f "$path"
               fi

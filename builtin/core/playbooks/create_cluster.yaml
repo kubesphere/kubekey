@@ -73,6 +73,7 @@
         - .groups.kube_control_plane | default list | has .inventory_hostname
   post_tasks:
     - name: Add custom labels to the cluster nodes
+      delegate_to: "{{ .init_kubernetes_node }}"
       command: |
         {{- range $k, $v := .kubernetes.custom_labels }}
         /usr/local/bin/kubectl label --overwrite node {{ $.hostname }} {{ $k }}={{ $v }}
