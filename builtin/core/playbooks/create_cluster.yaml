@@ -76,7 +76,7 @@
         {{- range $k, $v := .kubernetes.custom_labels }}
         /usr/local/bin/kubectl label --overwrite node {{ $.hostname }} {{ $k }}={{ $v }}
         {{- end }}
-      when: .kubernetes.custom_label | empty | not
+      when: .kubernetes.custom_labels | empty | not
 
 # Install Kubernetes cluster software components (CNI and storage class) on a random control plane node
 - hosts:
