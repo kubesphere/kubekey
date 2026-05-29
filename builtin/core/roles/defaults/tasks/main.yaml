@@ -62,7 +62,7 @@
     - name: Defaults | Normalize installed etcd version
       set_fact:
         etcd_installed_version: >-
-          {{- $versionOutput := .etcd_install_version.stdout | default "" | toYaml -}}
+          {{- $versionOutput := .etcd_install_version.stdout | default "" -}}
           {{- $versionOutput | regexFind "etcd Version:[[:space:]]*[0-9]+\\.[0-9]+\\.[0-9]+" | trimPrefix "etcd Version: " | trim -}}
 
 - name: Defaults | Align target etcd version with installed cluster version
