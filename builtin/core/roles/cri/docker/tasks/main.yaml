@@ -1,9 +1,4 @@
 ---
-# Docker | Install cri-dockerd if required for Kubernetes >= v1.24.0
-- include_tasks: cridockerd.yaml
-  when:
-    - .kubernetes.kube_version | semverCompare ">=v1.24.0"
-
 # sync docker binary
 - name: Docker | Sync Docker binaries
   block:
@@ -72,3 +67,8 @@
   command: |
     systemctl daemon-reload && systemctl restart containerd.service && systemctl enable containerd.service
     systemctl daemon-reload && systemctl restart docker.service && systemctl enable docker.service
+
+# Docker | Install cri-dockerd if required for Kubernetes >= v1.24.0
+- include_tasks: cridockerd.yaml
+  when:
+    - .kubernetes.kube_version | semverCompare ">=v1.24.0"
