@@ -45,20 +45,48 @@
           {{ .image_registry.auth.key_file }}
         dest: >-
           /etc/docker/certs.d/{{ .image_registry.auth.registry | splitList "/" | first }}/client.key
+    - name: Docker | Copy image registry CA certificate to the remote node
+      when: .image_registry.auth.ca_file | fileExists
+      copy:
+        src: >-
+          {{ .image_registry.auth.ca_file }}
+        dest: >-
+          /etc/containerd/certs.d/{{ .image_registry.auth.registry | splitList "/" | first }}/ca.crt
+    - name: Docker | Copy image registry server certificate to the remote node
+      when:
+      - .image_registry.auth.cert_file | fileExists
+      copy:
+        src: >-
+          {{ .image_registry.auth.cert_file }}
+        dest: >-
+          /etc/containerd/certs.d/{{ .image_registry.auth.registry | splitList "/" | first }}/server.crt
+    - name: Docker | Copy image registry server key to the remote node
+      when:
+      - .image_registry.auth.key_file | fileExists
+      copy:
+        src: >-
+          {{ .image_registry.auth.key_file }}
+        dest: >-
+          /etc/containerd/certs.d/{{ .image_registry.auth.registry | splitList "/" | first }}/server.key
 
 # install or update docker service
 - name: Docker | Generate Docker configuration file
-  when: or .upgrade.cri ("/etc/docker/daemon.json" | fileExists | not)
+  when: or .upgrade.cri (or (.docker_install_version.error | empty | not) (.docker_install_version.stdout | hasPrefix (printf "Docker version %s," .cri.docker_version) | not))
   template:
     src: daemon.json
     dest: /etc/docker/daemon.json
 - name: Docker | Deploy the Docker systemd service file
-  when: or .upgrade.cri ("/etc/systemd/system/docker.service" | fileExists | not)
+  when: or .upgrade.cri (or (.docker_install_version.error | empty | not) (.docker_install_version.stdout | hasPrefix (printf "Docker version %s," .cri.docker_version) | not))
   copy:
     src: docker.service
     dest: /etc/systemd/system/docker.service
+- name: Containerd | Generate the containerd configuration file
+  when: or .upgrade.cri (or (.docker_install_version.error | empty | not) (.docker_install_version.stdout | hasPrefix (printf "Docker version %s," .cri.docker_version) | not))
+  template:
+    src: config.toml
+    dest: /etc/containerd/config.toml
 - name: Docker | Deploy the containerd systemd service file
-  when: or .upgrade.cri ("/etc/systemd/system/containerd.service" | fileExists | not)
+  when: or .upgrade.cri (or (.docker_install_version.error | empty | not) (.docker_install_version.stdout | hasPrefix (printf "Docker version %s," .cri.docker_version) | not))
   copy:
     src: containerd.service
     dest: /etc/systemd/system/containerd.service

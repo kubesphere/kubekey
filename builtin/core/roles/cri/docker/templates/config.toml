@@ -1,0 +1,99 @@
+version = 2
+
+root = "{{ .cri.containerd.data_root | default "/var/lib/containerd" }}"
+state = "/run/containerd"
+
+[grpc]
+  address = "/run/containerd/containerd.sock"
+  uid = 0
+  gid = 0
+  max_recv_message_size = 16777216
+  max_send_message_size = 16777216
+
+[ttrpc]
+  address = ""
+  uid = 0
+  gid = 0
+
+[debug]
+  address = ""
+  uid = 0
+  gid = 0
+  level = ""
+
+[metrics]
+  address = ""
+  grpc_histogram = false
+
+[cgroup]
+  path = ""
+
+[timeouts]
+  "io.containerd.timeout.shim.cleanup" = "5s"
+  "io.containerd.timeout.shim.load" = "5s"
+  "io.containerd.timeout.shim.shutdown" = "3s"
+  "io.containerd.timeout.task.state" = "2s"
+
+[plugins]
+  [plugins."io.containerd.grpc.v1.cri"]
+    {{- if .kubernetes.sandbox_image.tag | empty | not }}
+    sandbox_image = "{{ .kubernetes.sandbox_image.registry }}/{{ .kubernetes.sandbox_image.repository }}:{{ .kubernetes.sandbox_image.tag }}"
+    {{- end }}
+    [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc]
+      runtime_type = "io.containerd.runc.v2"
+      [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]
+        SystemdCgroup = {{ if .cri.cgroup_driver | eq "systemd" }}true{{ else }}false{{ end }}
+    [plugins."io.containerd.grpc.v1.cri".cni]
+      bin_dir = "/opt/cni/bin"
+      conf_dir = "/etc/cni/net.d"
+      max_conf_num = 1
+      conf_template = ""
+    [plugins."io.containerd.grpc.v1.cri".registry]
+      [plugins."io.containerd.grpc.v1.cri".registry.mirrors]
+{{- if .cri.registry.mirrors | empty | not }}
+        [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
+          endpoint = {{ .cri.registry.mirrors | toJson }}
+{{- end }}
+{{- range .cri.registry.insecure_registries }}
+        [plugins."io.containerd.grpc.v1.cri".registry.mirrors."{{ . }}"]
+          endpoint = ["http://{{ . }}"]
+{{- end }}
+{{- if or (.cri.registry.auths | empty | not) (.groups.image_registry | default list | empty | not) }}
+        [plugins."io.containerd.grpc.v1.cri".registry.configs]
+{{- end }}
+{{- if and (.image_registry.auth.registry | empty | not) (ne (.image_registry.auth.registry | splitList "/" | first) "hub.kubesphere.com.cn") }}
+  {{- $registry_parts := .image_registry.auth.registry | splitList "/" | first }}
+          [plugins."io.containerd.grpc.v1.cri".registry.configs."{{ $registry_parts }}".auth]
+            username = "{{ .image_registry.auth.username }}"
+            password = "{{ .image_registry.auth.password }}"
+          [plugins."io.containerd.grpc.v1.cri".registry.configs."{{ $registry_parts }}".tls]
+  {{- if printf "/etc/containerd/certs.d/%s/ca.crt" $registry_parts | fileExists }}
+            ca_file = "/etc/containerd/certs.d/{{ $registry_parts }}/ca.crt"
+  {{- end }}
+  {{- if printf "/etc/containerd/certs.d/%s/server.crt" $registry_parts | fileExists }}
+            cert_file = "/etc/containerd/certs.d/{{ $registry_parts }}/server.crt"
+  {{- end }}
+  {{- if printf "/etc/containerd/certs.d/%s/server.key" $registry_parts | fileExists }}
+            key_file = "/etc/containerd/certs.d/{{ $registry_parts }}/server.key"
+  {{- end }}
+            insecure_skip_verify = {{ hasKey .image_registry.auth "skip_tls_verify" | ternary .image_registry.auth.skip_tls_verify true }}
+{{- end }}
+{{- if .cri.registry.auths | empty | not }}
+  {{- range .cri.registry.auths }}
+    {{- $parts := .registry | splitList "/" | first }}
+          [plugins."io.containerd.grpc.v1.cri".registry.configs."{{ $parts }}".auth]
+            username = "{{ .username }}"
+            password = "{{ .password }}"
+          [plugins."io.containerd.grpc.v1.cri".registry.configs."{{ $parts }}".tls]
+    {{- if .ca_file }}
+            ca_file = {{ .ca_file }}
+    {{- end }}
+    {{- if .cert_file }}
+            cert_file = {{ .cert_file }}
+    {{- end }}
+    {{- if .key_file }}
+            key_file = {{ .key_file }}
+    {{- end }}
+            insecure_skip_verify = {{ hasKey . "skip_tls_verify" | ternary .skip_tls_verify true }}
+  {{- end }}
+{{- end }}
