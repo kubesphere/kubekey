@@ -52,22 +52,22 @@
           {{ .image_registry.auth.ca_file }}
         dest: >-
           /etc/containerd/certs.d/{{ .image_registry.auth.registry | splitList "/" | first }}/ca.crt
-    - name: Docker | Copy image registry server certificate to the remote node
+    - name: Docker | Copy image registry client certificate to the remote node
       when:
       - .image_registry.auth.cert_file | fileExists
       copy:
         src: >-
           {{ .image_registry.auth.cert_file }}
         dest: >-
-          /etc/containerd/certs.d/{{ .image_registry.auth.registry | splitList "/" | first }}/server.crt
-    - name: Docker | Copy image registry server key to the remote node
+          /etc/containerd/certs.d/{{ .image_registry.auth.registry | splitList "/" | first }}/client.crt
+    - name: Docker | Copy image registry client key to the remote node
       when:
       - .image_registry.auth.key_file | fileExists
       copy:
         src: >-
           {{ .image_registry.auth.key_file }}
         dest: >-
-          /etc/containerd/certs.d/{{ .image_registry.auth.registry | splitList "/" | first }}/server.key
+          /etc/containerd/certs.d/{{ .image_registry.auth.registry | splitList "/" | first }}/client.key
 
 # install or update docker service
 - name: Docker | Generate Docker configuration file
@@ -99,4 +99,5 @@
 # Docker | Install cri-dockerd if required for Kubernetes >= v1.24.0
 - include_tasks: cridockerd.yaml
   when:
+    - .cri.container_manager | eq "docker"
     - .kubernetes.kube_version | semverCompare ">=v1.24.0"
