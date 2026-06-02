@@ -13,6 +13,8 @@
 # |
 # |- image_registry.cert
 # |- image_registry.key
+# |- image-registry-client.cert
+# |- image-registry-client.key
 # |
 # |- kubernetes.cert
 # |- kubernetes.key

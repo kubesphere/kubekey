@@ -145,6 +145,9 @@ type imageAuth struct {
 	Password      string `json:"password"`
 	SkipTLSVerify *bool  `json:"skip_tls_verify"`
 	PlainHTTP     *bool  `json:"plain_http"`
+	CaFile        string `json:"ca_file"`
+	CertFile      string `json:"cert_file"`
+	KeyFile       string `json:"key_file"`
 }
 
 // imageArgs holds the configuration for image operations using the new format (src/dest/manifests).

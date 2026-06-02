@@ -39,22 +39,22 @@
           {{ .image_registry.auth.ca_file }}
         dest: >-
           /etc/containerd/certs.d/{{ .image_registry.auth.registry | splitList "/" | first }}/ca.crt
-    - name: Containerd | Copy image registry server certificate to the remote node
+    - name: Containerd | Copy image registry client certificate to the remote node
       when:
       - .image_registry.auth.cert_file | fileExists
       copy:
         src: >-
           {{ .image_registry.auth.cert_file }}
         dest: >-
-          /etc/containerd/certs.d/{{ .image_registry.auth.registry | splitList "/" | first }}/server.crt
-    - name: Containerd | Copy image registry server key to the remote node
+          /etc/containerd/certs.d/{{ .image_registry.auth.registry | splitList "/" | first }}/client.crt
+    - name: Containerd | Copy image registry client key to the remote node
       when:
       - .image_registry.auth.key_file | fileExists
       copy:
         src: >-
           {{ .image_registry.auth.key_file }}
         dest: >-
-          /etc/containerd/certs.d/{{ .image_registry.auth.registry | splitList "/" | first }}/server.key
+          /etc/containerd/certs.d/{{ .image_registry.auth.registry | splitList "/" | first }}/client.key
 
 - name: Containerd | Generate the containerd configuration file
   when: or .upgrade.cri (or (.containerd_install_version.error | empty | not) (.containerd_install_version.stdout | contains (printf " %s " .cri.containerd_version) | not))

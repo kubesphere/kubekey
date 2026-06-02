@@ -70,11 +70,11 @@ state = "/run/containerd"
   {{- if printf "/etc/containerd/certs.d/%s/ca.crt" $registry_parts | fileExists }}
             ca_file = "/etc/containerd/certs.d/{{ $registry_parts }}/ca.crt"
   {{- end }}
-  {{- if printf "/etc/containerd/certs.d/%s/server.crt" $registry_parts | fileExists }}
-            cert_file = "/etc/containerd/certs.d/{{ $registry_parts }}/server.crt"
+  {{- if printf "/etc/containerd/certs.d/%s/client.crt" $registry_parts | fileExists }}
+            cert_file = "/etc/containerd/certs.d/{{ $registry_parts }}/client.crt"
   {{- end }}
-  {{- if printf "/etc/containerd/certs.d/%s/server.key" $registry_parts | fileExists }}
-            key_file = "/etc/containerd/certs.d/{{ $registry_parts }}/server.key"
+  {{- if printf "/etc/containerd/certs.d/%s/client.key" $registry_parts | fileExists }}
+            key_file = "/etc/containerd/certs.d/{{ $registry_parts }}/client.key"
   {{- end }}
             insecure_skip_verify = {{ hasKey .image_registry.auth "skip_tls_verify" | ternary .image_registry.auth.skip_tls_verify true }}
 {{- end }}

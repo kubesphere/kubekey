@@ -125,6 +125,22 @@
       {{ .binary_dir }}/pki/image_registry.crt
   when: .groups.image_registry | default list | empty | not
 
+- name: Cert | Generate the image registry client certificate file
+  tags: ["image_registry"]
+  when: .groups.image_registry | default list | empty | not
+  gen_cert:
+    root_key: >-
+      {{ .binary_dir }}/pki/root.key
+    root_cert: >-
+      {{ .binary_dir }}/pki/root.crt
+    cn: image-registry-client
+    date: "{{ .certs.image_registry.date }}"
+    policy: "{{ .certs.image_registry.gen_cert_policy }}"
+    out_key: >-
+      {{ .binary_dir }}/pki/image-registry-client.key
+    out_cert: >-
+      {{ .binary_dir }}/pki/image-registry-client.crt
+
 - name: Cert | Set ownership of the PKI directory to the sudo user
   block:
     - name: Cert | Change ownership of the PKI directory to the sudo user

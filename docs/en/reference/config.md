@@ -229,6 +229,8 @@ cluster_require:
 # |
 # |- image_registry.cert
 # |- image_registry.key
+# |- image-registry-client.cert
+# |- image-registry-client.key
 # |
 # |- kubernetes.cert
 # |- kubernetes.key
@@ -333,11 +335,11 @@ image_registry:
       {{- end -}}
     cert_file: >-
       {{- if .groups.image_registry | default list | empty | not -}}
-      {{ .binary_dir }}/pki/image_registry.crt
+      {{ .binary_dir }}/pki/image-registry-client.crt
       {{- end -}}
     key_file: >-
       {{- if .groups.image_registry | default list | empty | not -}}
-      {{ .binary_dir }}/pki/image_registry.key
+      {{ .binary_dir }}/pki/image-registry-client.key
       {{- end -}}
   # Registry endpoint for images from docker.io
   dockerio_registry: >-
