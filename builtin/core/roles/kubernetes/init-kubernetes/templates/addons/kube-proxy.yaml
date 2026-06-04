@@ -13,7 +13,7 @@ data:
     clusters:
     - cluster:
         certificate-authority: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-        server: {{ .kubernetes.control_plane_endpoint.host }}:{{ .kubernetes.control_plane_endpoint.port }}
+        server: https://{{ .kubernetes.control_plane_endpoint.host }}:{{ .kubernetes.control_plane_endpoint.port }}
       name: default
     contexts:
     - context:
@@ -30,6 +30,8 @@ data:
     apiVersion: kubeproxy.config.k8s.io/v1alpha1
     kind: KubeProxyConfiguration
     clusterCIDR: {{ .cni.pod_cidr }}
+    clientConnection:
+      kubeconfig: /var/lib/kube-proxy/kubeconfig.conf
     mode: {{ .kubernetes.kube_proxy.mode }}
     {{- if .kubernetes.kube_proxy.config | empty | not }}
 {{ .kubernetes.kube_proxy.config | toYaml | indent 4 }}
