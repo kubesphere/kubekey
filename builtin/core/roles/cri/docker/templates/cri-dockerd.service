@@ -4,7 +4,7 @@ Documentation=https://docs.mirantis.com
 
 [Service]
 Type=notify
-ExecStart=/usr/local/bin/cri-dockerd --pod-infra-container-image "{{ .kubernetes.sandbox_image.registry }}/{{ .kubernetes.sandbox_image.repository }}:{{ .kubernetes.sandbox_image.tag }}"
+ExecStart=/usr/local/bin/cri-dockerd --pod-infra-container-image "{{ .kubernetes.sandbox_image.registry }}/{{ .kubernetes.sandbox_image.repository }}:{{ .kubernetes.sandbox_image.tag }}"{{if .cni.ipv6_support }} --ipv6-dual-stack{{ end }}
 ExecReload=/bin/kill -s HUP $MAINPID
 TimeoutSec=0
 RestartSec=2
