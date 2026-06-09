@@ -8,6 +8,11 @@
     systemctl daemon-reload
     systemctl reset-failed containerd.service
 
+- name: Containerd | Terminate residual runtime shim processes
+  ignore_errors: true
+  command: |
+    pgrep -f "containerd-shim" | xargs -r kill -9
+
 - name: Containerd | Remove all containerd-related files and binaries
   command: |
     rm -rf {{ .cri.containerd.data_root }}

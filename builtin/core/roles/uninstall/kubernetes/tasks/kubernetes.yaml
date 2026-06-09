@@ -14,6 +14,11 @@
     systemctl daemon-reload
     systemctl reset-failed kubelet.service
 
+- name: Kubernetes | Terminate residual control plane and kubelet processes
+  ignore_errors: true
+  command: |
+    pgrep -f "kube-apiserver|kube-controller-manager|kube-scheduler|kubelet" | xargs -r kill -9
+
 - name: Kubernetes | Remove all residual Kubernetes files and directories
   command: |
     rm -rf /var/lib/kubelet/
