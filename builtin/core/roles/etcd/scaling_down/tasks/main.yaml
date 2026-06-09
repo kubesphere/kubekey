@@ -44,7 +44,7 @@
             echo "Member successfully removed from the cluster."
             break
           fi
-
+        
           sleep 2
         done
 

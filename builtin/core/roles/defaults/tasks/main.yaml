@@ -60,12 +60,6 @@
       register: etcd_install_version
       register_type: yaml
 
-    - name: Defaults | Normalize installed etcd version
-      set_fact:
-        etcd_installed_version: >-
-          {{- $versionOutput := .etcd_install_version.stdout | default "" -}}
-          {{- $versionOutput | regexFind "etcd Version:[[:space:]]*[0-9]+\\.[0-9]+\\.[0-9]+" | trimPrefix "etcd Version: " | trim -}}
-
 - name: Defaults | Select the initialization node for the cluster
   run_once: true
   add_hostvars:
