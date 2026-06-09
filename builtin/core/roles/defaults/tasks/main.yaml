@@ -43,6 +43,16 @@
       ignore_errors: true
       command: kubelet --version
       register: kubernetes_install_version
+    - name: Defaults | Get installed containerd version
+      ignore_errors: true
+      command: |
+        containerd --version 2>/dev/null | awk '{print $3}' || true
+      register: containerd_current_version
+    - name: Defaults | Get installed docker version
+      ignore_errors: true
+      command: |
+        docker version --format '{{ .Server.Version }}' 2>/dev/null || true
+      register: docker_current_version
 
 - name: Defaults | Gather ETCD service status
   when: .groups.etcd | has .inventory_hostname
