@@ -9,7 +9,6 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -35,7 +34,7 @@ type PlaybookWebhook struct {
 	ctrlclient.Client
 }
 
-var _ admission.CustomDefaulter = &PlaybookWebhook{}
+var _ admission.Defaulter[*kkcorev1.Playbook] = &PlaybookWebhook{}
 var _ options.Controller = &PlaybookWebhook{}
 
 // Name implements controllers.Controller.
@@ -47,18 +46,13 @@ func (w *PlaybookWebhook) Name() string {
 func (w *PlaybookWebhook) SetupWithManager(mgr ctrl.Manager, o options.ControllerManagerServerOptions) error {
 	w.Client = mgr.GetClient()
 
-	return ctrl.NewWebhookManagedBy(mgr).
+	return ctrl.NewWebhookManagedBy(mgr, &kkcorev1.Playbook{}).
 		WithDefaulter(w).
-		For(&kkcorev1.Playbook{}).
 		Complete()
 }
 
-// Default implements admission.CustomDefaulter.
-func (w *PlaybookWebhook) Default(ctx context.Context, obj runtime.Object) error {
-	playbook, ok := obj.(*kkcorev1.Playbook)
-	if !ok {
-		return errors.Errorf("failed to convert %q to playbooks", obj.GetObjectKind().GroupVersionKind().String())
-	}
+// Default implements admission.Defaulter.
+func (w *PlaybookWebhook) Default(ctx context.Context, playbook *kkcorev1.Playbook) error {
 	if playbook.Spec.ServiceAccountName == "" && _const.Getenv(_const.ExecutorClusterRole) != "" {
 		// should create default service account in current namespace
 		if err := w.syncServiceAccount(ctx, playbook, _const.Getenv(_const.ExecutorClusterRole)); err != nil {

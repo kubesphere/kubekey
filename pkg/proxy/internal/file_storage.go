@@ -51,7 +51,6 @@ type fileStore struct {
 	newFunc func() runtime.Object
 }
 
-// Ensure fileStore implements apistorage.Interface
 var _ apistorage.Interface = &fileStore{}
 
 // newFileStorage creates a new local file storage
