@@ -24,7 +24,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -49,7 +49,7 @@ const (
 // PlaybookReconciler reconcile playbook
 type PlaybookReconciler struct {
 	ctrlclient.Client
-	record.EventRecorder
+	events.EventRecorder
 
 	MaxConcurrentReconciles int
 }
@@ -65,7 +65,7 @@ func (r *PlaybookReconciler) Name() string {
 // SetupWithManager implements controllers.controller.
 func (r *PlaybookReconciler) SetupWithManager(mgr manager.Manager, o options.ControllerManagerServerOptions) error {
 	r.Client = mgr.GetClient()
-	r.EventRecorder = mgr.GetEventRecorderFor(r.Name())
+	r.EventRecorder = mgr.GetEventRecorder(r.Name())
 
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(ctrlcontroller.Options{
