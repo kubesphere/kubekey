@@ -103,7 +103,7 @@
       {{- if .image_registry.ha_vip | empty | not -}}
         {{- $ips = append $ips .image_registry.ha_vip -}}
       {{- end -}}
-      {{- if .image_registry.auth.registry | empty | not -}}
+      {{- if and (.image_registry.auth.registry | empty | not) (.image_registry.auth.registry | ne "hub.kubesphere.com.cn") -}}
         {{- $ips = append $ips .image_registry.auth.registry -}}
       {{- end -}}
       {{- range .groups.image_registry | default list -}}
