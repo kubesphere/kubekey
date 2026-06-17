@@ -12,7 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -32,7 +32,7 @@ import (
 // InventoryReconciler reconciles a Inventory object
 type InventoryReconciler struct {
 	ctrlclient.Client
-	record.EventRecorder
+	events.EventRecorder
 }
 
 var _ options.Controller = &InventoryReconciler{}
@@ -59,7 +59,7 @@ func (r *InventoryReconciler) Name() string {
 // SetupWithManager implements controllers.typeController.
 func (r *InventoryReconciler) SetupWithManager(mgr manager.Manager, o options.ControllerManagerServerOptions) error {
 	r.Client = mgr.GetClient()
-	r.EventRecorder = mgr.GetEventRecorderFor(r.Name())
+	r.EventRecorder = mgr.GetEventRecorder(r.Name())
 
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(ctrlcontroller.Options{
