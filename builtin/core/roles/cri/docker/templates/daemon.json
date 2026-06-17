@@ -1,16 +1,8 @@
-{
-  "log-opts": {
-    "max-size": "{{ .kubernetes.kubelet.container_log_max_size | toLowerByteUnit }}",
-    "max-file":"{{ .kubernetes.kubelet.container_log_max_files }}"
-  },
-  "live-restore": true,
-{{- if .cri.docker.data_root }}
-  "data-root": "{{ .cri.docker.data_root }}",
-{{- end }}
+{{- $daemon := .cri.docker.daemon }}
 {{- if .cri.registry.mirrors }}
-  "registry-mirrors": {{ .cri.registry.mirrors | toJson }},
+{{- $_ := set $daemon "registry-mirrors" .cri.registry.mirrors }}
 {{- end }}
-{{- $insecure_registries := .cri.registry.insecure_registries | default list }} 
+{{- $insecure_registries := .cri.registry.insecure_registries | default list }}
 {{- if and .image_registry.auth.skip_tls_verify (.image_registry.auth.registry | empty | not) (ne (.image_registry.auth.registry | splitList "/" | first) "hub.kubesphere.com.cn") }}
   {{- $insecure_registries = append $insecure_registries (.image_registry.auth.registry | splitList "/" | first) }}
 {{- end }}
@@ -19,9 +11,8 @@
     {{- $insecure_registries = append $insecure_registries .registry }}
   {{- end }}
 {{- end }}
-  "insecure-registries": {{ $insecure_registries | toJson }},
- {{- if .cri.docker.bridge_ip }}
-  "bip": "{{ .cri.docker.bridge_ip }}",
+{{- $_ := set $daemon "insecure-registries" $insecure_registries }}
+{{- if .cri.docker.bridge_ip }}
+{{- $_ := set $daemon "bip" .cri.docker.bridge_ip }}
 {{- end }}
-  "exec-opts": ["native.cgroupdriver={{ .cri.cgroup_driver }}"]
-}
+{{ $daemon | toPrettyJson }}

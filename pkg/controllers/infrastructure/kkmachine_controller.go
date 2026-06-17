@@ -16,8 +16,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/events"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
-	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -38,7 +38,7 @@ import (
 // One KKMachine should have one Playbook running in time.
 type KKMachineReconciler struct {
 	ctrlclient.Client
-	record.EventRecorder
+	events.EventRecorder
 	restConfig *rest.Config
 	lockType   string
 }
@@ -59,7 +59,7 @@ func (r *KKMachineReconciler) Name() string {
 // SetupWithManager implements controllers.controller.
 func (r *KKMachineReconciler) SetupWithManager(mgr ctrl.Manager, o options.ControllerManagerServerOptions) error {
 	r.Client = mgr.GetClient()
-	r.EventRecorder = mgr.GetEventRecorderFor(r.Name())
+	r.EventRecorder = mgr.GetEventRecorder(r.Name())
 	r.restConfig = mgr.GetConfig()
 	r.lockType = o.LeaderElectionResourceLock
 	if r.lockType == "" {
@@ -243,7 +243,7 @@ func (r *KKMachineReconciler) reconcileNormal(ctx context.Context, scope *cluste
 			return errors.Wrapf(err, "failed to get playbook %s/%s", scope.Namespace, playbookName)
 		}
 		// the playbook has not found.
-		r.Eventf(kkmachine, corev1.EventTypeWarning, "AddNodeFailed", "add node playbook: %q not found", playbookName)
+		r.Eventf(kkmachine, playbook, corev1.EventTypeWarning, "AddNodeFailed", "add node playbook: %q not found", playbookName)
 
 		return nil
 	}

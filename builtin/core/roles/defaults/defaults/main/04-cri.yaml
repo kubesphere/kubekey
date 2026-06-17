@@ -26,3 +26,58 @@ cri:
     #     ca_cert: /etc/docker/certs.d/docker.io/ca.crt
     #     cert_file: /etc/docker/certs.d/docker.io/cert.crt
     #     key_file: /etc/docker/certs.d/docker.io/key.crt
+
+  docker:
+    daemon:
+      data-root: "{{ .cri.docker.data_root | default \"/var/lib/docker\" }}"
+      log-opts:
+        max-size: "{{ .kubernetes.kubelet.container_log_max_size | default \"5Mi\" | toLowerByteUnit }}"
+        max-file: "{{ .kubernetes.kubelet.container_log_max_files | default 3  | toString | toJson }}"
+      live-restore: true
+      exec-opts:
+        - "native.cgroupdriver={{ .cri.cgroup_driver | default \"systemd\" }}"
+
+  containerd:
+    config:
+      root: >
+        {{ .cri.containerd.data_root | default "/var/lib/containerd" }}
+      version: 2
+      state: "/run/containerd"
+      grpc:
+        address: "/run/containerd/containerd.sock"
+        uid: 0
+        gid: 0
+        max_recv_message_size: 16777216
+        max_send_message_size: 16777216
+      ttrpc:
+        address: ""
+        uid: 0
+        gid: 0
+      debug:
+        address: ""
+        uid: 0
+        gid: 0
+        level: ""
+      metrics:
+        address: ""
+        grpc_histogram: false
+      cgroup:
+        path: ""
+      timeouts:
+        "io.containerd.timeout.shim.cleanup": "5s"
+        "io.containerd.timeout.shim.load": "5s"
+        "io.containerd.timeout.shim.shutdown": "3s"
+        "io.containerd.timeout.task.state": "2s"
+      plugins:
+        "io.containerd.grpc.v1.cri":
+          containerd:
+            runtimes:
+              runc:
+                runtime_type: "io.containerd.runc.v2"
+                options:
+                  SystemdCgroup: "{{ .cri.cgroup_driver | eq \"systemd\" }}"
+          cni:
+            bin_dir: "/opt/cni/bin"
+            conf_dir: "/etc/cni/net.d"
+            max_conf_num: 1
+            conf_template: ""
