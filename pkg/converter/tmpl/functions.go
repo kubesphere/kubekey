@@ -31,6 +31,7 @@ func funcMap() template.FuncMap {
 	f["fromYaml"] = fromYAML
 	f["ipInCIDR"] = ipInCIDR
 	f["ipFamily"] = ipFamily
+	f["isIP"] = isIP
 	f["pow"] = pow
 	f["subtractList"] = subtractList
 	f["fileExists"] = fileExists
@@ -161,6 +162,25 @@ func ipFamily(addrOrCIDR string) (string, error) {
 	}
 
 	return "IPv6", nil
+}
+
+// isIP reports whether the given address is an IP address.
+// It accepts bare IPs ("192.168.1.1", "2001:db8::1"), host:port forms
+// ("192.168.1.1:5000", "[2001:db8::1]:5000"), and bracketed IPv6 ("[2001:db8::1]").
+func isIP(addr string) bool {
+	if addr == "" {
+		return false
+	}
+
+	host, _, err := net.SplitHostPort(addr)
+	if err != nil {
+		host = addr
+	}
+	if strings.HasPrefix(host, "[") && strings.HasSuffix(host, "]") {
+		host = host[1 : len(host)-1]
+	}
+
+	return net.ParseIP(host) != nil
 }
 
 // pow Get the "pow" power of "base". (base ** pow)
