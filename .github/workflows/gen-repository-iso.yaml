@@ -13,7 +13,7 @@ jobs:
     if: github.repository == 'kubesphere/kubekey' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Check or update iso-latest tag
         shell: bash
@@ -65,7 +65,7 @@ jobs:
             dockerfile: dockerfile.ubuntu2404
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: iso-latest
           fetch-depth: 0
@@ -128,7 +128,7 @@ jobs:
     if: github.repository == 'kubesphere/kubekey'
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: iso-latest
           fetch-depth: 0
