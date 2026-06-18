@@ -11,6 +11,7 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/BurntSushi/toml"
 	"github.com/Masterminds/sprig/v3"
 	"github.com/cockroachdb/errors"
 	"gopkg.in/yaml.v3"
@@ -39,6 +40,7 @@ func funcMap() template.FuncMap {
 	f["getStringSlice"] = getStringSlice
 	f["toLowerByteUnit"] = toLowerByteUnit
 	f["mapToNamedStringArgs"] = mapToNamedStringArgs
+	f["toToml"] = toTOML
 
 	return f
 }
@@ -131,6 +133,20 @@ func fromYAML(v string) (any, error) {
 	err := yaml.Unmarshal([]byte(v), &output)
 
 	return output, err
+}
+
+// toTOML takes an interface, marshals it to toml, and returns a string. It will
+// always return a string, even on marshal error (empty string).
+//
+// This is designed to be called from a template.
+func toTOML(v any) string {
+	var buf strings.Builder
+	if err := toml.NewEncoder(&buf).Encode(v); err != nil {
+		// Swallow errors inside of a template.
+		return ""
+	}
+
+	return buf.String()
 }
 
 // ipInCIDR takes a comma-separated list of CIDR strings, parses each one to extract IPs using parseIP,

@@ -1,3 +1,0 @@
-cri:
-  containerd:
-    data_root: /var/lib/containerd
