@@ -39,8 +39,7 @@ cri:
 
   containerd:
     config:
-      root: >
-        {{ .cri.containerd.data_root | default "/var/lib/containerd" }}
+      root: "{{ .cri.containerd.data_root | default \"/var/lib/containerd\" }}"
       version: 2
       state: "/run/containerd"
       grpc:

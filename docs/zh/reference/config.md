@@ -758,8 +758,7 @@ cri:
   containerd:
     config:
       # containerd 数据根目录
-      root: >
-        {{ .cri.containerd.data_root | default "/var/lib/containerd" }}
+      root: "{{ .cri.containerd.data_root | default \"/var/lib/containerd\" }}"
       # containerd 配置文件版本
       version: 2
       # containerd 运行状态目录
