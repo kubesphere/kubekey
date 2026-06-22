@@ -14,7 +14,7 @@ require (
 	github.com/go-git/go-git/v5 v5.19.1
 	github.com/go-openapi/spec v0.22.3
 	github.com/google/go-cmp v0.7.0
-	github.com/google/gops v0.3.28
+	github.com/google/gops v0.3.29
 	github.com/kubesphere/kubekey/api v0.0.0-00010101000000-000000000000
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.1
