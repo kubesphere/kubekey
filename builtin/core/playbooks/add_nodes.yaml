@@ -96,3 +96,16 @@
         - or (.add_nodes | default list | empty) (.add_nodes | default list | has .inventory_hostname)
         - .groups.kube_control_plane | default list | has .inventory_hostname
         - .kubernetes.certs.renew
+  post_tasks:
+    - name: Add custom labels to the cluster nodes
+      delegate_to: "{{ .init_kubernetes_node }}"
+      when: .kubernetes.custom_labels | empty | not
+      command: >-
+        /usr/local/bin/kubectl label --overwrite node {{ $.hostname }}
+        {{- range $k, $v := .kubernetes.custom_labels }} {{ $k }}={{ $v }}{{- end }}
+    - name: Add custom taint to the cluster nodes
+      delegate_to: "{{ .init_kubernetes_node }}"
+      when: .kubernetes.custom_taints | default list | empty | not
+      command: >-
+        /usr/local/bin/kubectl taint --overwrite nodes {{ $.hostname }}
+        {{- range .kubernetes.custom_taints }} {{ . }}{{- end }}

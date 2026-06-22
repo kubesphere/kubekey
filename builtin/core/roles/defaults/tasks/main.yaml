@@ -50,6 +50,7 @@
     - name: Defaults | Get etcd.service LoadState and save to variable
       command: systemctl show etcd.service -p LoadState --value
       register: etcd_install_LoadState
+    # TODO: etcd_install_ActiveState has no consumers anywhere in the codebase; it can be removed once confirmed unnecessary.
     - name: Defaults | Get etcd.service ActiveState and save to variable
       command: systemctl show etcd.service -p ActiveState --value
       register: etcd_install_ActiveState

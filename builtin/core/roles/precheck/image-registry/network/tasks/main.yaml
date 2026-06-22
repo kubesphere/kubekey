@@ -38,7 +38,7 @@
   when: .cert_check_input_cert_result.stdout | eq "false"
   register: cert_check_self_cert_result
   command: |
-    if /etc/kubekey/scripts/check.sh {{ .image_registry.auth.registry | splitList "/" | first }} --ca-file {{ .binary_dir }}/pki/root.crt --cert-file {{ .binary_dir }}/pki/image_registry.crt --key-file {{ .binary_dir }}/pki/image_registry.key ; then
+    if /etc/kubekey/scripts/check.sh {{ .image_registry.auth.registry | splitList "/" | first }} --ca-file {{ .binary_dir }}/pki/root.crt --cert-file {{ .binary_dir }}/pki/image-registry-client.crt --key-file {{ .binary_dir }}/pki/image-registry-client.key ; then
         echo "true"
     else
         echo "false"
@@ -53,5 +53,5 @@
       image_registry:
         auth:
           ca_file: "{{ .binary_dir }}/pki/root.crt"
-          cert_file: "{{ .binary_dir }}/pki/image_registry.crt"
-          key_file: "{{ .binary_dir }}/pki/image_registry.key"
+          cert_file: "{{ .binary_dir }}/pki/image-registry-client.crt"
+          key_file: "{{ .binary_dir }}/pki/image-registry-client.key"

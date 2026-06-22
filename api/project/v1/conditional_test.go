@@ -18,7 +18,7 @@ func TestUnmarshalWhen(t *testing.T) {
 			content: `
 when: .a | eq "b"`,
 			except: []string{
-				".a | eq \"b\"",
+				"{{.a | eq \"b\"}}",
 			},
 		},
 		{
@@ -28,8 +28,8 @@ when:
   - .a | eq "b"
   - .b | ne "c"`,
 			except: []string{
-				".a | eq \"b\"",
-				".b | ne \"c\"",
+				"{{.a | eq \"b\"}}",
+				"{{.b | ne \"c\"}}",
 			},
 		},
 	}

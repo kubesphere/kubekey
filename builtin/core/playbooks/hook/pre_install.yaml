@@ -26,10 +26,8 @@
 
     - name: Pre | Execute pre-installation scripts on remote hosts
       command: |
-        for file in /etc/kubekey/scripts/pre_install_*.sh; do
-          if [ -f "$file" ]; then
-            # Make the script executable and run it
-            chmod +x "$file"
-            "$file"
-          fi
+        find /etc/kubekey/scripts -maxdepth 1 -type f -name 'pre_install_*.sh' | sort | while IFS= read -r file; do
+          # Make the script executable and run it
+          chmod +x "$file"
+          "$file"
         done

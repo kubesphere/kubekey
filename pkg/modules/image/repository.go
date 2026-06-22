@@ -13,6 +13,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/hex"
 	"encoding/json"
 	"io"
@@ -80,12 +81,38 @@ func newRemoteRepository(reference string, auths []imageAuth) (*remote.Repositor
 		}
 	}
 
+	tlsConfig := &tls.Config{
+		InsecureSkipVerify: skipTLSVerify,
+	}
+
+	if matchedAuth != nil {
+		// Load CA certificate
+		if matchedAuth.CaFile != "" {
+			caCert, err := os.ReadFile(matchedAuth.CaFile)
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed to read CA file %q", matchedAuth.CaFile)
+			}
+			caCertPool := x509.NewCertPool()
+			if !caCertPool.AppendCertsFromPEM(caCert) {
+				return nil, errors.Errorf("failed to append CA certificate from %q", matchedAuth.CaFile)
+			}
+			tlsConfig.RootCAs = caCertPool
+		}
+
+		// Load client certificate for mTLS
+		if matchedAuth.CertFile != "" && matchedAuth.KeyFile != "" {
+			cert, err := tls.LoadX509KeyPair(matchedAuth.CertFile, matchedAuth.KeyFile)
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed to load client certificate from %q and %q", matchedAuth.CertFile, matchedAuth.KeyFile)
+			}
+			tlsConfig.Certificates = []tls.Certificate{cert}
+		}
+	}
+
 	repository.Client = &auth.Client{
 		Client: &http.Client{
 			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: skipTLSVerify,
-				},
+				TLSClientConfig: tlsConfig,
 			},
 		},
 		Cache: auth.NewCache(),

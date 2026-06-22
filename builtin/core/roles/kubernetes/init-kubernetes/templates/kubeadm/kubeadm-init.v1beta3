@@ -23,7 +23,7 @@ etcd:
       - {{ printf "https://%s:%d" $internalIPv4 $.etcd.port }}
         {{- end }}
         {{- if $internalIPv6 | empty | not }}
-      - https://{{ printf "https://[%s]:%d" $internalIPv6 $.etcd.port }}
+      - {{ printf "https://[%s]:%d" $internalIPv6 $.etcd.port }}
         {{- end }}
       {{- end }}
     {{- end }}

@@ -227,6 +227,8 @@ cluster_require:
 # |
 # |- image_registry.cert
 # |- image_registry.key
+# |- image-registry-client.cert
+# |- image-registry-client.key
 # |
 # |- kubernetes.cert
 # |- kubernetes.key
@@ -331,11 +333,11 @@ image_registry:
       {{- end -}}
     cert_file: >-
       {{- if .groups.image_registry | default list | empty | not -}}
-      {{ .binary_dir }}/pki/image_registry.crt
+      {{ .binary_dir }}/pki/image-registry-client.crt
       {{- end -}}
     key_file: >-
       {{- if .groups.image_registry | default list | empty | not -}}
-      {{ .binary_dir }}/pki/image_registry.key
+      {{ .binary_dir }}/pki/image-registry-client.key
       {{- end -}}
   # docker.io 来源镜像所使用的镜像仓库端点
   dockerio_registry: >-
@@ -734,6 +736,72 @@ cri:
     #     cert_file: /etc/docker/certs.d/docker.io/cert.crt
     #     key_file: /etc/docker/certs.d/docker.io/key.crt
 
+  # Docker 配置
+  docker:
+    # Docker daemon 配置
+    daemon:
+      # Docker 数据根目录
+      data-root: "{{ .cri.docker.data_root | default \"/var/lib/docker\" }}"
+      # 容器日志配置
+      log-opts:
+        # 单个日志文件最大大小
+        max-size: "{{ .kubernetes.kubelet.container_log_max_size | default \"5Mi\" | toLowerByteUnit }}"
+        # 保留的日志文件数量
+        max-file: "{{ .kubernetes.kubelet.container_log_max_files | default 3  | toString | toJson }}"
+      # 是否启用 live-restore
+      live-restore: true
+      # 容器 exec 选项
+      exec-opts:
+        - "native.cgroupdriver={{ .cri.cgroup_driver | default \"systemd\" }}"
+
+  # containerd 配置
+  containerd:
+    config:
+      # containerd 数据根目录
+      root: "{{ .cri.containerd.data_root | default \"/var/lib/containerd\" }}"
+      # containerd 配置文件版本
+      version: 2
+      # containerd 运行状态目录
+      state: "/run/containerd"
+      grpc:
+        address: "/run/containerd/containerd.sock"
+        uid: 0
+        gid: 0
+        max_recv_message_size: 16777216
+        max_send_message_size: 16777216
+      ttrpc:
+        address: ""
+        uid: 0
+        gid: 0
+      debug:
+        address: ""
+        uid: 0
+        gid: 0
+        level: ""
+      metrics:
+        address: ""
+        grpc_histogram: false
+      cgroup:
+        path: ""
+      timeouts:
+        "io.containerd.timeout.shim.cleanup": "5s"
+        "io.containerd.timeout.shim.load": "5s"
+        "io.containerd.timeout.shim.shutdown": "3s"
+        "io.containerd.timeout.task.state": "2s"
+      plugins:
+        "io.containerd.grpc.v1.cri":
+          containerd:
+            runtimes:
+              runc:
+                runtime_type: "io.containerd.runc.v2"
+                options:
+                  SystemdCgroup: "{{ .cri.cgroup_driver | eq \"systemd\" }}"
+          cni:
+            bin_dir: "/opt/cni/bin"
+            conf_dir: "/etc/cni/net.d"
+            max_conf_num: 1
+            conf_template: ""
+
 ```
 
 ### 参数说明
@@ -746,6 +814,30 @@ cri:
 | `cri.registry.mirrors` | 镜像加速地址，可配置国内镜像源以提高拉取速度。 |
 | `cri.registry.insecure_registries` | 允许使用 HTTP（非 HTTPS）访问的镜像仓库地址列表。 |
 | `cri.registry.auths` | 私有镜像仓库的认证信息列表，包含用户名、密码及可选的 TLS 证书配置。 |
+| `cri.docker.daemon` | Docker daemon 配置项，映射为 `/etc/docker/daemon.json`。 |
+| `cri.docker.daemon.data-root` | Docker 数据根目录。 |
+| `cri.docker.daemon.log-opts.max-size` | 单个容器日志文件的最大大小。 |
+| `cri.docker.daemon.log-opts.max-file` | 保留的旧容器日志文件数量。 |
+| `cri.docker.daemon.live-restore` | 是否启用 Docker live-restore。 |
+| `cri.docker.daemon.exec-opts` | Docker exec 选项列表，例如 cgroup 驱动。 |
+| `cri.containerd.config` | containerd 配置，映射为 `/etc/containerd/config.toml`。 |
+| `cri.containerd.config.root` | containerd 数据持久化根目录。 |
+| `cri.containerd.config.version` | containerd 配置文件版本。 |
+| `cri.containerd.config.state` | containerd 运行状态目录。 |
+| `cri.containerd.config.grpc.address` | containerd gRPC socket 地址。 |
+| `cri.containerd.config.grpc.uid` | containerd gRPC socket 属主 UID。 |
+| `cri.containerd.config.grpc.gid` | containerd gRPC socket 属主 GID。 |
+| `cri.containerd.config.grpc.max_recv_message_size` | containerd gRPC 最大接收消息大小。 |
+| `cri.containerd.config.grpc.max_send_message_size` | containerd gRPC 最大发送消息大小。 |
+| `cri.containerd.config.ttrpc` | containerd TTRPC 配置。 |
+| `cri.containerd.config.debug` | containerd 调试配置。 |
+| `cri.containerd.config.metrics` | containerd metrics 配置。 |
+| `cri.containerd.config.cgroup` | containerd cgroup 配置。 |
+| `cri.containerd.config.timeouts` | containerd 各操作超时时间。 |
+| `cri.containerd.config.plugins` | containerd CRI 插件配置，包含运行时与 CNI 设置。 |
+| `cri.containerd.config.plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.runtime_type` | runc 运行时类型。 |
+| `cri.containerd.config.plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options.SystemdCgroup` | runc 是否使用 systemd cgroup。 |
+| `cri.containerd.config.plugins."io.containerd.grpc.v1.cri".cni` | CNI 插件配置，包括二进制目录、配置目录等。 |
 
 ---
 

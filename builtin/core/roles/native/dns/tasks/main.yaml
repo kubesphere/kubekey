@@ -37,17 +37,22 @@
       {{- end }}
     {{- end }}
     # kubekey image_registry control_plane_endpoint BEGIN
+    {{- if .image_registry.type | empty | not }}
+    {{- $registryHost := .image_registry.auth.registry | splitList "/" | first }}
+    {{- if and ($registryHost | empty | not) ($registryHost | isIP | not) }}
     {{- if and (.image_registry.auth.registry | empty | not) (.image_registry.ha_vip | empty | not) }}
-    {{ .image_registry.ha_vip }} {{ .image_registry.auth.registry | splitList "/" | first }}
+    {{ .image_registry.ha_vip }} {{ $registryHost }}
     {{- else }}
       {{- if .groups.image_registry | empty | not }}
         {{- if (index .hostvars (.groups.image_registry | first) "internal_ipv4") | empty | not }}
-    {{ index .hostvars (.groups.image_registry | first) "internal_ipv4" }} {{ .image_registry.auth.registry | splitList "/" | first }}
+    {{ index .hostvars (.groups.image_registry | first) "internal_ipv4" }} {{ $registryHost }}
         {{- end }}
         {{- if (index .hostvars (.groups.image_registry | first) "internal_ipv6") | empty | not }}
-    {{ index .hostvars (.groups.image_registry | first) "internal_ipv6" }} {{ .image_registry.auth.registry | splitList "/" | first }}
+    {{ index .hostvars (.groups.image_registry | first) "internal_ipv6" }} {{ $registryHost }}
         {{- end }}
       {{- end }}
+    {{- end }}
+    {{- end }}
     {{- end }}
     # kubekey image_registry control_plane_endpoint END
     # NFS server nodes
@@ -70,17 +75,22 @@
     # Write the latest Kubekey image registry control plane endpoint DNS configuration
     cat >> {{ .item }} <<EOF
     # kubekey image_registry control_plane_endpoint BEGIN
+    {{- if .image_registry.type | empty | not }}
+    {{- $registryHost := .image_registry.auth.registry | splitList "/" | first }}
+    {{- if and ($registryHost | empty | not) ($registryHost | isIP | not) }}
     {{- if and (.image_registry.auth.registry | empty | not) (.image_registry.ha_vip | empty | not) }}
-    {{ .image_registry.ha_vip }} {{ .image_registry.auth.registry | splitList "/" | first }}
+    {{ .image_registry.ha_vip }} {{ $registryHost }}
     {{- else }}
       {{- if .groups.image_registry | empty | not }}
         {{- if (index .hostvars (.groups.image_registry | first) "internal_ipv4") | empty | not }}
-    {{ index .hostvars (.groups.image_registry | first) "internal_ipv4" }} {{ .image_registry.auth.registry | splitList "/" | first }}
+    {{ index .hostvars (.groups.image_registry | first) "internal_ipv4" }} {{ $registryHost }}
         {{- end }}
         {{- if (index .hostvars (.groups.image_registry | first) "internal_ipv6") | empty | not }}
-    {{ index .hostvars (.groups.image_registry | first) "internal_ipv6" }} {{ .image_registry.auth.registry | splitList "/" | first }}
+    {{ index .hostvars (.groups.image_registry | first) "internal_ipv6" }} {{ $registryHost }}
         {{- end }}
       {{- end }}
+    {{- end }}
+    {{- end }}
     {{- end }}
     # kubekey image_registry control_plane_endpoint END
     EOF

@@ -28,26 +28,25 @@ audit: false
 
 delete:
 # When removing a node, also uninstall the node's container runtime (CRI), such as Docker or containerd.
-# deleteCRI: true
   cri: false
 
 # When removing a node, also uninstall etcd from the node.
-# deleteETCD: true
   etcd: false
 
 # When removing a node, restore the node's DNS configuration.
-# deleteDNS: true
   dns: false
 
 # When removing a node, also uninstall any private image registry (such as Harbor or registry) installed on the node.
 # This is typically used in conjunction with nodes defined in inventory.groups.image_registry.
-# deleteImageRegistry: false
   image_registry: false
 
 # When removing a node, also delete data directories (harbor data, registry data, etc.)
 # This is typically used with --with-data flag or delete.data: true
-# deleteData: false
   data: false
+
+upgrade:
+  # Whether to modify CRI configuration file
+  cri: false
 
 # image_manifests: List of container images to be synchronized to the private registry
 image_manifests: []

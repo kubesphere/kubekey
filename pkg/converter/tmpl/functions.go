@@ -11,6 +11,7 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/BurntSushi/toml"
 	"github.com/Masterminds/sprig/v3"
 	"github.com/cockroachdb/errors"
 	"gopkg.in/yaml.v3"
@@ -31,6 +32,7 @@ func funcMap() template.FuncMap {
 	f["fromYaml"] = fromYAML
 	f["ipInCIDR"] = ipInCIDR
 	f["ipFamily"] = ipFamily
+	f["isIP"] = isIP
 	f["pow"] = pow
 	f["subtractList"] = subtractList
 	f["fileExists"] = fileExists
@@ -38,6 +40,7 @@ func funcMap() template.FuncMap {
 	f["getStringSlice"] = getStringSlice
 	f["toLowerByteUnit"] = toLowerByteUnit
 	f["mapToNamedStringArgs"] = mapToNamedStringArgs
+	f["toToml"] = toTOML
 
 	return f
 }
@@ -132,6 +135,20 @@ func fromYAML(v string) (any, error) {
 	return output, err
 }
 
+// toTOML takes an interface, marshals it to toml, and returns a string. It will
+// always return a string, even on marshal error (empty string).
+//
+// This is designed to be called from a template.
+func toTOML(v any) string {
+	var buf strings.Builder
+	if err := toml.NewEncoder(&buf).Encode(v); err != nil {
+		// Swallow errors inside of a template.
+		return ""
+	}
+
+	return buf.String()
+}
+
 // ipInCIDR takes a comma-separated list of CIDR strings, parses each one to extract IPs using parseIP,
 // and returns a combined slice of all IPs found. Returns an error only if parseIP fails (not shown here).
 func ipInCIDR(cidr string) ([]string, error) {
@@ -161,6 +178,25 @@ func ipFamily(addrOrCIDR string) (string, error) {
 	}
 
 	return "IPv6", nil
+}
+
+// isIP reports whether the given address is an IP address.
+// It accepts bare IPs ("192.168.1.1", "2001:db8::1"), host:port forms
+// ("192.168.1.1:5000", "[2001:db8::1]:5000"), and bracketed IPv6 ("[2001:db8::1]").
+func isIP(addr string) bool {
+	if addr == "" {
+		return false
+	}
+
+	host, _, err := net.SplitHostPort(addr)
+	if err != nil {
+		host = addr
+	}
+	if strings.HasPrefix(host, "[") && strings.HasSuffix(host, "]") {
+		host = host[1 : len(host)-1]
+	}
+
+	return net.ParseIP(host) != nil
 }
 
 // pow Get the "pow" power of "base". (base ** pow)

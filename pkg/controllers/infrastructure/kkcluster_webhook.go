@@ -3,9 +3,7 @@ package infrastructure
 import (
 	"context"
 
-	"github.com/cockroachdb/errors"
 	capkkinfrav1beta1 "github.com/kubesphere/kubekey/api/capkk/infrastructure/v1beta1"
-	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -20,15 +18,11 @@ import (
 type KKClusterWebhook struct {
 }
 
-var _ admission.CustomDefaulter = &KKClusterWebhook{}
+var _ admission.Defaulter[*capkkinfrav1beta1.KKCluster] = &KKClusterWebhook{}
 var _ options.Controller = &KKClusterWebhook{}
 
-// Default implements admission.CustomDefaulter.
-func (w *KKClusterWebhook) Default(ctx context.Context, obj runtime.Object) error {
-	kkcluster, ok := obj.(*capkkinfrav1beta1.KKCluster)
-	if !ok {
-		return errors.New("cannot convert to kkclusters")
-	}
+// Default implements admission.Defaulter.
+func (w *KKClusterWebhook) Default(ctx context.Context, kkcluster *capkkinfrav1beta1.KKCluster) error {
 	if kkcluster.Spec.HostCheckGroup == "" {
 		kkcluster.Spec.HostCheckGroup = _const.VariableUnGrouped
 	}
@@ -45,8 +39,7 @@ func (w *KKClusterWebhook) Name() string {
 }
 
 func (w *KKClusterWebhook) SetupWithManager(mgr ctrl.Manager, o options.ControllerManagerServerOptions) error {
-	return ctrl.NewWebhookManagedBy(mgr).
+	return ctrl.NewWebhookManagedBy(mgr, &capkkinfrav1beta1.KKCluster{}).
 		WithDefaulter(w).
-		For(&capkkinfrav1beta1.KKCluster{}).
 		Complete()
 }

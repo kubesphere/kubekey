@@ -229,6 +229,8 @@ cluster_require:
 # |
 # |- image_registry.cert
 # |- image_registry.key
+# |- image-registry-client.cert
+# |- image-registry-client.key
 # |
 # |- kubernetes.cert
 # |- kubernetes.key
@@ -333,11 +335,11 @@ image_registry:
       {{- end -}}
     cert_file: >-
       {{- if .groups.image_registry | default list | empty | not -}}
-      {{ .binary_dir }}/pki/image_registry.crt
+      {{ .binary_dir }}/pki/image-registry-client.crt
       {{- end -}}
     key_file: >-
       {{- if .groups.image_registry | default list | empty | not -}}
-      {{ .binary_dir }}/pki/image_registry.key
+      {{ .binary_dir }}/pki/image-registry-client.key
       {{- end -}}
   # Registry endpoint for images from docker.io
   dockerio_registry: >-
@@ -735,6 +737,73 @@ cri:
     #     ca_cert: /etc/docker/certs.d/docker.io/ca.crt
     #     cert_file: /etc/docker/certs.d/docker.io/cert.crt
     #     key_file: /etc/docker/certs.d/docker.io/key.crt
+
+  # Docker configuration
+  docker:
+    # Docker daemon configuration
+    daemon:
+      # Docker data root directory
+      data-root: "{{ .cri.docker.data_root | default \"/var/lib/docker\" }}"
+      # Container log configuration
+      log-opts:
+        # Maximum size of a single log file
+        max-size: "{{ .kubernetes.kubelet.container_log_max_size | default \"5Mi\" | toLowerByteUnit }}"
+        # Number of log files to retain
+        max-file: "{{ .kubernetes.kubelet.container_log_max_files | default 3  | toString | toJson }}"
+      # Enable live-restore
+      live-restore: true
+      # Container exec options
+      exec-opts:
+        - "native.cgroupdriver={{ .cri.cgroup_driver | default \"systemd\" }}"
+
+  # containerd configuration
+  containerd:
+    config:
+      # containerd data root directory
+      root: "{{ .cri.containerd.data_root | default \"/var/lib/containerd\" }}"
+      # containerd configuration file version
+      version: 2
+      # containerd runtime state directory
+      state: "/run/containerd"
+      grpc:
+        address: "/run/containerd/containerd.sock"
+        uid: 0
+        gid: 0
+        max_recv_message_size: 16777216
+        max_send_message_size: 16777216
+      ttrpc:
+        address: ""
+        uid: 0
+        gid: 0
+      debug:
+        address: ""
+        uid: 0
+        gid: 0
+        level: ""
+      metrics:
+        address: ""
+        grpc_histogram: false
+      cgroup:
+        path: ""
+      timeouts:
+        "io.containerd.timeout.shim.cleanup": "5s"
+        "io.containerd.timeout.shim.load": "5s"
+        "io.containerd.timeout.shim.shutdown": "3s"
+        "io.containerd.timeout.task.state": "2s"
+      plugins:
+        "io.containerd.grpc.v1.cri":
+          containerd:
+            runtimes:
+              runc:
+                runtime_type: "io.containerd.runc.v2"
+                options:
+                  SystemdCgroup: "{{ .cri.cgroup_driver | eq \"systemd\" }}"
+          cni:
+            bin_dir: "/opt/cni/bin"
+            conf_dir: "/etc/cni/net.d"
+            max_conf_num: 1
+            conf_template: ""
+
 ```
 
 ### Parameter Descriptions
@@ -747,6 +816,30 @@ cri:
 | `cri.registry.mirrors` | Image mirror addresses, can be configured with domestic mirror sources to improve pull speed. |
 | `cri.registry.insecure_registries` | List of image registry addresses allowed to access using HTTP (non-HTTPS). |
 | `cri.registry.auths` | List of authentication information for private image registries, including username, password, and optional TLS certificate configuration. |
+| `cri.docker.daemon` | Docker daemon configuration items, mapped to `/etc/docker/daemon.json`. |
+| `cri.docker.daemon.data-root` | Docker data root directory. |
+| `cri.docker.daemon.log-opts.max-size` | Maximum size of a single container log file. |
+| `cri.docker.daemon.log-opts.max-file` | Number of old container log files to retain. |
+| `cri.docker.daemon.live-restore` | Whether to enable Docker live-restore. |
+| `cri.docker.daemon.exec-opts` | Docker exec options list, e.g., cgroup driver. |
+| `cri.containerd.config` | containerd configuration, mapped to `/etc/containerd/config.toml`. |
+| `cri.containerd.config.root` | containerd data persistence root directory. |
+| `cri.containerd.config.version` | containerd configuration file version. |
+| `cri.containerd.config.state` | containerd runtime state directory. |
+| `cri.containerd.config.grpc.address` | containerd gRPC socket address. |
+| `cri.containerd.config.grpc.uid` | Owner UID of the containerd gRPC socket. |
+| `cri.containerd.config.grpc.gid` | Owner GID of the containerd gRPC socket. |
+| `cri.containerd.config.grpc.max_recv_message_size` | containerd gRPC maximum received message size. |
+| `cri.containerd.config.grpc.max_send_message_size` | containerd gRPC maximum sent message size. |
+| `cri.containerd.config.ttrpc` | containerd TTRPC configuration. |
+| `cri.containerd.config.debug` | containerd debug configuration. |
+| `cri.containerd.config.metrics` | containerd metrics configuration. |
+| `cri.containerd.config.cgroup` | containerd cgroup configuration. |
+| `cri.containerd.config.timeouts` | Timeout settings for containerd operations. |
+| `cri.containerd.config.plugins` | containerd CRI plugin configuration, including runtime and CNI settings. |
+| `cri.containerd.config.plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.runtime_type` | runc runtime type. |
+| `cri.containerd.config.plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options.SystemdCgroup` | Whether runc uses systemd cgroup. |
+| `cri.containerd.config.plugins."io.containerd.grpc.v1.cri".cni` | CNI plugin configuration, including binary and configuration directories. |
 
 ---
 

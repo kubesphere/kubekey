@@ -108,10 +108,10 @@
       # If need_uninstall_etcd is empty, remove the entire cluster.
       # If need_uninstall_etcd is not empty, remove only the specified node.
       when: >-
-        or 
+        or
           (.need_uninstall_etcd | empty)
           (.need_uninstall_etcd | has .inventory_hostname)
-      block: 
+      block:
         - name: ScalingDown | Stop and disable the etcd systemd service
           ignore_errors: true
           command: |
@@ -132,7 +132,7 @@
             {{- end }}
             rm -rf /etc/ssl/etcd/
             rm -rf /etc/etcd.env
-            for bin in containerd containerd-shim containerd-shim-runc-v2 ctr runc; do
+            for bin in etcd etcdctl etcdutl; do
               if path=$(command -v $bin 2>/dev/null); then
                 rm -f "$path"
               fi

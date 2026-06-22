@@ -30,6 +30,10 @@ _artifacts
 # This is also a good location for any temporary manfiests used during development
 tmp
 
+# This is where the result of the go build goes
+/output*/
+/_output*/
+/_output
+
 # Used by current object
-/_output/
 dist/

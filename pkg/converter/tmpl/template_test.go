@@ -168,6 +168,71 @@ func TestParseBool(t *testing.T) {
 			},
 			excepted: false,
 		},
+		// ======= isIP =======
+		{
+			name:      "isIP true-1",
+			condition: []string{`{{ .foo | isIP }}`},
+			variable: map[string]any{
+				"foo": "192.168.1.1",
+			},
+			excepted: true,
+		},
+		{
+			name:      "isIP true-2",
+			condition: []string{`{{ .foo | isIP }}`},
+			variable: map[string]any{
+				"foo": "192.168.1.1:5000",
+			},
+			excepted: true,
+		},
+		{
+			name:      "isIP true-3",
+			condition: []string{`{{ .foo | isIP }}`},
+			variable: map[string]any{
+				"foo": "2001:db8::1",
+			},
+			excepted: true,
+		},
+		{
+			name:      "isIP true-4",
+			condition: []string{`{{ .foo | isIP }}`},
+			variable: map[string]any{
+				"foo": "[2001:db8::1]:5000",
+			},
+			excepted: true,
+		},
+		{
+			name:      "isIP true-5",
+			condition: []string{`{{ .foo | isIP }}`},
+			variable: map[string]any{
+				"foo": "[2001:db8::1]",
+			},
+			excepted: true,
+		},
+		{
+			name:      "isIP false-1",
+			condition: []string{`{{ .foo | isIP }}`},
+			variable: map[string]any{
+				"foo": "registry.example.com",
+			},
+			excepted: false,
+		},
+		{
+			name:      "isIP false-2",
+			condition: []string{`{{ .foo | isIP }}`},
+			variable: map[string]any{
+				"foo": "registry.example.com:5000",
+			},
+			excepted: false,
+		},
+		{
+			name:      "isIP false-3",
+			condition: []string{`{{ .foo | isIP }}`},
+			variable: map[string]any{
+				"foo": "",
+			},
+			excepted: false,
+		},
 		// ======= contains =======
 		{
 			name:      "contains true-1",
@@ -701,7 +766,7 @@ a2:
 		// ======= ipFamily =======
 		{
 			name:     "ipFamily for ip address",
-			input:    `{{ .ip_addr | default "10.233.64.0/18" | splitList "," | first | ipFamily }}`,
+			input:    `{{ .ip_addr | default "10.233.64.0" | splitList "," | first | ipFamily }}`,
 			variable: make(map[string]any),
 			excepted: "IPv4",
 		},

@@ -75,8 +75,16 @@ version::get_version_vars() {
         fi
     fi
 
-    GIT_RELEASE_TAG=$(git describe --abbrev=0 --tags)
-    GIT_RELEASE_COMMIT=$(git rev-list -n 1  "${GIT_RELEASE_TAG}")
+    if GIT_RELEASE_TAG=$(git describe --abbrev=0 --tags 2>/dev/null); then
+        GIT_RELEASE_COMMIT=$(git rev-list -n 1 "${GIT_RELEASE_TAG}")
+    elif [[ -n ${GIT_VERSION-} ]]; then
+        # Allow explicit dev builds without repository tags.
+        GIT_RELEASE_TAG="${GIT_VERSION}"
+        GIT_RELEASE_COMMIT="${GIT_COMMIT}"
+    else
+        echo "No git tags found for release version detection. Set GIT_VERSION or use make build-kk-dev."
+        exit 1
+    fi
 }
 
 # stolen from k8s.io/hack/lib/version.sh and modified
