@@ -38,7 +38,7 @@ func (w *When) UnmarshalYAML(node *yaml.Node) error {
 		if IsTmplSyntax(node.Value) {
 			w.Data = []string{node.Value}
 		} else {
-			w.Data = []string{"{{ " + node.Value + " }}"}
+			w.Data = []string{ParseTmplSyntax(node.Value)}
 		}
 	case yaml.SequenceNode:
 		if err := node.Decode(&w.Data); err != nil {

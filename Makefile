@@ -175,9 +175,8 @@ generate-manifests-capkk: $(CONTROLLER_GEN) $(KUSTOMIZE) clean-crds-capkk ## Gen
 		> config/capkk/release/infrastructure-components.yaml
 
 .PHONY: generate-modules
-generate-modules: ## Run go mod tidy to ensure modules are up to date
-	@cd api && go mod tidy
-	@go mod tidy
+generate-modules: ## Run go work sync to ensure workspace modules are up to date
+	@go work sync
 .PHONY: generate-goimports
 generate-goimports:  ## Format all import, `goimports` is required.
 	@hack/update-goimports.sh
@@ -291,7 +290,7 @@ helm-package: ## Helm-package.
 
 .PHONY: test
 test: $(SETUP_ENVTEST) ## Run unit and integration tests
-	@KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test ./... $(TEST_ARGS)
+	@KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test ./... ./api/... $(TEST_ARGS)
 
 .PHONY: test-verbose
 test-verbose: ## Run unit and integration tests with verbose flag

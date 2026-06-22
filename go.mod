@@ -168,3 +168,7 @@ require (
 )
 
 replace github.com/kubesphere/kubekey/api => ./api
+
+// cockroachdb/errors@v1.12.0 indirectly pulls in the old umbrella google.golang.org/genproto
+// module, which conflicts with the split googleapis/{api,rpc} modules required by k8s.io/*.
+exclude google.golang.org/genproto v0.0.0-20230410155749-daa745c078e1

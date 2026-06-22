@@ -147,7 +147,7 @@ func TestUnmarshalYamlPlaybook(t *testing.T) {
 					Roles: []Role{
 						{
 							RoleInfo: RoleInfo{
-								Conditional: Conditional{When: When{Data: []string{"true"}}},
+								Conditional: Conditional{When: When{Data: []string{"{{true}}"}}},
 								Role:        "test",
 							},
 						},
@@ -173,7 +173,7 @@ func TestUnmarshalYamlPlaybook(t *testing.T) {
 					Roles: []Role{
 						{
 							RoleInfo: RoleInfo{
-								Conditional: Conditional{When: When{Data: []string{"true", "false"}}},
+								Conditional: Conditional{When: When{Data: []string{"{{true}}", "{{false}}"}}},
 								Role:        "test",
 							},
 						},
