@@ -74,11 +74,16 @@
   post_tasks:
     - name: Add custom labels to the cluster nodes
       delegate_to: "{{ .init_kubernetes_node }}"
-      command: |
-        {{- range $k, $v := .kubernetes.custom_labels }}
-        /usr/local/bin/kubectl label --overwrite node {{ $.hostname }} {{ $k }}={{ $v }}
-        {{- end }}
+      command: >-
+        /usr/local/bin/kubectl label --overwrite node {{ $.hostname }}
+        {{- range $k, $v := .kubernetes.custom_labels }} {{ $k }}={{ $v }}{{- end }}
       when: .kubernetes.custom_labels | empty | not
+    - name: Add custom taint to the cluster nodes
+      delegate_to: "{{ .init_kubernetes_node }}"
+      when: .kubernetes.custom_taints | default list | empty | not
+      command: >-
+        /usr/local/bin/kubectl taint --overwrite nodes {{ $.hostname }}
+        {{- range .kubernetes.custom_taints }} {{ . }}{{- end }}
 
 # Install Kubernetes cluster software components (CNI and storage class) on a random control plane node
 - hosts:

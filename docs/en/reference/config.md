@@ -760,8 +760,7 @@ cri:
   containerd:
     config:
       # containerd data root directory
-      root: >
-        {{ .cri.containerd.data_root | default "/var/lib/containerd" }}
+      root: "{{ .cri.containerd.data_root | default \"/var/lib/containerd\" }}"
       # containerd configuration file version
       version: 2
       # containerd runtime state directory
