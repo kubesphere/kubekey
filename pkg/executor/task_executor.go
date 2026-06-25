@@ -457,13 +457,16 @@ func (e *taskExecutor) dealRegister(host string, loopResults []kkcorev1alpha1.Lo
 		switch e.task.Spec.RegisterType {
 		case "json":
 			// Attempt to unmarshal as JSON.
-			// Use Decoder with UseNumber() to preserve large integers precision.
+			// Use Decoder with UseNumber() to preserve large integers precision,
+			// then normalize json.Number values back to int64/float64 so they
+			// are not re-marshaled as strings.
 			decoder := json.NewDecoder(strings.NewReader(s))
 			decoder.UseNumber()
 			if err := decoder.Decode(&out); err != nil {
 				klog.V(5).ErrorS(err, "failed to register json value")
 				return s
 			}
+			out = normalizeJSONNumbers(out)
 		case "yaml", "yml":
 			// Attempt to unmarshal as YAML.
 			if err := yaml.Unmarshal([]byte(s), &out); err != nil {
@@ -528,4 +531,32 @@ func (e *taskExecutor) dealRegister(host string, loopResults []kkcorev1alpha1.Lo
 	}
 
 	return resErr
+}
+
+// normalizeJSONNumbers recursively walks a value decoded with json.UseNumber
+// and converts json.Number values to int64 or float64. This preserves numeric
+// types while avoiding precision loss for large integers.
+func normalizeJSONNumbers(v any) any {
+	switch x := v.(type) {
+	case json.Number:
+		if i, err := x.Int64(); err == nil {
+			return i
+		}
+		if f, err := x.Float64(); err == nil {
+			return f
+		}
+		return x.String()
+	case map[string]any:
+		for k, vv := range x {
+			x[k] = normalizeJSONNumbers(vv)
+		}
+		return x
+	case []any:
+		for i, vv := range x {
+			x[i] = normalizeJSONNumbers(vv)
+		}
+		return x
+	default:
+		return v
+	}
 }
