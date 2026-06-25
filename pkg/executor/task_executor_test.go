@@ -2,6 +2,7 @@ package executor
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -94,5 +95,33 @@ func TestTaskExecutor(t *testing.T) {
 				t.Fatal(err)
 			}
 		})
+	}
+}
+
+func TestNormalizeJSONNumbers(t *testing.T) {
+	input := map[string]any{
+		"int":    json.Number("24"),
+		"float":  json.Number("3.14"),
+		"nested": map[string]any{"value": json.Number("9007199254740993")},
+		"list":   []any{json.Number("1"), json.Number("2.5")},
+		"str":    "foo",
+	}
+	out := normalizeJSONNumbers(input).(map[string]any)
+
+	if _, ok := out["int"].(int64); !ok {
+		t.Fatalf("expected int to be int64, got %T", out["int"])
+	}
+	if _, ok := out["float"].(float64); !ok {
+		t.Fatalf("expected float to be float64, got %T", out["float"])
+	}
+	if _, ok := out["nested"].(map[string]any)["value"].(int64); !ok {
+		t.Fatalf("expected large int to be int64, got %T", out["nested"].(map[string]any)["value"])
+	}
+	list := out["list"].([]any)
+	if _, ok := list[0].(int64); !ok {
+		t.Fatalf("expected list[0] to be int64, got %T", list[0])
+	}
+	if _, ok := list[1].(float64); !ok {
+		t.Fatalf("expected list[1] to be float64, got %T", list[1])
 	}
 }
