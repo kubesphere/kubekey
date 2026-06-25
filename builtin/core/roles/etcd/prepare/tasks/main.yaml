@@ -37,7 +37,7 @@
   block:
     - name: Prepare | Ensure target etcd version is not lower than installed version
       assert:
-        that: .etcd.etcd_version | semverCompare (printf ">=v%s" index .etcd_install_version "stdout" "etcd Version")
+        that: .etcd.etcd_version | semverCompare (printf ">=v%s" (index .etcd_install_version "stdout" "etcd Version"))
         fail_msg: >-
           Target etcd version: {{ .etcd.etcd_version }} is lower than installed etcd version: {{ index .etcd_install_version "stdout" "etcd Version" }}. Downgrading etcd is not supported.
 
@@ -45,8 +45,7 @@
   when: >-
     or 
       (.etcd_install_version.error | empty | not)
-      (.etcd.etcd_version | semverCompare (printf ">v%s" index .etcd_install_version "stdout" "etcd Version"))
-  block:
+      (.etcd.etcd_version | semverCompare (printf ">v%s" (index (index (.etcd_install_version | default dict) "stdout" | default (dict "etcd Version" "0.0.0")) "etcd Version")))  block:
     - name: Prepare | Copy etcd binary package to node
       copy:
         src: >-
