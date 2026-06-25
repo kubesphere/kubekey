@@ -70,21 +70,36 @@
           /etc/containerd/certs.d/{{ .image_registry.auth.registry | splitList "/" | first }}/client.key
 
 # install or update docker service
-- name: Docker | Generate Docker configuration file
+- name: Docker | Configure Docker daemon
   when: or .upgrade.cri (or (.docker_install_version.error | empty | not) (.docker_install_version.stdout | hasPrefix (printf "Docker version %s," .cri.docker_version) | not))
-  template:
-    src: daemon.json
-    dest: /etc/docker/daemon.json
+  block:
+    - name: Docker | Read existing Docker daemon configuration
+      when: .cri.docker.daemon_policy | eq "merge"
+      ignore_errors: true
+      command: cat /etc/docker/daemon.json
+      register: docker_daemon_existing
+      register_type: json
+    - name: Docker | Generate Docker configuration file
+      template:
+        src: daemon.json
+        dest: /etc/docker/daemon.json
 - name: Docker | Deploy the Docker systemd service file
   when: or .upgrade.cri (or (.docker_install_version.error | empty | not) (.docker_install_version.stdout | hasPrefix (printf "Docker version %s," .cri.docker_version) | not))
   copy:
     src: docker.service
     dest: /etc/systemd/system/docker.service
-- name: Containerd | Generate the containerd configuration file
+- name: Containerd | Configure containerd
   when: or .upgrade.cri (or (.docker_install_version.error | empty | not) (.docker_install_version.stdout | hasPrefix (printf "Docker version %s," .cri.docker_version) | not))
-  template:
-    src: config.toml
-    dest: /etc/containerd/config.toml
+  block:
+    - name: Containerd | Read existing containerd configuration
+      when: .cri.containerd.config_policy | eq "merge"
+      ignore_errors: true
+      command: cat /etc/containerd/config.toml
+      register: containerd_config_existing
+    - name: Containerd | Generate the containerd configuration file
+      template:
+        src: config.toml
+        dest: /etc/containerd/config.toml
 - name: Docker | Deploy the containerd systemd service file
   when: or .upgrade.cri (or (.docker_install_version.error | empty | not) (.docker_install_version.stdout | hasPrefix (printf "Docker version %s," .cri.docker_version) | not))
   copy:

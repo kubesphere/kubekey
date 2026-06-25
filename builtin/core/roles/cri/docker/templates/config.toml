@@ -52,4 +52,12 @@
 {{- $plugins := dict "io.containerd.grpc.v1.cri" $cri }}
 {{- $config = mergeOverwrite (dict "plugins" $plugins) $config }}
 {{- end }}
+{{- if and (.cri.containerd.config_policy | eq "merge") (.containerd_config_existing | default dict) }}
+  {{- $existing_stdout := .containerd_config_existing.stdout | default "" }}
+  {{- $err := .containerd_config_existing.error | default "" }}
+  {{- if and ($err | empty) ($existing_stdout | empty | not) }}
+    {{- $existing := $existing_stdout | fromTOML }}
+    {{- $config = mergeOverwrite $config $existing }}
+  {{- end }}
+{{- end }}
 {{- $config | toToml }}

@@ -15,4 +15,11 @@
 {{- if .cri.docker.bridge_ip }}
 {{- $_ := set $daemon "bip" .cri.docker.bridge_ip }}
 {{- end }}
+{{- if and (.cri.docker.daemon_policy | eq "merge") (.docker_daemon_existing | default dict) }}
+  {{- $existing := .docker_daemon_existing.stdout | default dict }}
+  {{- $err := .docker_daemon_existing.error | default "" }}
+  {{- if and ($err | empty) ($existing | empty | not) }}
+    {{- $daemon = mergeOverwrite $daemon $existing }}
+  {{- end }}
+{{- end }}
 {{ $daemon | toPrettyJson }}

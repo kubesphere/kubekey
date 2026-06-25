@@ -56,11 +56,18 @@
         dest: >-
           /etc/containerd/certs.d/{{ .image_registry.auth.registry | splitList "/" | first }}/client.key
 
-- name: Containerd | Generate the containerd configuration file
+- name: Containerd | Configure containerd
   when: or .upgrade.cri (or (.containerd_install_version.error | empty | not) (.containerd_install_version.stdout | contains (printf " %s " .cri.containerd_version) | not))
-  template:
-    src: config.toml
-    dest: /etc/containerd/config.toml
+  block:
+    - name: Containerd | Read existing containerd configuration
+      when: .cri.containerd.config_policy | eq "merge"
+      ignore_errors: true
+      command: cat /etc/containerd/config.toml
+      register: containerd_config_existing
+    - name: Containerd | Generate the containerd configuration file
+      template:
+        src: config.toml
+        dest: /etc/containerd/config.toml
 - name: Containerd | Deploy the containerd systemd service file
   when: or .upgrade.cri (or (.containerd_install_version.error | empty | not) (.containerd_install_version.stdout | contains (printf " %s " .cri.containerd_version) | not))
   copy:
