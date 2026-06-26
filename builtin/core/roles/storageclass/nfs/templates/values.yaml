@@ -9,4 +9,4 @@ nfs:
 storageClass:
   # Set StorageClass as the default StorageClass
   # Ignored if storageClass.create is false
-  defaultClass: {{ .storage_class.local.default }}
+  defaultClass: {{ .storage_class.nfs.default }}
