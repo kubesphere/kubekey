@@ -39,12 +39,13 @@ func newWebCommand() *cobra.Command {
 
 			// Initialize and run the web manager with provided options
 			return manager.NewWebManager(manager.WebManagerOptions{
-				Workdir:    o.Workdir,
-				Port:       o.Port,
-				SchemaPath: o.SchemaPath,
-				UIPath:     o.UIPath,
-				Client:     client,
-				Config:     restconfig,
+				Workdir:           o.Workdir,
+				Port:              o.Port,
+				SchemaPath:        o.SchemaPath,
+				UIPath:            o.UIPath,
+				HostCheckPlaybook: o.HostCheckPlaybookPath(),
+				Client:            client,
+				Config:            restconfig,
 			}).Run(cmd.Context())
 		},
 	}

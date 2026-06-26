@@ -194,10 +194,13 @@ func (c *localConnector) getHostInfo(ctx context.Context) (map[string]any, error
 		}
 		procVars[_const.VariableProcessMemory] = convertBytesToMap(mem.Bytes(), ":")
 
-		return map[string]any{
+		hostInfo := map[string]any{
 			_const.VariableOS:      osVars,
 			_const.VariableProcess: procVars,
-		}, nil
+		}
+		enrichHostInfoWithBlockDevices(ctx, hostInfo, c)
+
+		return hostInfo, nil
 	default:
 		klog.V(4).ErrorS(nil, "Unsupported platform", "platform", runtime.GOOS)
 		// os information

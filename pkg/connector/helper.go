@@ -19,8 +19,49 @@ package connector
 import (
 	"bufio"
 	"bytes"
+	"context"
+	"encoding/json"
 	"strings"
+
+	"github.com/cockroachdb/errors"
+	"k8s.io/klog/v2"
+
+	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 )
+
+type commandRunner interface {
+	ExecuteCommand(ctx context.Context, cmd string) ([]byte, []byte, error)
+}
+
+// blockDevicesFromLsblk runs lsblk on the target host and returns parsed block device trees.
+func blockDevicesFromLsblk(ctx context.Context, run commandRunner) (any, error) {
+	stdout, stderr, err := run.ExecuteCommand(ctx, "lsblk -J -b -o NAME,SIZE,TYPE,MOUNTPOINT,FSTYPE,MODEL")
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to run lsblk: stderr: %q", string(stderr))
+	}
+	return parseLsblkJSON(stdout)
+}
+
+// parseLsblkJSON parses the JSON output of lsblk -J.
+func parseLsblkJSON(stdout []byte) (any, error) {
+	var data struct {
+		Blockdevices []any `json:"blockdevices"`
+	}
+	if err := json.Unmarshal(stdout, &data); err != nil {
+		return nil, errors.Wrap(err, "failed to parse lsblk JSON output")
+	}
+	return data.Blockdevices, nil
+}
+
+// enrichHostInfoWithBlockDevices appends block device info to host facts when lsblk is available.
+func enrichHostInfoWithBlockDevices(ctx context.Context, hostInfo map[string]any, run commandRunner) {
+	blockdevices, err := blockDevicesFromLsblk(ctx, run)
+	if err != nil {
+		klog.V(4).InfoS("skip block device gathering", "error", err)
+		return
+	}
+	hostInfo[_const.VariableBlockDevices] = blockdevices
+}
 
 // convertBytesToMap parses the given byte slice into a map[string]string using the provided split string.
 // Only lines containing the split string are processed. Each such line is split into key and value at the first occurrence of the split string.
