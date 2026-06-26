@@ -434,10 +434,11 @@ func (c *sshConnector) getHostInfo(ctx context.Context) (map[string]any, error) 
 	}
 	procVars[_const.VariableProcessMemory] = convertBytesToMap(mem.Bytes(), ":")
 
-	// persistence the hostInfo
-
-	return map[string]any{
+	hostInfo := map[string]any{
 		_const.VariableOS:      osVars,
 		_const.VariableProcess: procVars,
-	}, nil
+	}
+	enrichHostInfoWithBlockDevices(ctx, hostInfo, c)
+
+	return hostInfo, nil
 }
