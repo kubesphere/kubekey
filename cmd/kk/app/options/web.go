@@ -23,6 +23,14 @@ type KubeKeyWebOptions struct {
 	UIPath     string
 }
 
+// HostCheckPlaybookPath returns the host-check playbook path relative to the kk web working directory.
+func (o *KubeKeyWebOptions) HostCheckPlaybookPath() string {
+	if o.SchemaPath != "" {
+		return filepath.Join(filepath.Dir(o.SchemaPath), "host_check.yaml")
+	}
+	return filepath.Join("web-installer", "host_check.yaml")
+}
+
 // NewKubeKeyWebOptions creates and returns a new KubeKeyWebOptions instance with default values
 func NewKubeKeyWebOptions() *KubeKeyWebOptions {
 	o := &KubeKeyWebOptions{
