@@ -30,6 +30,7 @@ func funcMap() template.FuncMap {
 	// add custom function
 	f["toYaml"] = toYAML
 	f["fromYaml"] = fromYAML
+	f["fromTOML"] = fromTOML
 	f["ipInCIDR"] = ipInCIDR
 	f["ipFamily"] = ipFamily
 	f["isIP"] = isIP
@@ -131,6 +132,15 @@ func toYAML(v any) string {
 func fromYAML(v string) (any, error) {
 	var output any
 	err := yaml.Unmarshal([]byte(v), &output)
+
+	return output, err
+}
+
+// fromTOML takes a TOML string, unmarshals it into an interface{}, and returns the result.
+// If there is an error during unmarshaling, it will be returned along with nil for the value.
+func fromTOML(v string) (any, error) {
+	var output any
+	err := toml.Unmarshal([]byte(v), &output)
 
 	return output, err
 }

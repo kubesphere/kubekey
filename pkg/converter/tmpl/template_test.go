@@ -754,6 +754,24 @@ a2:
 			},
 			excepted: "{\"a1\":\"b1\",\"a2\":{\"b2\":1}}",
 		},
+		// ======= fromTOML =======
+		{
+			name:  "fromTOML 1",
+			input: "{{ .foo | fromTOML | toJson }}",
+			variable: map[string]any{
+				"foo": `root = "/var/lib/containerd"`,
+			},
+			excepted: "{\"root\":\"/var/lib/containerd\"}",
+		},
+		{
+			name:  "fromTOML 2",
+			input: "{{ .foo | fromTOML | toJson }}",
+			variable: map[string]any{
+				"foo": `[grpc]
+  address = "/run/containerd/containerd.sock"`,
+			},
+			excepted: "{\"grpc\":{\"address\":\"/run/containerd/containerd.sock\"}}",
+		},
 		// ======= ipInCIDR =======
 		{
 			name:  "ipInCIDR true-1",

@@ -28,6 +28,8 @@ cri:
     #     key_file: /etc/docker/certs.d/docker.io/key.crt
 
   docker:
+    # How to handle /etc/docker/daemon.json: override (default) or merge with existing file
+    daemon_policy: override
     daemon:
       data-root: "{{ .cri.docker.data_root | default \"/var/lib/docker\" }}"
       log-opts:
@@ -38,6 +40,8 @@ cri:
         - "native.cgroupdriver={{ .cri.cgroup_driver | default \"systemd\" }}"
 
   containerd:
+    # How to handle /etc/containerd/config.toml: override (default) or merge with existing file
+    config_policy: override
     config:
       root: "{{ .cri.containerd.data_root | default \"/var/lib/containerd\" }}"
       version: 2
