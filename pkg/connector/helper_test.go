@@ -108,3 +108,33 @@ cpu family	: 6
 		})
 	}
 }
+
+func TestParseLsblkJSON(t *testing.T) {
+	devices, err := parseLsblkJSON([]byte(`{
+		"blockdevices": [
+			{
+				"name": "sda",
+				"size": 21474836480,
+				"type": "disk",
+				"mountpoint": null,
+				"fstype": null,
+				"model": "Virtual disk",
+				"children": [
+					{
+						"name": "sda1",
+						"size": 21474832384,
+						"type": "part",
+						"mountpoint": "/",
+						"fstype": "ext4",
+						"model": null
+					}
+				]
+			}
+		]
+	}`))
+	assert.NoError(t, err)
+
+	parsed, ok := devices.([]any)
+	assert.True(t, ok)
+	assert.Len(t, parsed, 1)
+}
