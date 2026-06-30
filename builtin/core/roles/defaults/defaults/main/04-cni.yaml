@@ -16,13 +16,13 @@ cni:
   # "Dual-stack": pod_cidr in "ipv4,ipv6" format
   ipv4_support: >-
     {{ eq (.cni.pod_cidr | splitList "," | first | ipFamily) "IPv4" }}
-  ipv4_pods_cidr: >-
+  ipv4_pod_cidr: >-
     {{- if eq (.cni.pod_cidr | splitList "," | first | ipFamily) "IPv4" -}}
     {{ .cni.pod_cidr | splitList "," | first }}
     {{- end -}}
   ipv6_support: >-
     {{- eq (.cni.pod_cidr | default "10.233.64.0/18" | splitList "," | last | ipFamily) "IPv6" }}
-  ipv6_pods_cidr: >-
+  ipv6_pod_cidr: >-
     {{- if eq (.cni.pod_cidr | default "10.233.64.0/18" | splitList "," | last | ipFamily) "IPv6" -}}
     {{ .cni.pod_cidr | default "10.233.64.0/18" | splitList "," | last }}
     {{- end -}}
