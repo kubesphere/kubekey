@@ -56,6 +56,8 @@ const ( // === From Global Parameter ===
 	VariableGatherFactsCache = "fact_caching"
 	// VariableStorage is the storage configuration in inventory host vars.
 	VariableStorage = "storage"
+	// VariableStorageDisks is the web installer storage disk list under kubernetes vars.
+	VariableStorageDisks = "storage_disks"
 	// VariableStorageDisk is the disk name/number under storage, e.g. sdb or nvme0n1.
 	VariableStorageDisk = "disk"
 	// VariableStorageDevice is the full block device path under storage, e.g. /dev/sdb.
@@ -68,8 +70,12 @@ const ( // === From Global Parameter ===
 	VariableStorageOverwrite = "overwrite"
 	// VariableStorageMountPoint is the mount point to mount the formatted device.
 	VariableStorageMountPoint = "mount_point"
+	// VariableStorageMountpoint is the web installer mount point key.
+	VariableStorageMountpoint = "mountpoint"
 	// VariableStorageMountOptions is the mount options written to fstab, e.g. prjquota.
 	VariableStorageMountOptions = "mount_options"
+	// VariableStorageMountOption is the web installer mount option key.
+	VariableStorageMountOption = "mount_option"
 	// VariableStorageLVM enables LVM management for the storage device.
 	VariableStorageLVM = "lvm"
 	// VariableStorageVGName is the LVM volume group name.

@@ -1,7 +1,7 @@
 dependencies:
   # Format disks configured in inventory host vars before other initialization steps.
   - role: native/storage
-    when: .storage | empty | not
+    when: or (.storage | empty | not) (.kubernetes.storage_disks | empty | not)
   # Initialize new Kubernetes nodes
   - role: native/repository
     when:
@@ -15,5 +15,4 @@ dependencies:
       - or (.groups.k8s_cluster | default list | has .inventory_hostname) (.groups.image_registry | default list | has .inventory_hostname)
   - role: native/init
   - role: native/dns
-
 
