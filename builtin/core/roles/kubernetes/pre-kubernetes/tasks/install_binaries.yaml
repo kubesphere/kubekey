@@ -74,16 +74,3 @@
         dest: /etc/systemd/system/kubelet.service
     - name: Binary | Reload systemd and enable kubelet service
       command: systemctl daemon-reload && systemctl enable kubelet.service
-
-- name: Binary | Install CNI plugins if version specified
-  when: .cni.cni_plugins_version | empty | not
-  block:
-    - name: Binary | Copy CNI plugins archive to remote host
-      copy:
-        src: >-
-          {{ .binary_dir }}/cni/plugins/{{ .cni.cni_plugins_version }}/{{ .binary_type }}/cni-plugins-linux-{{ .binary_type }}-{{ .cni.cni_plugins_version }}.tgz
-        dest: >-
-          {{ .tmp_dir }}/cni-plugins-linux-{{ .binary_type }}-{{ .cni.cni_plugins_version }}.tgz
-    - name: Binary | Extract and install CNI plugins
-      command: |
-        tar -zxvf {{ .tmp_dir }}/cni-plugins-linux-{{ .binary_type }}-{{ .cni.cni_plugins_version }}.tgz -C /opt/cni/bin/

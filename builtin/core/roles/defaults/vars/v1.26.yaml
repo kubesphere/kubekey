@@ -43,8 +43,8 @@ cri:
   runc_version: v1.1.7
 cni:
   # ========== cni ==========
-  # cni_plugins binary (optional)
-  # cni_plugins_version: v1.2.0
+  # cni_plugins binary (optional; required when using flannel)
+  cni_plugins_version: v1.2.0
   # ========== cni: calico ==========
   # calicoctl binary
   calico_version: v3.26.5
