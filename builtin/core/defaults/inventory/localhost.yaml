@@ -33,6 +33,14 @@ spec:
     #         lv_name: lv_cache
     #       filesystem: ext4
     #       mount_point: /cache
+    #   kubernetes:
+    #     storage_disks:
+    #       - device: vda1
+    #         mountpoint: /data
+    #         filesystem: xfs
+    #         mount_option: prjquota
+    #       - device: vda2
+    #         mountpoint: /data2
   groups:
     # all kubernetes nodes.
     k8s_cluster:

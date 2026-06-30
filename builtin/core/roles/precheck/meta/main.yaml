@@ -31,7 +31,7 @@ dependencies:
 
   - role: precheck/storage
     tags: ["storage"]
-    when: .storage | empty | not
+    when: or (.storage | empty | not) (.kubernetes.storage_disks | empty | not)
 
   - role: precheck/kubernetes
     tags: ["kubernetes"]
