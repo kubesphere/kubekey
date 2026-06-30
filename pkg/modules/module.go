@@ -34,6 +34,7 @@ import (
 	"github.com/kubesphere/kubekey/v4/pkg/modules/result"
 	"github.com/kubesphere/kubekey/v4/pkg/modules/set_fact"
 	"github.com/kubesphere/kubekey/v4/pkg/modules/setup"
+	"github.com/kubesphere/kubekey/v4/pkg/modules/storage"
 	"github.com/kubesphere/kubekey/v4/pkg/modules/template"
 )
 
@@ -67,5 +68,6 @@ func init() {
 	utilruntime.Must(internal.RegisterModule(result.ModuleResult, "result"))
 	utilruntime.Must(internal.RegisterModule(set_fact.ModuleSetFact, "set_fact"))
 	utilruntime.Must(internal.RegisterModule(setup.ModuleSetup, "setup"))
+	utilruntime.Must(internal.RegisterModule(storage.ModuleStorage, "storage"))
 	utilruntime.Must(internal.RegisterModule(template.ModuleTemplate, "template"))
 }
