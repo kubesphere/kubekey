@@ -1,0 +1,16 @@
+---
+- name: Storage | Format disks configured in inventory
+  when: .storage | empty | not
+  loop: "{{ .storage | toJson }}"
+  storage:
+    disk: "{{ .item.disk }}"
+    device: "{{ .item.device | toJson }}"
+    filesystem: "{{ .item.filesystem }}"
+    partition: "{{ .item.partition | default false }}"
+    overwrite: "{{ .item.overwrite | default false }}"
+    mount_point: "{{ .item.mount_point }}"
+    mount_options: "{{ .item.mount_options }}"
+    lvm:
+      vg_name: "{{ .item.lvm.vg_name }}"
+      lv_name: "{{ .item.lvm.lv_name }}"
+      lv_size: "{{ .item.lvm.lv_size }}"
