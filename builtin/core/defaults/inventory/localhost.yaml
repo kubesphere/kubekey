@@ -15,6 +15,24 @@ spec:
     #     user: root
     #     password: 123456
     #   internal_ipv4: 1.1.1.1
+    #   storage:
+    #     - device:
+    #         - /dev/sdb1
+    #         - /dev/sdc1
+    #       lvm:
+    #         vg_name: vg_data
+    #         lv_name: lv_data
+    #       filesystem: xfs
+    #       mount_point: /data
+    #       mount_options: prjquota
+    #     - device:
+    #         - sdd
+    #       partition: true
+    #       lvm:
+    #         vg_name: vg_data
+    #         lv_name: lv_cache
+    #       filesystem: ext4
+    #       mount_point: /cache
   groups:
     # all kubernetes nodes.
     k8s_cluster:

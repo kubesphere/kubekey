@@ -29,6 +29,10 @@ dependencies:
     tags: ["network"]
     when: .inventory_hostname | ne "localhost"
 
+  - role: precheck/storage
+    tags: ["storage"]
+    when: .storage | empty | not
+
   - role: precheck/kubernetes
     tags: ["kubernetes"]
     when: .groups.k8s_cluster | default list | has .inventory_hostname

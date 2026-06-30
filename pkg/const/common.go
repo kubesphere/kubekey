@@ -54,6 +54,30 @@ const ( // === From Global Parameter ===
 	VariableConnectorToken = "token"
 	// VariableGatherFactsCache type in runtimedir. support jsonfile, yamlfile, memory.
 	VariableGatherFactsCache = "fact_caching"
+	// VariableStorage is the storage configuration in inventory host vars.
+	VariableStorage = "storage"
+	// VariableStorageDisk is the disk name/number under storage, e.g. sdb or nvme0n1.
+	VariableStorageDisk = "disk"
+	// VariableStorageDevice is the full block device path under storage, e.g. /dev/sdb.
+	VariableStorageDevice = "device"
+	// VariableStorageFilesystem is the filesystem type to format, e.g. ext4 or xfs.
+	VariableStorageFilesystem = "filesystem"
+	// VariableStoragePartition indicates whether to create a single partition on the disk before formatting.
+	VariableStoragePartition = "partition"
+	// VariableStorageOverwrite indicates whether to overwrite an existing filesystem.
+	VariableStorageOverwrite = "overwrite"
+	// VariableStorageMountPoint is the mount point to mount the formatted device.
+	VariableStorageMountPoint = "mount_point"
+	// VariableStorageMountOptions is the mount options written to fstab, e.g. prjquota.
+	VariableStorageMountOptions = "mount_options"
+	// VariableStorageLVM enables LVM management for the storage device.
+	VariableStorageLVM = "lvm"
+	// VariableStorageVGName is the LVM volume group name.
+	VariableStorageVGName = "vg_name"
+	// VariableStorageLVName is the LVM logical volume name.
+	VariableStorageLVName = "lv_name"
+	// VariableStorageLVSize is the LVM logical volume size, e.g. 100%FREE or 10G.
+	VariableStorageLVSize = "lv_size"
 )
 
 const ( // === From system generate ===
