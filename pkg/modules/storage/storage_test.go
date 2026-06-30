@@ -105,6 +105,30 @@ func TestParseItemWithLVM(t *testing.T) {
 	}
 }
 
+func TestParseItemWithWebInstallerAliases(t *testing.T) {
+	t.Parallel()
+
+	item, err := parseItem(map[string]any{
+		"device":       "vda1",
+		"filesystem":   "xfs",
+		"mountpoint":   "/data",
+		"mount_option": "prjquota",
+		"vg_name":      "vg_data",
+	})
+	if err != nil {
+		t.Fatalf("parseItem() error = %v", err)
+	}
+	if item.MountPoint != "/data" {
+		t.Fatalf("MountPoint = %q, want /data", item.MountPoint)
+	}
+	if item.MountOptions != "prjquota" {
+		t.Fatalf("MountOptions = %q, want prjquota", item.MountOptions)
+	}
+	if item.LVM == nil || item.LVM.VGName != "vg_data" || item.LVM.LVName != "lv_data" {
+		t.Fatalf("LVM = %#v", item.LVM)
+	}
+}
+
 func TestParseItemDirectFormatRequiresSingleDevice(t *testing.T) {
 	t.Parallel()
 

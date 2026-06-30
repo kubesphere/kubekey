@@ -14,3 +14,15 @@
       vg_name: "{{ .item.lvm.vg_name }}"
       lv_name: "{{ .item.lvm.lv_name }}"
       lv_size: "{{ .item.lvm.lv_size }}"
+
+- name: Storage | Format web installer storage disks
+  when: .kubernetes.storage_disks | empty | not
+  loop: "{{ .kubernetes.storage_disks | toJson }}"
+  storage:
+    device: "{{ .item.device }}"
+    filesystem: "{{ .item.filesystem | default \"xfs\" }}"
+    partition: "{{ .item.partition | default false }}"
+    overwrite: "{{ .item.overwrite | default false }}"
+    mountpoint: "{{ .item.mountpoint }}"
+    mount_option: "{{ .item.mount_option }}"
+    vg_name: "{{ .item.vg_name }}"

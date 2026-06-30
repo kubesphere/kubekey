@@ -110,11 +110,17 @@ func parseItem(args map[string]any) (Item, error) {
 	if mountPoint, err := variable.StringVar(nil, args, _const.VariableStorageMountPoint); err == nil {
 		item.MountPoint = strings.TrimSpace(mountPoint)
 	}
+	if mountPoint, err := variable.StringVar(nil, args, _const.VariableStorageMountpoint); err == nil && item.MountPoint == "" {
+		item.MountPoint = strings.TrimSpace(mountPoint)
+	}
 	if mountOptions, err := variable.StringVar(nil, args, _const.VariableStorageMountOptions); err == nil {
 		item.MountOptions = strings.TrimSpace(mountOptions)
 	}
+	if mountOptions, err := variable.StringVar(nil, args, _const.VariableStorageMountOption); err == nil && item.MountOptions == "" {
+		item.MountOptions = strings.TrimSpace(mountOptions)
+	}
 
-	lvm, err := parseLVM(args)
+	lvm, err := parseLVM(args, item.MountPoint, item.Devices)
 	if err != nil {
 		return Item{}, err
 	}
@@ -219,34 +225,32 @@ func dedupeDevices(devices []string) []string {
 	return result
 }
 
-func parseLVM(args map[string]any) (*LVMConfig, error) {
+func parseLVM(args map[string]any, mountPoint string, devices []string) (*LVMConfig, error) {
+	cfg := &LVMConfig{LVSize: "100%FREE"}
+
 	lvmVal, found, err := unstructured.NestedFieldNoCopy(args, _const.VariableStorageLVM)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	if !found || lvmVal == nil {
-		return nil, nil
-	}
-
-	cfg := &LVMConfig{LVSize: "100%FREE"}
-
-	switch v := lvmVal.(type) {
-	case bool:
-		if !v {
-			return nil, nil
+	if found && lvmVal != nil {
+		switch v := lvmVal.(type) {
+		case bool:
+			if !v {
+				return nil, nil
+			}
+		case map[string]any:
+			if vgName, err := variable.StringVar(nil, v, _const.VariableStorageVGName); err == nil {
+				cfg.VGName = strings.TrimSpace(vgName)
+			}
+			if lvName, err := variable.StringVar(nil, v, _const.VariableStorageLVName); err == nil {
+				cfg.LVName = strings.TrimSpace(lvName)
+			}
+			if lvSize, err := variable.StringVar(nil, v, _const.VariableStorageLVSize); err == nil {
+				cfg.LVSize = strings.TrimSpace(lvSize)
+			}
+		default:
+			return nil, errors.Errorf("unsupported lvm configuration type %T", lvmVal)
 		}
-	case map[string]any:
-		if vgName, err := variable.StringVar(nil, v, _const.VariableStorageVGName); err == nil {
-			cfg.VGName = strings.TrimSpace(vgName)
-		}
-		if lvName, err := variable.StringVar(nil, v, _const.VariableStorageLVName); err == nil {
-			cfg.LVName = strings.TrimSpace(lvName)
-		}
-		if lvSize, err := variable.StringVar(nil, v, _const.VariableStorageLVSize); err == nil {
-			cfg.LVSize = strings.TrimSpace(lvSize)
-		}
-	default:
-		return nil, errors.Errorf("unsupported lvm configuration type %T", lvmVal)
 	}
 
 	if vgName, err := variable.StringVar(nil, args, _const.VariableStorageVGName); err == nil && cfg.VGName == "" {
@@ -262,6 +266,9 @@ func parseLVM(args map[string]any) (*LVMConfig, error) {
 	if cfg.VGName == "" && cfg.LVName == "" {
 		return nil, nil
 	}
+	if cfg.VGName != "" && cfg.LVName == "" {
+		cfg.LVName = defaultLVName(mountPoint, devices)
+	}
 	if cfg.VGName == "" || cfg.LVName == "" {
 		return nil, errors.New("lvm requires vg_name and lv_name")
 	}
@@ -276,6 +283,19 @@ func parseLVM(args map[string]any) (*LVMConfig, error) {
 	}
 
 	return cfg, nil
+}
+
+func defaultLVName(mountPoint string, devices []string) string {
+	name := strings.Trim(strings.TrimSpace(mountPoint), "/")
+	if name == "" && len(devices) > 0 {
+		name = strings.TrimPrefix(strings.TrimSpace(devices[0]), "/dev/")
+	}
+	name = strings.ReplaceAll(name, "/", "_")
+	name = strings.ReplaceAll(name, "-", "_")
+	if name == "" {
+		return "lv_data"
+	}
+	return "lv_" + name
 }
 
 func validateLVMName(name, field string) error {
