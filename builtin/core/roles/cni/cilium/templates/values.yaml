@@ -119,12 +119,12 @@ ipam:
   operator:
 {{- if .cni.ipv4_support }}
     clusterPoolIPv4PodCIDRList:
-      - {{ .cni.ipv4_pods_cidr }}
+      - {{ .cni.ipv4_pod_cidr }}
     clusterPoolIPv4MaskSize: {{ .cni.ipv4_mask_size }}
 {{- end }}
 {{- if .cni.ipv6_support }}
     clusterPoolIPv6PodCIDRList:
-      - {{ .cni.ipv6_pods_cidr }}
+      - {{ .cni.ipv6_pod_cidr }}
     clusterPoolIPv6MaskSize: {{ .cni.ipv6_mask_size }}
 {{- end }}
 {{- if or (.cni.multi_cni | eq "multus") (.cni.multi_cni | eq "spiderpool") }}

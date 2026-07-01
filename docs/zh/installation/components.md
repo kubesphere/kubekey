@@ -115,6 +115,23 @@
 > - 可通过 `--set cni.type="none"` 不安装任何插件（适用于已有网络插件或自定义网络方案）
 > - 选择网络插件后，更换插件需要重新部署集群，请谨慎选择
 
+#### [cni-plugins](https://github.com/containernetworking/plugins)
+
+> **说明**：cni-plugins 是 CNI 官方维护的标准插件集合，包含 `loopback`、`bridge`、`host-local`、`macvlan`、`ipvlan`、`portmap`、`bandwidth` 等参考实现。Kubelet 依赖 `loopback` 插件创建 Pod 的 loopback 接口；Multus 等多 CNI 方案则通过委托方式使用这些插件为 Pod 配置额外网络接口。
+
+> **兼容性**：Kubernetes 只要求 CNI 插件兼容 **CNI spec >= v0.4.0**（推荐 v1.0.0），故使用时直接使用最新的 cni-plugins 稳定版即可。
+
+> **安装方式**：
+> - 通过 `--set cni.cni_plugins_version="v1.9.1"` 指定安装的 cni-plugins 版本（不指定则使用默认版本）
+
+> **重要提示**：
+> - 插件二进制文件默认部署到 `/opt/cni/bin/`
+> - 建议使用最新稳定版本以获取 bug 修复和安全更新
+
+| kubernetes 版本 | kubekey 默认版本 | CNI Spec |
+|---|---|---|
+| 1.23~1.34 | v1.9.1 | 1.0.0 |
+
 #### [calico](https://github.com/projectcalico/calico)
 > **说明**：Calico 是一个功能强大的网络和网络安全解决方案，支持 BGP 路由、网络策略、IP 地址管理等功能。适合需要细粒度网络控制和策略管理的生产环境。
 

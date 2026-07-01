@@ -521,7 +521,7 @@ download:
     type: {{ .download.cni.type | toJson }}
     # ========== cni ==========
     # cni_plugins binary
-    cni_plugins_version: {{ .download.cni.cni_plugins_version| default list | toJson }}
+    cni_plugins_version: {{ .download.cni.cni_plugins_version| default (list "v1.9.1") | toJson }}
     # ========== cni: calico ==========
     # calicoctl binary
 {{- if .download.cni.type | has "calico" }}
