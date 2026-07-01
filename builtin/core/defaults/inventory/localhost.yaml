@@ -34,10 +34,19 @@ spec:
     #       filesystem: ext4
     #       mount_point: /cache
     #   kubernetes:
+    #     multipath:
+    #       enabled: true
+    #       # Optional. Defaults are used to blacklist local disks.
+    #       # devnodes:
+    #       #   - ^sd[a-z]
+    #       #   - ^vd[a-z]
+    #       #   - ^xvd[a-z]
+    #       #   - ^nvme[0-9]n[0-9]
     #     storage_disks:
     #       - device: vda1
     #         mountpoint: /data
     #         filesystem: xfs
+    #         lv_name: lv_data
     #         mount_option: prjquota
     #       - device: vda2
     #         mountpoint: /data2

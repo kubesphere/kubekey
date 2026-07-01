@@ -138,3 +138,51 @@ func TestParseLsblkJSON(t *testing.T) {
 	assert.True(t, ok)
 	assert.Len(t, parsed, 1)
 }
+
+func TestEnrichBlockDevicesWithLVM(t *testing.T) {
+	devices, err := parseLsblkJSON([]byte(`{
+		"blockdevices": [
+			{
+				"name": "sdb",
+				"size": 21474836480,
+				"type": "disk",
+				"mountpoint": null,
+				"fstype": null,
+				"model": "Virtual disk",
+				"children": [
+					{
+						"name": "vg_data-lv_data",
+						"size": 21474832384,
+						"type": "lvm",
+						"mountpoint": null,
+						"fstype": null,
+						"model": null
+					}
+				]
+			}
+		]
+	}`))
+	assert.NoError(t, err)
+
+	err = enrichBlockDevicesWithLVM(devices, []byte(`{
+		"report": [
+			{
+				"lv": [
+					{
+						"lv_name": "lv_data",
+						"vg_name": "vg_data",
+						"lv_path": "/dev/vg_data/lv_data",
+						"lv_dm_path": "/dev/mapper/vg_data-lv_data"
+					}
+				]
+			}
+		]
+	}`))
+	assert.NoError(t, err)
+
+	deviceList := devices.([]any)
+	children := deviceList[0].(map[string]any)["children"].([]any)
+	lvmDevice := children[0].(map[string]any)
+	assert.Equal(t, "vg_data", lvmDevice["vg_name"])
+	assert.Equal(t, "lv_data", lvmDevice["lv_name"])
+}
