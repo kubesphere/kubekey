@@ -1,4 +1,12 @@
 ---
+- name: Storage | Configure multipath blacklist
+  when: .kubernetes.multipath.enabled | default false
+  multipath_conf:
+    path: "{{ .kubernetes.multipath.path | default \"/etc/multipath.conf\" }}"
+    backup: "{{ .kubernetes.multipath.backup | default true }}"
+    reload: "{{ .kubernetes.multipath.reload | default true }}"
+    devnodes: "{{ .kubernetes.multipath.devnodes | default list | toJson }}"
+
 - name: Storage | Format disks configured in inventory
   when: .storage | empty | not
   loop: "{{ .storage | toJson }}"
@@ -26,3 +34,4 @@
     mountpoint: "{{ .item.mountpoint }}"
     mount_option: "{{ .item.mount_option }}"
     vg_name: "{{ .item.vg_name }}"
+    lv_name: "{{ .item.lv_name }}"
