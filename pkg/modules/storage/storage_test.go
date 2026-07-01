@@ -97,6 +97,9 @@ func TestParseItemWithLVM(t *testing.T) {
 	if item.LVM == nil {
 		t.Fatalf("expected LVM config")
 	}
+	if item.LVM.LVName != "lv_data" {
+		t.Fatalf("LVName = %q, want lv_data", item.LVM.LVName)
+	}
 	if len(item.Devices) != 2 {
 		t.Fatalf("Devices = %#v", item.Devices)
 	}
