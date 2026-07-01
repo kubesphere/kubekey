@@ -86,4 +86,5 @@
           {{ .tmp_dir }}/cni-plugins-linux-{{ .binary_type }}-{{ .cni.cni_plugins_version }}.tgz
     - name: Binary | Extract and install CNI plugins
       command: |
+        mkdir -p /opt/cni/bin/
         tar -zxvf {{ .tmp_dir }}/cni-plugins-linux-{{ .binary_type }}-{{ .cni.cni_plugins_version }}.tgz -C /opt/cni/bin/
