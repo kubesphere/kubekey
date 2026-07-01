@@ -5,7 +5,6 @@
 {{- $default_cridockerd_version := list }}
 {{- $default_containerd_version := list }}
 {{- $default_runc_version := list }}
-{{- $default_cni_plugins_version := list }}
 {{- $default_calico_version := list }}
 {{- $default_cilium_version := list }}
 {{- $default_flannel_version := list }}
@@ -31,9 +30,6 @@
     {{- end }}
     {{- if $default_runc_version | has "v1.1.5" | not }}
     {{- $default_runc_version = append $default_runc_version "v1.1.5" }}
-    {{- end }}
-    {{- if $default_cni_plugins_version | has "v1.1.1" | not }}
-    {{- $default_cni_plugins_version = append $default_cni_plugins_version "v1.1.1" }}
     {{- end }}
     {{- if $default_calico_version | has "v3.25.2" | not }}
     {{- $default_calico_version = append $default_calico_version "v3.25.2" }}
@@ -72,9 +68,6 @@
     {{- if $default_runc_version | has "v1.1.5" | not }}
     {{- $default_runc_version = append $default_runc_version "v1.1.5" }}
     {{- end }}
-    {{- if $default_cni_plugins_version | has "v1.1.1" | not }}
-    {{- $default_cni_plugins_version = append $default_cni_plugins_version "v1.1.1" }}
-    {{- end }}
     {{- if $default_calico_version | has "v3.26.5" | not }}
     {{- $default_calico_version = append $default_calico_version "v3.26.5" }}
     {{- end }}
@@ -111,9 +104,6 @@
     {{- end }}
     {{- if $default_runc_version | has "v1.1.5" | not }}
     {{- $default_runc_version = append $default_runc_version "v1.1.5" }}
-    {{- end }}
-    {{- if $default_cni_plugins_version | has "v1.1.1" | not }}
-    {{- $default_cni_plugins_version = append $default_cni_plugins_version "v1.1.1" }}
     {{- end }}
     {{- if $default_calico_version | has "v3.26.5" | not }}
     {{- $default_calico_version = append $default_calico_version "v3.26.5" }}
@@ -152,9 +142,6 @@
     {{- if $default_runc_version | has "v1.1.7" | not }}
     {{- $default_runc_version = append $default_runc_version "v1.1.7" }}
     {{- end }}
-    {{- if $default_cni_plugins_version | has "v1.2.0" | not }}
-    {{- $default_cni_plugins_version = append $default_cni_plugins_version "v1.2.0" }}
-    {{- end }}
     {{- if $default_calico_version | has "v3.26.5" | not }}
     {{- $default_calico_version = append $default_calico_version "v3.26.5" }}
     {{- end }}
@@ -191,9 +178,6 @@
     {{- end }}
     {{- if $default_runc_version | has "v1.1.12" | not }}
     {{- $default_runc_version = append $default_runc_version "v1.1.12" }}
-    {{- end }}
-    {{- if $default_cni_plugins_version | has "v1.2.0" | not }}
-    {{- $default_cni_plugins_version = append $default_cni_plugins_version "v1.2.0" }}
     {{- end }}
     {{- if $default_calico_version | has "v3.28.5" | not }}
     {{- $default_calico_version = append $default_calico_version "v3.28.5" }}
@@ -232,9 +216,6 @@
     {{- if $default_runc_version | has "v1.1.12" | not }}
     {{- $default_runc_version = append $default_runc_version "v1.1.12" }}
     {{- end }}
-    {{- if $default_cni_plugins_version | has "v1.2.0" | not }}
-    {{- $default_cni_plugins_version = append $default_cni_plugins_version "v1.2.0" }}
-    {{- end }}
     {{- if $default_calico_version | has "v3.28.5" | not }}
     {{- $default_calico_version = append $default_calico_version "v3.28.5" }}
     {{- end }}
@@ -271,9 +252,6 @@
     {{- end }}
     {{- if $default_runc_version | has "v1.1.12" | not }}
     {{- $default_runc_version = append $default_runc_version "v1.1.12" }}
-    {{- end }}
-    {{- if $default_cni_plugins_version | has "v1.2.0" | not }}
-    {{- $default_cni_plugins_version = append $default_cni_plugins_version "v1.2.0" }}
     {{- end }}
     {{- if $default_calico_version | has "v3.29.7" | not }}
     {{- $default_calico_version = append $default_calico_version "v3.29.7" }}
@@ -312,9 +290,6 @@
     {{- if $default_runc_version | has "v1.1.12" | not }}
     {{- $default_runc_version = append $default_runc_version "v1.1.12" }}
     {{- end }}
-    {{- if $default_cni_plugins_version | has "v1.2.0" | not }}
-    {{- $default_cni_plugins_version = append $default_cni_plugins_version "v1.2.0" }}
-    {{- end }}
     {{- if $default_calico_version | has "v3.29.7" | not }}
     {{- $default_calico_version = append $default_calico_version "v3.29.7" }}
     {{- end }}
@@ -351,9 +326,6 @@
     {{- end }}
     {{- if $default_runc_version | has "v1.1.12" | not }}
     {{- $default_runc_version = append $default_runc_version "v1.1.12" }}
-    {{- end }}
-    {{- if $default_cni_plugins_version | has "v1.2.0" | not }}
-    {{- $default_cni_plugins_version = append $default_cni_plugins_version "v1.2.0" }}
     {{- end }}
     {{- if $default_calico_version | has "v3.30.5" | not }}
     {{- $default_calico_version = append $default_calico_version "v3.30.5" }}
@@ -392,9 +364,6 @@
     {{- if $default_runc_version | has "v1.1.12" | not }}
     {{- $default_runc_version = append $default_runc_version "v1.1.12" }}
     {{- end }}
-    {{- if $default_cni_plugins_version | has "v1.2.0" | not }}
-    {{- $default_cni_plugins_version = append $default_cni_plugins_version "v1.2.0" }}
-    {{- end }}
     {{- if $default_calico_version | has "v3.31.3" | not }}
     {{- $default_calico_version = append $default_calico_version "v3.31.3" }}
     {{- end }}
@@ -432,9 +401,6 @@
     {{- if $default_runc_version | has "v1.1.12" | not }}
     {{- $default_runc_version = append $default_runc_version "v1.1.12" }}
     {{- end }}
-    {{- if $default_cni_plugins_version | has "v1.2.0" | not }}
-    {{- $default_cni_plugins_version = append $default_cni_plugins_version "v1.2.0" }}
-    {{- end }}
     {{- if $default_calico_version | has "v3.31.3" | not }}
     {{- $default_calico_version = append $default_calico_version "v3.31.3" }}
     {{- end }}
@@ -471,9 +437,6 @@
     {{- end }}
     {{- if $default_runc_version | has "v1.1.12" | not }}
     {{- $default_runc_version = append $default_runc_version "v1.1.12" }}
-    {{- end }}
-    {{- if $default_cni_plugins_version | has "v1.2.0" | not }}
-    {{- $default_cni_plugins_version = append $default_cni_plugins_version "v1.2.0" }}
     {{- end }}
     {{- if $default_calico_version | has "v3.31.3" | not }}
     {{- $default_calico_version = append $default_calico_version "v3.31.3" }}
@@ -558,7 +521,7 @@ download:
     type: {{ .download.cni.type | toJson }}
     # ========== cni ==========
     # cni_plugins binary
-    cni_plugins_version: {{ .download.cni.cni_plugins_version| default $default_cni_plugins_version | toJson }}
+    cni_plugins_version: {{ .download.cni.cni_plugins_version| default (list "v1.9.1") | toJson }}
     # ========== cni: calico ==========
     # calicoctl binary
 {{- if .download.cni.type | has "calico" }}

@@ -1,18 +1,4 @@
 ---
-- name: Flannel | Install CNI plugins if version specified
-  when: .cni.cni_plugins_version | empty | not
-  block:
-    - name: Flannel | Copy CNI plugins archive to remote host
-      copy:
-        src: >-
-          {{ .binary_dir }}/cni/plugins/{{ .cni.cni_plugins_version }}/{{ .binary_type }}/cni-plugins-linux-{{ .binary_type }}-{{ .cni.cni_plugins_version }}.tgz
-        dest: >-
-          {{ .tmp_dir }}/cni-plugins-linux-{{ .binary_type }}-{{ .cni.cni_plugins_version }}.tgz
-    - name: Flannel | Extract and install CNI plugins
-      command: |
-        tar -zxvf {{ .tmp_dir }}/cni-plugins-linux-{{ .binary_type }}-{{ .cni.cni_plugins_version }}.tgz -C /opt/cni/bin/
-
-
 # For more information, see: https://github.com/flannel-io/flannel/blob/master/Documentation/kubernetes.md
 
 - name: Flannel | Sync flannel package to remote node
