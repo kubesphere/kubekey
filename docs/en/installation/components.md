@@ -123,10 +123,7 @@ Recommended etcd versions for each Kubernetes version:
 
 > **Installation**:
 > - Use `--set cni.cni_plugins_version="v1.9.1"` to specify the cni-plugins version to install (if not specified, the default version will be used)
-
-> **Important Notes**:
 > - Plugin binaries are deployed to `/opt/cni/bin/` by default
-> - It is recommended to use the latest stable version for bug fixes and security updates
 
 | kubernetes version | kubekey default version | CNI Spec |
 |---|---|---|

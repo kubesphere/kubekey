@@ -123,10 +123,7 @@
 
 > **安装方式**：
 > - 通过 `--set cni.cni_plugins_version="v1.9.1"` 指定安装的 cni-plugins 版本（不指定则使用默认版本）
-
-> **重要提示**：
 > - 插件二进制文件默认部署到 `/opt/cni/bin/`
-> - 建议使用最新稳定版本以获取 bug 修复和安全更新
 
 | kubernetes 版本 | kubekey 默认版本 | CNI Spec |
 |---|---|---|
