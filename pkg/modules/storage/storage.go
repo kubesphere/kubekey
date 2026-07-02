@@ -407,12 +407,72 @@ ensure_block_device() {
   fi
 }
 
-refuse_mounted_device() {
+cleanup_fstab_entries() {
   local dev="$1"
-  if findmnt -n -S "$dev" >/dev/null 2>&1; then
-    echo "device $dev is mounted, refusing to continue" >&2
+  local mount_point="${2:-}"
+  local uuid=""
+  local tmp
+
+  uuid=$(blkid -s UUID -o value "$dev" 2>/dev/null || true)
+  if [ ! -f /etc/fstab ]; then
+    return 0
+  fi
+  tmp=$(mktemp)
+  awk -v dev="$dev" -v uuid="$uuid" -v mount_point="$mount_point" '
+    /^[[:space:]]*#/ || NF == 0 { print; next }
+    $1 == dev { next }
+    uuid != "" && $1 == "UUID=" uuid { next }
+    mount_point != "" && $2 == mount_point { next }
+    { print }
+  ' /etc/fstab > "$tmp"
+  cat "$tmp" > /etc/fstab
+  rm -f "$tmp"
+}
+
+force_unmount_device() {
+  local dev="$1"
+  local target
+  local targets
+
+  targets=$(findmnt -rn -S "$dev" -o TARGET 2>/dev/null || true)
+  if [ -z "$targets" ]; then
+    return 0
+  fi
+  while IFS= read -r target; do
+    [ -z "$target" ] && continue
+    echo "force unmounting $dev from $target"
+    umount -lf "$target"
+    cleanup_fstab_entries "$dev" "$target"
+  done <<< "$targets"
+}
+
+clear_lvm_device() {
+  local vg_name="$1"
+  local pv_dev="$2"
+  local pv_count
+  local lv_name
+
+  if ! vgs --noheadings "$vg_name" >/dev/null 2>&1; then
+    pvremove -ff -y "$pv_dev" 2>/dev/null || true
+    wipefs -a "$pv_dev" 2>/dev/null || true
+    return 0
+  fi
+
+  pv_count=$(pvs --noheadings -o pv_name,vg_name 2>/dev/null | awk -v vg="$vg_name" '$2 == vg {count++} END {print count+0}')
+  if [ "$pv_count" -gt 1 ]; then
+    echo "volume group $vg_name contains multiple physical volumes, refusing to clear only $pv_dev" >&2
     exit 1
   fi
+
+  while IFS= read -r lv_name; do
+    [ -z "$lv_name" ] && continue
+    force_unmount_device "/dev/$vg_name/$lv_name"
+    lvremove -y "$vg_name/$lv_name"
+  done < <(lvs --noheadings -o lv_name "$vg_name" 2>/dev/null | awk '{$1=$1;print}')
+
+  vgremove -y "$vg_name"
+  pvremove -ff -y "$pv_dev" 2>/dev/null || true
+  wipefs -a "$pv_dev" 2>/dev/null || true
 }
 
 mount_and_persist() {
@@ -421,8 +481,13 @@ mount_and_persist() {
     return 0
   fi
   mkdir -p "$MOUNT_POINT"
+  cleanup_fstab_entries "$dev" "$MOUNT_POINT"
   if mountpoint -q "$MOUNT_POINT"; then
-    return 0
+    umount -lf "$MOUNT_POINT"
+  fi
+  if mountpoint -q "$MOUNT_POINT"; then
+    echo "mount point $MOUNT_POINT is still mounted after force unmount" >&2
+    exit 1
   fi
   mount -o "$MOUNT_OPTIONS" "$dev" "$MOUNT_POINT"
   if blkid "$dev" >/dev/null 2>&1; then
@@ -457,7 +522,7 @@ ensure_block_device "$DEVICE"
 refuse_system_disk "$DEVICE"
 resolve_target_device
 ensure_block_device "$TARGET_DEV"
-refuse_mounted_device "$TARGET_DEV"
+force_unmount_device "$TARGET_DEV"
 
 FORMAT_DEV="$TARGET_DEV"
 if blkid "$FORMAT_DEV" >/dev/null 2>&1; then
@@ -504,7 +569,7 @@ VG_NAME=%q
 LV_NAME=%q
 LV_SIZE=%q
 
-for cmd in pvcreate vgcreate vgextend lvcreate lvremove mkfs; do
+for cmd in pvcreate pvremove pvs vgcreate vgextend vgremove vgs lvcreate lvremove lvs mkfs wipefs; do
   if ! command -v "$cmd" >/dev/null 2>&1; then
     echo "required command $cmd is not installed" >&2
     exit 1
@@ -517,12 +582,17 @@ for DEVICE in "${DEVICES[@]}"; do
   refuse_system_disk "$DEVICE"
   resolve_target_device
   ensure_block_device "$TARGET_DEV"
-  refuse_mounted_device "$TARGET_DEV"
+  force_unmount_device "$TARGET_DEV"
 
   CURRENT_VG=$(pvs --noheadings -o vg_name "$TARGET_DEV" 2>/dev/null | awk '{$1=$1;print}' | head -1 || true)
-  if [ -n "$CURRENT_VG" ] && [ "$CURRENT_VG" != "$VG_NAME" ]; then
-    echo "device $TARGET_DEV already belongs to volume group $CURRENT_VG" >&2
-    exit 1
+  if [ -n "$CURRENT_VG" ]; then
+    if [ "$OVERWRITE" = true ]; then
+      echo "clearing existing volume group $CURRENT_VG on $TARGET_DEV"
+      clear_lvm_device "$CURRENT_VG" "$TARGET_DEV"
+    elif [ "$CURRENT_VG" != "$VG_NAME" ]; then
+      echo "device $TARGET_DEV already belongs to volume group $CURRENT_VG" >&2
+      exit 1
+    fi
   fi
 
   if pvs --noheadings "$TARGET_DEV" >/dev/null 2>&1; then
@@ -554,6 +624,7 @@ if lvs --noheadings "$VG_NAME/$LV_NAME" >/dev/null 2>&1; then
     echo "logical volume $VG_NAME/$LV_NAME already exists"
   else
     echo "removing existing logical volume $VG_NAME/$LV_NAME"
+    force_unmount_device "$LV_PATH"
     lvremove -y "$VG_NAME/$LV_NAME"
     if [[ "$LV_SIZE" =~ ^[0-9]+%% ]] || [[ "$LV_SIZE" =~ ^[0-9]+$ ]]; then
       lvcreate -y -n "$LV_NAME" -l "$LV_SIZE" "$VG_NAME"
@@ -572,7 +643,7 @@ fi
 
 FORMAT_DEV="$LV_PATH"
 ensure_block_device "$FORMAT_DEV"
-refuse_mounted_device "$FORMAT_DEV"
+force_unmount_device "$FORMAT_DEV"
 
 if blkid "$FORMAT_DEV" >/dev/null 2>&1; then
   if [ "$OVERWRITE" != true ]; then
