@@ -27,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
+	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
 	"github.com/kubesphere/kubekey/v4/pkg/modules/internal"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
@@ -60,12 +61,12 @@ type Item struct {
 
 // ModuleStorage formats block devices on the target host.
 func ModuleStorage(ctx context.Context, opts internal.ExecOptions) (string, string, error) {
-	_, err := opts.GetAllVariables()
+	vars, err := opts.GetAllVariables()
 	if err != nil {
 		return internal.StdoutFailed, internal.StderrGetHostVariable, err
 	}
 
-	item, err := parseItem(variable.Extension2Variables(opts.Args))
+	item, err := parseItem(vars, variable.Extension2Variables(opts.Args))
 	if err != nil {
 		return internal.StdoutFailed, "invalid storage configuration", err
 	}
@@ -89,38 +90,38 @@ func ModuleStorage(ctx context.Context, opts internal.ExecOptions) (string, stri
 	return string(stdout), string(stderr), nil
 }
 
-func parseItem(args map[string]any) (Item, error) {
+func parseItem(ctx map[string]any, args map[string]any) (Item, error) {
 	item := Item{}
 
-	devices, err := parseDevices(args)
+	devices, err := parseDevices(ctx, args)
 	if err != nil {
 		return Item{}, err
 	}
 	item.Devices = devices
 
-	if filesystem, err := variable.StringVar(nil, args, _const.VariableStorageFilesystem); err == nil {
-		item.Filesystem = strings.ToLower(strings.TrimSpace(filesystem))
+	if filesystem, err := variable.StringVar(ctx, args, _const.VariableStorageFilesystem); err == nil {
+		item.Filesystem = strings.ToLower(cleanTemplateValue(filesystem))
 	}
-	if partition, err := variable.BoolVar(nil, args, _const.VariableStoragePartition); err == nil && partition != nil {
+	if partition, err := variable.BoolVar(ctx, args, _const.VariableStoragePartition); err == nil && partition != nil {
 		item.Partition = *partition
 	}
-	if overwrite, err := variable.BoolVar(nil, args, _const.VariableStorageOverwrite); err == nil && overwrite != nil {
+	if overwrite, err := variable.BoolVar(ctx, args, _const.VariableStorageOverwrite); err == nil && overwrite != nil {
 		item.Overwrite = *overwrite
 	}
-	if mountPoint, err := variable.StringVar(nil, args, _const.VariableStorageMountPoint); err == nil {
-		item.MountPoint = strings.TrimSpace(mountPoint)
+	if mountPoint, err := variable.StringVar(ctx, args, _const.VariableStorageMountPoint); err == nil {
+		item.MountPoint = cleanTemplateValue(mountPoint)
 	}
-	if mountPoint, err := variable.StringVar(nil, args, _const.VariableStorageMountpoint); err == nil && item.MountPoint == "" {
-		item.MountPoint = strings.TrimSpace(mountPoint)
+	if mountPoint, err := variable.StringVar(ctx, args, _const.VariableStorageMountpoint); err == nil && item.MountPoint == "" {
+		item.MountPoint = cleanTemplateValue(mountPoint)
 	}
-	if mountOptions, err := variable.StringVar(nil, args, _const.VariableStorageMountOptions); err == nil {
-		item.MountOptions = strings.TrimSpace(mountOptions)
+	if mountOptions, err := variable.StringVar(ctx, args, _const.VariableStorageMountOptions); err == nil {
+		item.MountOptions = cleanTemplateValue(mountOptions)
 	}
-	if mountOptions, err := variable.StringVar(nil, args, _const.VariableStorageMountOption); err == nil && item.MountOptions == "" {
-		item.MountOptions = strings.TrimSpace(mountOptions)
+	if mountOptions, err := variable.StringVar(ctx, args, _const.VariableStorageMountOption); err == nil && item.MountOptions == "" {
+		item.MountOptions = cleanTemplateValue(mountOptions)
 	}
 
-	lvm, err := parseLVM(args, item.MountPoint, item.Devices)
+	lvm, err := parseLVM(ctx, args, item.MountPoint, item.Devices)
 	if err != nil {
 		return Item{}, err
 	}
@@ -139,11 +140,11 @@ func parseItem(args map[string]any) (Item, error) {
 	return item, nil
 }
 
-func parseDevices(args map[string]any) ([]string, error) {
+func parseDevices(ctx map[string]any, args map[string]any) ([]string, error) {
 	devices := make([]string, 0)
 
-	if disk, err := variable.StringVar(nil, args, _const.VariableStorageDisk); err == nil {
-		if normalized := normalizeDevicePath(disk); normalized != "" {
+	if disk, err := variable.StringVar(ctx, args, _const.VariableStorageDisk); err == nil {
+		if normalized := normalizeDevicePath(cleanTemplateValue(disk)); normalized != "" {
 			devices = append(devices, normalized)
 		}
 	}
@@ -153,7 +154,7 @@ func parseDevices(args map[string]any) ([]string, error) {
 		return nil, errors.WithStack(err)
 	}
 	if found && deviceVal != nil {
-		parsed, err := parseDeviceValue(deviceVal)
+		parsed, err := parseDeviceValue(ctx, deviceVal)
 		if err != nil {
 			return nil, err
 		}
@@ -168,9 +169,14 @@ func parseDevices(args map[string]any) ([]string, error) {
 	return devices, nil
 }
 
-func parseDeviceValue(value any) ([]string, error) {
+func parseDeviceValue(ctx map[string]any, value any) ([]string, error) {
 	switch v := value.(type) {
 	case string:
+		rendered, err := tmpl.ParseFunc(ctx, v, tmpl.StringFunc)
+		if err != nil {
+			return nil, err
+		}
+		v = rendered
 		v = strings.TrimSpace(v)
 		if v == "" {
 			return nil, nil
@@ -225,7 +231,7 @@ func dedupeDevices(devices []string) []string {
 	return result
 }
 
-func parseLVM(args map[string]any, mountPoint string, devices []string) (*LVMConfig, error) {
+func parseLVM(ctx map[string]any, args map[string]any, mountPoint string, devices []string) (*LVMConfig, error) {
 	cfg := &LVMConfig{LVSize: "100%FREE"}
 
 	lvmVal, found, err := unstructured.NestedFieldNoCopy(args, _const.VariableStorageLVM)
@@ -239,28 +245,28 @@ func parseLVM(args map[string]any, mountPoint string, devices []string) (*LVMCon
 				return nil, nil
 			}
 		case map[string]any:
-			if vgName, err := variable.StringVar(nil, v, _const.VariableStorageVGName); err == nil {
-				cfg.VGName = strings.TrimSpace(vgName)
+			if vgName, err := variable.StringVar(ctx, v, _const.VariableStorageVGName); err == nil {
+				cfg.VGName = cleanTemplateValue(vgName)
 			}
-			if lvName, err := variable.StringVar(nil, v, _const.VariableStorageLVName); err == nil {
-				cfg.LVName = strings.TrimSpace(lvName)
+			if lvName, err := variable.StringVar(ctx, v, _const.VariableStorageLVName); err == nil {
+				cfg.LVName = cleanTemplateValue(lvName)
 			}
-			if lvSize, err := variable.StringVar(nil, v, _const.VariableStorageLVSize); err == nil {
-				cfg.LVSize = strings.TrimSpace(lvSize)
+			if lvSize, err := variable.StringVar(ctx, v, _const.VariableStorageLVSize); err == nil {
+				cfg.LVSize = cleanTemplateValue(lvSize)
 			}
 		default:
 			return nil, errors.Errorf("unsupported lvm configuration type %T", lvmVal)
 		}
 	}
 
-	if vgName, err := variable.StringVar(nil, args, _const.VariableStorageVGName); err == nil && cfg.VGName == "" {
-		cfg.VGName = strings.TrimSpace(vgName)
+	if vgName, err := variable.StringVar(ctx, args, _const.VariableStorageVGName); err == nil && cfg.VGName == "" {
+		cfg.VGName = cleanTemplateValue(vgName)
 	}
-	if lvName, err := variable.StringVar(nil, args, _const.VariableStorageLVName); err == nil && cfg.LVName == "" {
-		cfg.LVName = strings.TrimSpace(lvName)
+	if lvName, err := variable.StringVar(ctx, args, _const.VariableStorageLVName); err == nil && cfg.LVName == "" {
+		cfg.LVName = cleanTemplateValue(lvName)
 	}
-	if lvSize, err := variable.StringVar(nil, args, _const.VariableStorageLVSize); err == nil && cfg.LVSize == "" {
-		cfg.LVSize = strings.TrimSpace(lvSize)
+	if lvSize, err := variable.StringVar(ctx, args, _const.VariableStorageLVSize); err == nil && cfg.LVSize == "" {
+		cfg.LVSize = cleanTemplateValue(lvSize)
 	}
 
 	if cfg.VGName == "" && cfg.LVName == "" {
@@ -303,6 +309,14 @@ func validateLVMName(name, field string) error {
 		return errors.Errorf("invalid %s %q", field, name)
 	}
 	return nil
+}
+
+func cleanTemplateValue(value string) string {
+	value = strings.TrimSpace(value)
+	if value == "<no value>" {
+		return ""
+	}
+	return value
 }
 
 func normalizeDevicePath(name string) string {
