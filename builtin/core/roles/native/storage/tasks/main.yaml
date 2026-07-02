@@ -1,0 +1,37 @@
+---
+- name: Storage | Configure multipath blacklist
+  when: .kubernetes.multipath.enabled | default false
+  multipath_conf:
+    path: "{{ .kubernetes.multipath.path | default \"/etc/multipath.conf\" }}"
+    backup: "{{ .kubernetes.multipath.backup | default true }}"
+    reload: "{{ .kubernetes.multipath.reload | default true }}"
+    devnodes: "{{ .kubernetes.multipath.devnodes | default list | toJson }}"
+
+- name: Storage | Format disks configured in inventory
+  when: .storage | empty | not
+  loop: "{{ .storage | toJson }}"
+  storage:
+    disk: "{{ index .item \"disk\" }}"
+    device: "{{ index .item \"device\" | toJson }}"
+    filesystem: "{{ index .item \"filesystem\" }}"
+    partition: "{{ index .item \"partition\" | default false }}"
+    overwrite: "{{ index .item \"overwrite\" | default false }}"
+    mount_point: "{{ index .item \"mount_point\" }}"
+    mount_options: "{{ index .item \"mount_options\" }}"
+    lvm:
+      vg_name: "{{ with index .item \"lvm\" }}{{ index . \"vg_name\" }}{{ end }}"
+      lv_name: "{{ with index .item \"lvm\" }}{{ index . \"lv_name\" }}{{ end }}"
+      lv_size: "{{ with index .item \"lvm\" }}{{ index . \"lv_size\" }}{{ end }}"
+
+- name: Storage | Format web installer storage disks
+  when: .kubernetes.storage_disks | empty | not
+  loop: "{{ .kubernetes.storage_disks | toJson }}"
+  storage:
+    device: "{{ index .item \"device\" }}"
+    filesystem: "{{ index .item \"filesystem\" | default \"xfs\" }}"
+    partition: "{{ index .item \"partition\" | default false }}"
+    overwrite: "{{ index .item \"overwrite\" | default true }}"
+    mountpoint: "{{ index .item \"mountpoint\" }}"
+    mount_option: "{{ index .item \"mount_option\" }}"
+    vg_name: "{{ index .item \"vg_name\" }}"
+    lv_name: "{{ index .item \"lv_name\" }}"

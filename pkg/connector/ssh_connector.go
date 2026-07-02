@@ -95,6 +95,7 @@ func newSSHConnector(workdir, host string, hostVars map[string]any) *sshConnecto
 	}
 	cacheType, _ := variable.StringVar(nil, hostVars, _const.VariableGatherFactsCache)
 	connector := &sshConnector{
+		workdir:           workdir,
 		Host:              hostParam,
 		Port:              *portParam,
 		User:              userParam,
@@ -110,6 +111,7 @@ func newSSHConnector(workdir, host string, hostVars map[string]any) *sshConnecto
 }
 
 type sshConnector struct {
+	workdir           string
 	Host              string
 	Port              int
 	User              string
@@ -434,10 +436,12 @@ func (c *sshConnector) getHostInfo(ctx context.Context) (map[string]any, error) 
 	}
 	procVars[_const.VariableProcessMemory] = convertBytesToMap(mem.Bytes(), ":")
 
-	// persistence the hostInfo
-
-	return map[string]any{
+	hostInfo := map[string]any{
 		_const.VariableOS:      osVars,
 		_const.VariableProcess: procVars,
-	}, nil
+	}
+	enrichHostInfoWithBlockDevices(ctx, hostInfo, c)
+	enrichHostInfoWithGPU(ctx, c.workdir, hostInfo, c)
+
+	return hostInfo, nil
 }

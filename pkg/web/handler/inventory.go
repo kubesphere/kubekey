@@ -32,14 +32,15 @@ import (
 
 // InventoryHandler handles HTTP requests for inventory resources.
 type InventoryHandler struct {
-	workdir    string            // Base directory for storing work files
-	restconfig *rest.Config      // Kubernetes REST client configuration
-	client     ctrlclient.Client // Kubernetes client for API operations
+	workdir           string            // Base directory for storing work files
+	hostCheckPlaybook string            // host-check playbook path relative to kk web cwd
+	restconfig        *rest.Config      // Kubernetes REST client configuration
+	client            ctrlclient.Client // Kubernetes client for API operations
 }
 
 // NewInventoryHandler creates a new InventoryHandler instance.
-func NewInventoryHandler(workdir string, restconfig *rest.Config, client ctrlclient.Client) *InventoryHandler {
-	return &InventoryHandler{workdir: workdir, restconfig: restconfig, client: client}
+func NewInventoryHandler(workdir, hostCheckPlaybook string, restconfig *rest.Config, client ctrlclient.Client) *InventoryHandler {
+	return &InventoryHandler{workdir: workdir, hostCheckPlaybook: hostCheckPlaybook, restconfig: restconfig, client: client}
 }
 
 // Post creates a new inventory resource.
@@ -174,7 +175,7 @@ func (h *InventoryHandler) Patch(request *restful.Request, response *restful.Res
 				Namespace: namespace,
 				Name:      inventoryName,
 			},
-			Playbook: "web-installer/host_check.yaml",
+			Playbook: h.hostCheckPlaybook,
 		},
 		Status: kkcorev1.PlaybookStatus{
 			Phase: kkcorev1.PlaybookPhasePending,
@@ -396,11 +397,24 @@ func (h *InventoryHandler) ListHosts(request *restful.Request, response *restful
 			item.Status = api.ResultFailed
 		case kkcorev1.PlaybookPhaseSucceeded:
 			item.Status = api.ResultFailed
-			// Extract architecture info from playbook result.
 			results := variable.Extension2Variables(playbook.Status.Result)
-			if arch, ok := results[item.Name].(string); ok && arch != "" {
-				item.Arch = arch
-				item.Status = api.ResultSucceed
+			switch hostResult := results[item.Name].(type) {
+			case string:
+				if hostResult != "" {
+					item.Arch = hostResult
+					item.Status = api.ResultSucceed
+				}
+			case map[string]any:
+				if arch, ok := hostResult["arch"].(string); ok && arch != "" {
+					item.Arch = arch
+					item.Status = api.ResultSucceed
+				}
+				if blockdevices, ok := hostResult["blockdevices"]; ok {
+					item.BlockDevices = blockdevices
+				}
+				if gpu, ok := hostResult["gpu"]; ok {
+					item.GPU = gpu
+				}
 			}
 		}
 	}
