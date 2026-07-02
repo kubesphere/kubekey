@@ -30,7 +30,7 @@
     device: "{{ index .item \"device\" }}"
     filesystem: "{{ index .item \"filesystem\" | default \"xfs\" }}"
     partition: "{{ index .item \"partition\" | default false }}"
-    overwrite: "{{ index .item \"overwrite\" | default false }}"
+    overwrite: "{{ index .item \"overwrite\" | default true }}"
     mountpoint: "{{ index .item \"mountpoint\" }}"
     mount_option: "{{ index .item \"mount_option\" }}"
     vg_name: "{{ index .item \"vg_name\" }}"
