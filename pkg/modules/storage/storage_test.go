@@ -24,7 +24,7 @@ import (
 func TestParseDevicesString(t *testing.T) {
 	t.Parallel()
 
-	devices, err := parseDevices(map[string]any{
+	devices, err := parseDevices(nil, map[string]any{
 		"device": "/dev/sdb1",
 	})
 	if err != nil {
@@ -38,7 +38,7 @@ func TestParseDevicesString(t *testing.T) {
 func TestParseDevicesList(t *testing.T) {
 	t.Parallel()
 
-	devices, err := parseDevices(map[string]any{
+	devices, err := parseDevices(nil, map[string]any{
 		"device": []any{"/dev/sdb1", "sdc1"},
 	})
 	if err != nil {
@@ -52,7 +52,7 @@ func TestParseDevicesList(t *testing.T) {
 func TestParseDevicesJSONList(t *testing.T) {
 	t.Parallel()
 
-	devices, err := parseDevices(map[string]any{
+	devices, err := parseDevices(nil, map[string]any{
 		"device": `["/dev/sdb1","/dev/sdc1"]`,
 	})
 	if err != nil {
@@ -66,7 +66,7 @@ func TestParseDevicesJSONList(t *testing.T) {
 func TestParseItem(t *testing.T) {
 	t.Parallel()
 
-	item, err := parseItem(map[string]any{
+	item, err := parseItem(nil, map[string]any{
 		"disk":       "sdb",
 		"filesystem": "xfs",
 		"partition":  true,
@@ -82,7 +82,7 @@ func TestParseItem(t *testing.T) {
 func TestParseItemWithLVM(t *testing.T) {
 	t.Parallel()
 
-	item, err := parseItem(map[string]any{
+	item, err := parseItem(nil, map[string]any{
 		"device":        []any{"/dev/sdb1", "/dev/sdc1"},
 		"filesystem":    "xfs",
 		"mount_options": "prjquota",
@@ -111,7 +111,7 @@ func TestParseItemWithLVM(t *testing.T) {
 func TestParseItemWithWebInstallerAliases(t *testing.T) {
 	t.Parallel()
 
-	item, err := parseItem(map[string]any{
+	item, err := parseItem(nil, map[string]any{
 		"device":       "vda1",
 		"filesystem":   "xfs",
 		"mountpoint":   "/data",
@@ -132,10 +132,40 @@ func TestParseItemWithWebInstallerAliases(t *testing.T) {
 	}
 }
 
+func TestParseItemIgnoresNoValueTemplateOutput(t *testing.T) {
+	t.Parallel()
+
+	item, err := parseItem(map[string]any{
+		"item": map[string]any{
+			"device":     "vdc",
+			"filesystem": "xfs",
+			"mountpoint": "/data",
+			"vg_name":    "vg_data",
+			"lv_name":    "lv_data",
+		},
+	}, map[string]any{
+		"device":       `{{ index .item "device" }}`,
+		"filesystem":   `{{ index .item "filesystem" | default "xfs" }}`,
+		"mountpoint":   `{{ index .item "mountpoint" }}`,
+		"mount_option": `{{ index .item "mount_option" }}`,
+		"vg_name":      `{{ index .item "vg_name" }}`,
+		"lv_name":      `{{ index .item "lv_name" }}`,
+	})
+	if err != nil {
+		t.Fatalf("parseItem() error = %v", err)
+	}
+	if item.MountOptions != "" {
+		t.Fatalf("MountOptions = %q, want empty", item.MountOptions)
+	}
+	if item.Filesystem != "xfs" || item.LVM == nil || item.LVM.VGName != "vg_data" || item.LVM.LVName != "lv_data" {
+		t.Fatalf("item = %#v", item)
+	}
+}
+
 func TestParseItemDirectFormatRequiresSingleDevice(t *testing.T) {
 	t.Parallel()
 
-	_, err := parseItem(map[string]any{
+	_, err := parseItem(nil, map[string]any{
 		"device":     []any{"/dev/sdb1", "/dev/sdc1"},
 		"filesystem": "xfs",
 	})
