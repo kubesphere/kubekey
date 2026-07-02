@@ -117,6 +117,7 @@ type InventoryHostTable struct {
 	Groups               []InventoryHostGroups `json:"groups"`                 // Groups the host belongs to
 	Arch                 string                `json:"arch"`                   // Architecture of the host
 	BlockDevices         any                   `json:"blockdevices,omitempty"` // Block devices gathered via lsblk
+	GPU                  any                   `json:"gpu,omitempty"`          // GPU devices gathered via lspci
 }
 
 // InventoryHostGroups represents the group information for a host in the inventory.

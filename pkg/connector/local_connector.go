@@ -57,6 +57,7 @@ func newLocalConnector(workdir string, hostVars map[string]any) *localConnector 
 	}
 	cacheType, _ := variable.StringVar(nil, hostVars, _const.VariableGatherFactsCache)
 	connector := &localConnector{
+		workdir:  workdir,
 		User:     user,
 		Password: password,
 		Cmd:      exec.New(),
@@ -68,6 +69,7 @@ func newLocalConnector(workdir string, hostVars map[string]any) *localConnector 
 }
 
 type localConnector struct {
+	workdir  string
 	User     string
 	Password string
 	Cmd      exec.Interface
@@ -199,6 +201,7 @@ func (c *localConnector) getHostInfo(ctx context.Context) (map[string]any, error
 			_const.VariableProcess: procVars,
 		}
 		enrichHostInfoWithBlockDevices(ctx, hostInfo, c)
+		enrichHostInfoWithGPU(ctx, c.workdir, hostInfo, c)
 
 		return hostInfo, nil
 	default:

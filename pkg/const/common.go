@@ -121,6 +121,13 @@ const ( // === From GatherFact ===
 	VariableProcessMemory = "memInfo"
 	// VariableBlockDevices the value is block device info gathered via lsblk.
 	VariableBlockDevices = "blockdevices"
+	// VariableGPU the value is GPU info gathered via lspci.
+	VariableGPU = "gpu"
+)
+
+const (
+	// GPUVendorConfigRelPath is the relative path to GPU vendor config under workdir.
+	GPUVendorConfigRelPath = "config/scanner/gpu_vendors.yaml"
 )
 
 const ( // === From runtime ===

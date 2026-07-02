@@ -412,6 +412,9 @@ func (h *InventoryHandler) ListHosts(request *restful.Request, response *restful
 				if blockdevices, ok := hostResult["blockdevices"]; ok {
 					item.BlockDevices = blockdevices
 				}
+				if gpu, ok := hostResult["gpu"]; ok {
+					item.GPU = gpu
+				}
 			}
 		}
 	}

@@ -1,0 +1,102 @@
+# GPU/NPU Vendor Classification Rules
+# Used by GPU detection to identify GPU devices from lspci -mm -nn output.
+#
+# lspci -mm -nn outputs each quoted field as "HumanName [HexID]".
+# Matching strategy: numeric ID first, name-based substring fallback.
+#
+# Config path: {workdir}/config/scanner/gpu_vendors.yaml
+
+# PCI class codes for AI compute devices (primary match via numeric ID)
+gpu_class_codes:
+  - "0300"   # VGA compatible controller (some real NVIDIA GPUs expose this class)
+  - "0302"   # 3D controller (data-center GPUs commonly expose this without display output)
+  - "1200"   # Processing accelerators (NPU/AI accelerator class)
+
+# Fallback keywords when numeric class code is absent (case-insensitive substring)
+gpu_class_keywords:
+  - "Processing accelerators"
+  - "Compute accelerator"
+  - "Machine Learning Accelerator"
+  - "AI accelerator"
+  - "Neural Processing Unit"
+  - "Tensor Processor"
+
+# Devices that match a broad AI/compute class but must not trigger AI runtime/operator tasks.
+device_exclusions:
+  - vendorId: "19e5"
+    deviceId: "1711"
+  - vendorId: "19e5"
+    deviceNamePattern: "iBMC"
+  - vendorId: "19e5"
+    deviceNamePattern: "Intelligent Management system"
+  - vendorId: "19e5"
+    deviceNamePattern: "VGA support"
+
+  - classNamePattern: "VGA compatible controller"
+    vendorId: "1234"
+  - classNamePattern: "VGA compatible controller"
+    subVendorId: "1af4"
+  - classNamePattern: "VGA compatible controller"
+    subVendorNamePattern: "Red Hat"
+  - classNamePattern: "VGA compatible controller"
+    deviceNamePattern: "QEMU"
+  - classNamePattern: "VGA compatible controller"
+    deviceNamePattern: "Bochs"
+
+  - vendorId: "19e5"
+    deviceId: "d500"
+
+vendors:
+  - vendorId: "10de"
+    namePattern: "nvidia"
+    name: "NVIDIA"
+    driverClass: "nvidia"
+    priority: 10
+
+  - vendorId: "1002"
+    namePattern: "amd"
+    name: "AMD"
+    driverClass: "amd"
+    priority: 20
+
+  - vendorId: "19e5"
+    namePattern: "huawei"
+    name: "Huawei Ascend"
+    driverClass: "ascend"
+    priority: 30
+
+  - vendorId: "8086"
+    namePattern: "intel"
+    name: "Intel"
+    driverClass: "intel"
+    priority: 40
+
+  - vendorId: "1d94"
+    namePattern: "hygon"
+    name: "Hygon DCU"
+    driverClass: "hygon"
+    priority: 50
+
+  - vendorId: "1ed5"
+    namePattern: "moore threads"
+    name: "Moore Threads"
+    driverClass: "moorethreads"
+    priority: 55
+
+  - vendorId: "1e3e"
+    namePattern: "iluvatar"
+    name: "Iluvatar"
+    driverClass: "iluvatar"
+    priority: 65
+
+  - vendorId: "1e36"
+    namePattern: "enflame"
+    name: "Enflame"
+    driverClass: "enflame"
+    priority: 80
+
+  - vendorId: "1e30"
+    namePattern: "sophgo"
+    name: "Sophgo"
+    driverClass: "sophgo"
+    priority: 90
