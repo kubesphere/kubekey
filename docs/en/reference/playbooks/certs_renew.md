@@ -11,7 +11,7 @@
    - Load the `defaults` role on all nodes.
 
 3. **Certificate Initialization**
-   - Execute `cert/init` on `localhost` to prepare the CA and configuration required for certificate renewal.
+   - Execute `certs/init` on `localhost` to prepare the CA and configuration required for certificate renewal.
 
 4. **Execute Renewal**
    - Execute the `certs/renew` role on all nodes to automatically detect and renew certificates that are about to expire or have already expired.
@@ -20,3 +20,4 @@
 
 - CA root certificates will not be renewed automatically. To replace the CA, please handle it manually or recreate the cluster.
 - It is recommended to run this playbook before certificates are close to expiration to avoid service interruption.
+- etcd service restarts only when Kubekey detects a systemd-managed `etcd.service` on the target node; otherwise certificate files are updated and the operator should restart the service through the node's own management layer.

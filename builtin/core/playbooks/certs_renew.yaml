@@ -14,7 +14,7 @@
 - hosts:
     - localhost
   roles:
-    - cert/init
+    - certs/init
 
 - hosts:
     - all

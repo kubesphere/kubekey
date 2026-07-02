@@ -18,4 +18,5 @@
     dest: /etc/ssl/etcd/ssl/server.key
 
 - name: ETCD | Restart etcd service to apply new certificates
+  when: .etcd_install_LoadState.stdout | eq "loaded"
   command: systemctl restart etcd
