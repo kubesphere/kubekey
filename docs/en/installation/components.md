@@ -115,6 +115,20 @@ Recommended etcd versions for each Kubernetes version:
 > - You can use `--set cni.type="none"` to not install any plugin (suitable for existing network plugins or custom network solutions)
 > - After selecting a network plugin, changing plugins requires redeploying the cluster, so choose carefully
 
+#### [cni-plugins](https://github.com/containernetworking/plugins)
+
+> **Note**: cni-plugins is the official CNI standard plugin collection, including reference implementations such as `loopback`, `bridge`, `host-local`, `macvlan`, `ipvlan`, `portmap`, and `bandwidth`. Kubelet relies on the `loopback` plugin to create the pod loopback interface; multi-CNI solutions like Multus delegate to these plugins to configure additional network interfaces for pods.
+
+> **Compatibility**: Kubernetes only requires CNI plugins to be compatible with **CNI spec >= v0.4.0** (v1.0.0 recommended). Therefore, use the latest stable cni-plugins release directly.
+
+> **Installation**:
+> - Use `--set cni.cni_plugins_version="v1.9.1"` to specify the cni-plugins version to install (if not specified, the default version will be used)
+> - Plugin binaries are deployed to `/opt/cni/bin/` by default
+
+| kubernetes version | kubekey default version | CNI Spec |
+|---|---|---|
+| 1.23~1.34 | v1.9.1 | 1.0.0 |
+
 #### [calico](https://github.com/projectcalico/calico)
 
 > **Note**: Calico is a powerful networking and network security solution that supports BGP routing, network policies, IP address management, and more. Suitable for production environments requiring fine-grained network control and policy management.
