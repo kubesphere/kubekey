@@ -49,10 +49,35 @@ var defaultSSHPrivateKey string
 
 func init() {
 	if currentUser, err := user.Current(); err == nil {
-		defaultSSHPrivateKey = filepath.Join(currentUser.HomeDir, ".ssh/id_rsa")
-	} else {
-		defaultSSHPrivateKey = filepath.Join(defaultSSHUser, ".ssh/id_rsa")
+		defaultSSHPrivateKey = defaultPrivateKeyPath(currentUser.HomeDir)
 	}
+}
+
+func defaultPrivateKeyPath(homeDir string) string {
+	sshDir := filepath.Join(homeDir, ".ssh")
+	entries, err := os.ReadDir(sshDir)
+	if err != nil {
+		klog.V(4).InfoS("failed to read ssh dir for default private key", "dir", sshDir, "error", err)
+		return ""
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() || strings.HasSuffix(entry.Name(), ".pub") {
+			continue
+		}
+
+		keyPath := filepath.Join(sshDir, entry.Name())
+		key, err := os.ReadFile(keyPath)
+		if err != nil {
+			klog.V(4).InfoS("failed to read ssh private key candidate", "path", keyPath, "error", err)
+			continue
+		}
+		if _, err := ssh.ParsePrivateKey(key); err == nil {
+			return keyPath
+		}
+	}
+
+	return ""
 }
 
 var _ Connector = &sshConnector{}
@@ -82,7 +107,7 @@ func newSSHConnector(workdir, host string, hostVars map[string]any) *sshConnecto
 	if err != nil {
 		klog.V(4).InfoS("connector password is empty use public key")
 	}
-	// get private key path in connector variable. if empty, set default path: /root/.ssh/id_rsa.
+	// get private key path in connector variable. if empty, use the first parsable private key in ~/.ssh.
 	keyParam, err := variable.StringVar(nil, hostVars, _const.VariableConnector, _const.VariableConnectorPrivateKey)
 	if err != nil {
 		klog.V(4).InfoS("ssh private key path is empty, using default", "path", defaultSSHPrivateKey)
@@ -105,7 +130,7 @@ func newSSHConnector(workdir, host string, hostVars map[string]any) *sshConnecto
 	}
 
 	// Initialize the cacheGatherFact with a function that will call getHostInfoFromRemote
-	connector.gatherFacts = newCacheGatherFact(_const.VariableLocalHost, cacheType, workdir, connector.getHostInfo)
+	connector.gatherFacts = newCacheGatherFact(host, cacheType, workdir, connector.getHostInfo)
 
 	return connector
 }
@@ -133,7 +158,7 @@ type sshConnector struct {
 // - Key auth (exclusive priority):
 //  1. PrivateKeyContent - if set, use ONLY this
 //  2. PrivateKey path - if explicitly set and content not set, use ONLY this
-//  3. Default ~/.ssh/id_rsa - use if exists, skip silently if missing (allows password-only)
+//  3. Auto-detected private key from ~/.ssh - use if found; otherwise skip key auth
 func (c *sshConnector) Init(context.Context) error {
 	if c.Host == "" {
 		return errors.New("host is not set")
