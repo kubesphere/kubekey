@@ -3,7 +3,53 @@ package variable
 import (
 	"github.com/cockroachdb/errors"
 	"gopkg.in/yaml.v3"
+
+	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 )
+
+// EnsureLocalHost registers the implicit localhost host and syncs runtime vars
+// from inventory hosts so local-only plays (certs/init, download) can render templates.
+var EnsureLocalHost = func() MergeFunc {
+	return func(v Variable) error {
+		vv, ok := v.(*variable)
+		if !ok {
+			return errors.New("variable type error")
+		}
+		ensureImplicitLocalHost(vv.value.Hosts)
+		syncLocalHostRuntimeVars(vv.value.Hosts)
+		return nil
+	}
+}
+
+func syncLocalHostRuntimeVars(hosts map[string]host) {
+	lh, ok := hosts[_const.VariableLocalHost]
+	if !ok {
+		return
+	}
+
+	var reference map[string]any
+	referenceLen := 0
+	for name, h := range hosts {
+		if name == _const.VariableLocalHost {
+			continue
+		}
+		if len(h.RuntimeVars) > referenceLen {
+			referenceLen = len(h.RuntimeVars)
+			reference = h.RuntimeVars
+		}
+	}
+	if reference == nil {
+		return
+	}
+
+	lh.RuntimeVars = CombineVariables(reference, lh.RuntimeVars)
+	hosts[_const.VariableLocalHost] = lh
+}
+
+func syncImplicitLocalHostAfterRuntimeMerge(hosts map[string]host) {
+	ensureImplicitLocalHost(hosts)
+	syncLocalHostRuntimeVars(hosts)
+}
 
 // ***************************** MergeFunc ***************************** //
 
@@ -43,12 +89,12 @@ var MergeRuntimeVariable = func(nodes []yaml.Node, hosts ...string) MergeFunc {
 	}
 
 	return func(v Variable) error {
-		for _, hostname := range hosts {
-			vv, ok := v.(*variable)
-			if !ok {
-				return errors.New("variable type error")
-			}
+		vv, ok := v.(*variable)
+		if !ok {
+			return errors.New("variable type error")
+		}
 
+		for _, hostname := range hosts {
 			// Avoid nested locking: prepare context for parsing outside locking region
 			curVars, err := v.Get(GetAllVariable(hostname))
 			if err != nil {
@@ -71,6 +117,7 @@ var MergeRuntimeVariable = func(nodes []yaml.Node, hosts ...string) MergeFunc {
 				vv.value.Hosts[hostname] = hv
 			}
 		}
+		syncImplicitLocalHostAfterRuntimeMerge(vv.value.Hosts)
 
 		return nil
 	}
@@ -110,6 +157,7 @@ var MergeHostsRuntimeVariable = func(node yaml.Node, hostname string, hosts ...s
 			hv.RuntimeVars = CombineVariables(hv.RuntimeVars, data)
 			vv.value.Hosts[h] = hv
 		}
+		syncImplicitLocalHostAfterRuntimeMerge(vv.value.Hosts)
 
 		return nil
 	}

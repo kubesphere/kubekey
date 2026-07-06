@@ -240,7 +240,9 @@ func (e *taskExecutor) execTaskHostLogs(ctx context.Context, h string, loopResul
 	var placeholder string
 	if hostnameMaxLen, err := e.variable.Get(variable.GetHostMaxLength()); err == nil {
 		if hl, ok := hostnameMaxLen.(int); ok {
-			placeholder = strings.Repeat(" ", hl-len(h))
+			if padding := hl - len(h); padding > 0 {
+				placeholder = strings.Repeat(" ", padding)
+			}
 		}
 	}
 	// progress bar for task
@@ -283,7 +285,7 @@ func (e *taskExecutor) execTaskHostLogs(ctx context.Context, h string, loopResul
 		// determine overall status by scanning all register results
 		skipped = true // assume skip until we find a non-skip stdout
 		for _, r := range *loopResults {
-			if r.Error != "" {
+			if r.Error != "" || r.Stdout == modules.StdoutFailed {
 				failed = true
 				break
 			}
@@ -496,7 +498,7 @@ func (e *taskExecutor) dealRegister(host string, loopResults []kkcorev1alpha1.Lo
 		}
 
 		// If there is any error at the module level, set the global error flag.
-		hasItemError = hasItemError || strings.TrimSpace(r.Error) != ""
+		hasItemError = hasItemError || strings.TrimSpace(r.Error) != "" || r.Stdout == modules.StdoutFailed
 	} else {
 		// Otherwise, collect all items as an array of results.
 		var arr []any
@@ -509,7 +511,7 @@ func (e *taskExecutor) dealRegister(host string, loopResults []kkcorev1alpha1.Lo
 			})
 
 			// If any item has error, set the global error flag.
-			hasItemError = hasItemError || strings.TrimSpace(r.Error) != ""
+			hasItemError = hasItemError || strings.TrimSpace(r.Error) != "" || r.Stdout == modules.StdoutFailed
 		}
 		value = arr
 	}
