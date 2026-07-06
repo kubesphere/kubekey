@@ -108,6 +108,23 @@ func TestParseItemWithLVM(t *testing.T) {
 	}
 }
 
+func TestParseItemIgnoresLVMWithoutVGName(t *testing.T) {
+	t.Parallel()
+
+	item, err := parseItem(nil, map[string]any{
+		"device":     "/dev/sdb1",
+		"filesystem": "xfs",
+		"lv_name":    "lv_data",
+		"mountpoint": "/data",
+	})
+	if err != nil {
+		t.Fatalf("parseItem() error = %v", err)
+	}
+	if item.LVM != nil {
+		t.Fatalf("LVM = %#v, want nil", item.LVM)
+	}
+}
+
 func TestParseItemWithWebInstallerAliases(t *testing.T) {
 	t.Parallel()
 
@@ -185,6 +202,21 @@ func TestFormatMountOptions(t *testing.T) {
 	}
 }
 
+func TestQuoteBashWords(t *testing.T) {
+	t.Parallel()
+
+	got := quoteBashWords([]string{
+		"/dev/sdb1",
+		"/dev/sd$(touch /tmp/pwn)",
+		"can'not",
+		"`uname`",
+	})
+	want := "'/dev/sdb1' '/dev/sd$(touch /tmp/pwn)' 'can'\\''not' '`uname`'"
+	if got != want {
+		t.Fatalf("quoteBashWords() = %q, want %q", got, want)
+	}
+}
+
 func TestBuildFormatScript(t *testing.T) {
 	t.Parallel()
 
@@ -221,7 +253,7 @@ func TestBuildLVMScript(t *testing.T) {
 	if err != nil {
 		t.Fatalf("buildLVMScript() error = %v", err)
 	}
-	for _, want := range []string{`DEVICES=(`, `"/dev/sdb1"`, `"/dev/sdc1"`, `vgcreate`, `vgextend`, `mount_and_persist`} {
+	for _, want := range []string{`DEVICES=(`, `'/dev/sdb1'`, `'/dev/sdc1'`, `vgcreate`, `vgextend`, `mount_and_persist`} {
 		if !strings.Contains(script, want) {
 			t.Fatalf("script missing %q:\n%s", want, script)
 		}
