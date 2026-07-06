@@ -105,6 +105,25 @@ func TestGetHostnames(t *testing.T) {
 			},
 			except: []string{"n1"},
 		},
+		{
+			name:  "all group does not include implicit localhost",
+			hosts: []string{"all"},
+			variable: &variable{
+				value: &value{
+					Inventory: kkcorev1.Inventory{
+						Spec: kkcorev1.InventorySpec{
+							Hosts: map[string]runtime.RawExtension{
+								"test": {},
+							},
+						},
+					},
+					Hosts: map[string]host{
+						"test": {},
+					},
+				},
+			},
+			except: []string{"test"},
+		},
 	}
 
 	for _, tc := range testcases {

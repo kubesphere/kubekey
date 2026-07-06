@@ -50,6 +50,32 @@ func NewResourceHandler(rootPath string, workdir string, client ctrlclient.Clien
 	return &ResourceHandler{rootPath: rootPath, workdir: workdir, client: client}
 }
 
+func (h ResourceHandler) resolveSchemaPlaybookPath(playbookPath string) string {
+	return resolveSchemaPlaybookPath(h.rootPath, playbookPath)
+}
+
+func (h ResourceHandler) resolveSchemaPlaybookPaths(playbookPaths map[string]string) map[string]string {
+	resolved := make(map[string]string, len(playbookPaths))
+	for label, playbookPath := range playbookPaths {
+		resolved[label] = h.resolveSchemaPlaybookPath(playbookPath)
+	}
+	return resolved
+}
+
+func resolveSchemaPlaybookPath(schemaRoot, playbookPath string) string {
+	if schemaRoot == "" || playbookPath == "" || filepath.IsAbs(playbookPath) {
+		return playbookPath
+	}
+
+	cleanPath := filepath.Clean(filepath.FromSlash(playbookPath))
+	webInstallerPrefix := "web-installer" + string(os.PathSeparator)
+	if strings.HasPrefix(cleanPath, webInstallerPrefix) {
+		cleanPath = strings.TrimPrefix(cleanPath, webInstallerPrefix)
+	}
+
+	return filepath.Join(filepath.Dir(filepath.Clean(schemaRoot)), cleanPath)
+}
+
 // ConfigInfo serves the config file content as the HTTP response.
 func (h ResourceHandler) ConfigInfo(request *restful.Request, response *restful.Response) {
 	file, err := os.Open(filepath.Join(h.rootPath, api.SchemaConfigFile))
@@ -135,7 +161,7 @@ func (h ResourceHandler) PostConfig(request *restful.Request, response *restful.
 						Namespace: namespace,
 						Name:      inventory,
 					},
-					Playbook: pbpath,
+					Playbook: h.resolveSchemaPlaybookPath(pbpath),
 				},
 				Status: kkcorev1.PlaybookStatus{
 					Phase: kkcorev1.PlaybookPhasePending,
@@ -346,6 +372,7 @@ func (h ResourceHandler) ListSchema(request *restful.Request, response *restful.
 			api.HandleError(response, request, errors.Wrapf(err, "failed to unmarshal file for schema %q", entry.Name()))
 			return
 		}
+		schemaFile.PlaybookPath = h.resolveSchemaPlaybookPaths(schemaFile.PlaybookPath)
 		// Get all playbooks in the given namespace.
 		playbookList := &kkcorev1.PlaybookList{}
 		if err := h.client.List(request.Request.Context(), playbookList, ctrlclient.InNamespace(request.PathParameter("cluster"))); err != nil {

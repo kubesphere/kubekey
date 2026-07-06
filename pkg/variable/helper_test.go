@@ -132,6 +132,46 @@ func TestHostsInGroup(t *testing.T) {
 	}
 }
 
+func TestConvertGroup(t *testing.T) {
+	tests := []struct {
+		name      string
+		inventory kkcorev1.Inventory
+		wantAll   []string
+	}{
+		{
+			name: "does not add implicit localhost",
+			inventory: kkcorev1.Inventory{
+				Spec: kkcorev1.InventorySpec{
+					Hosts: kkcorev1.InventoryHost{
+						"test": {},
+					},
+				},
+			},
+			wantAll: []string{"test"},
+		},
+		{
+			name: "includes localhost when referenced by a group",
+			inventory: kkcorev1.Inventory{
+				Spec: kkcorev1.InventorySpec{
+					Groups: map[string]kkcorev1.InventoryGroup{
+						"kube_control_plane": {
+							Hosts: []string{"localhost"},
+						},
+					},
+				},
+			},
+			wantAll: []string{"localhost"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			groups := ConvertGroup(tt.inventory)
+			assert.ElementsMatch(t, tt.wantAll, groups["all"])
+		})
+	}
+}
+
 func TestPrintVar(t *testing.T) {
 	testcases := []struct {
 		name     string
