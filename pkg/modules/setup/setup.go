@@ -39,7 +39,7 @@ func ModuleSetup(ctx context.Context, opts internal.ExecOptions) (string, string
 	// get connector
 	conn, err := opts.GetConnector(ctx)
 	if err != nil {
-		return internal.StdoutFailed, internal.StderrGetConnector, nil
+		return internal.StdoutFailed, internal.StderrGetConnector, err
 	}
 	defer conn.Close(ctx)
 
