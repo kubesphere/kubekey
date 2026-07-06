@@ -180,7 +180,7 @@ fi
 func quoteBashWords(values []string) string {
 	quoted := make([]string, 0, len(values))
 	for _, value := range values {
-		quoted = append(quoted, fmt.Sprintf("%q", value))
+		quoted = append(quoted, "'"+strings.ReplaceAll(value, "'", "'\\''")+"'")
 	}
 	return strings.Join(quoted, " ")
 }

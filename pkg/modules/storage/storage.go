@@ -269,14 +269,11 @@ func parseLVM(ctx map[string]any, args map[string]any, mountPoint string, device
 		cfg.LVSize = cleanTemplateValue(lvSize)
 	}
 
-	if cfg.VGName == "" && cfg.LVName == "" {
+	if cfg.VGName == "" {
 		return nil, nil
 	}
-	if cfg.VGName != "" && cfg.LVName == "" {
+	if cfg.LVName == "" {
 		cfg.LVName = defaultLVName(mountPoint, devices)
-	}
-	if cfg.VGName == "" || cfg.LVName == "" {
-		return nil, errors.New("lvm requires vg_name and lv_name")
 	}
 	if err := validateLVMName(cfg.VGName, "vg_name"); err != nil {
 		return nil, err
@@ -543,7 +540,7 @@ mount_and_persist "$FORMAT_DEV"
 func quoteBashWords(values []string) string {
 	quoted := make([]string, len(values))
 	for i, value := range values {
-		quoted[i] = fmt.Sprintf("%q", value)
+		quoted[i] = "'" + strings.ReplaceAll(value, "'", "'\\''") + "'"
 	}
 	return strings.Join(quoted, " ")
 }

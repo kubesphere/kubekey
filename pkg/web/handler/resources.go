@@ -69,9 +69,7 @@ func resolveSchemaPlaybookPath(schemaRoot, playbookPath string) string {
 
 	cleanPath := filepath.Clean(filepath.FromSlash(playbookPath))
 	webInstallerPrefix := "web-installer" + string(os.PathSeparator)
-	if strings.HasPrefix(cleanPath, webInstallerPrefix) {
-		cleanPath = strings.TrimPrefix(cleanPath, webInstallerPrefix)
-	}
+	cleanPath = strings.TrimPrefix(cleanPath, webInstallerPrefix)
 
 	return filepath.Join(filepath.Dir(filepath.Clean(schemaRoot)), cleanPath)
 }
