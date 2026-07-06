@@ -11,7 +11,8 @@ import (
 
 // defaultPort defines the default port number for the web server
 const (
-	defaultPort = 80
+	defaultPort             = 80
+	defaultWebInstallerPath = "web-installer"
 )
 
 // KubeKeyWebOptions contains configuration options for the KubeKey web server
@@ -25,16 +26,18 @@ type KubeKeyWebOptions struct {
 
 // HostCheckPlaybookPath returns the host-check playbook path relative to the kk web working directory.
 func (o *KubeKeyWebOptions) HostCheckPlaybookPath() string {
-	if o.SchemaPath != "" {
-		return filepath.Join(filepath.Dir(o.SchemaPath), "host_check.yaml")
+	if o.SchemaPath == "" {
+		return filepath.Join(defaultWebInstallerPath, "host_check.yaml")
 	}
-	return filepath.Join("web-installer", "host_check.yaml")
+	return filepath.Join(filepath.Dir(o.SchemaPath), "host_check.yaml")
 }
 
 // NewKubeKeyWebOptions creates and returns a new KubeKeyWebOptions instance with default values
 func NewKubeKeyWebOptions() *KubeKeyWebOptions {
 	o := &KubeKeyWebOptions{
-		Port: defaultPort,
+		Port:       defaultPort,
+		SchemaPath: filepath.Join(defaultWebInstallerPath, "schema"),
+		UIPath:     filepath.Join(defaultWebInstallerPath, "dist"),
 	}
 	// Set the working directory to the current directory joined with "kubekey".
 	wd, err := os.Getwd()
@@ -55,7 +58,7 @@ func (o *KubeKeyWebOptions) Flags() cliflag.NamedFlagSets {
 	wfs.IntVar(&o.Port, "port", o.Port, fmt.Sprintf("the server port of kubekey web default is: %d", o.Port))
 	wfs.StringVar(&o.Workdir, "workdir", o.Workdir, "the base Dir for kubekey. Default current dir. ")
 	wfs.StringVar(&o.SchemaPath, "schema-path", o.SchemaPath, "the json schema dir path to render web ui.")
-	wfs.StringVar(&o.UIPath, "ui-path", o.SchemaPath, "the web ui package path.")
+	wfs.StringVar(&o.UIPath, "ui-path", o.UIPath, "the web ui package path.")
 
 	return fss
 }

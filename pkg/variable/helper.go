@@ -123,7 +123,7 @@ func CombineSlice(g1, g2 []string) []string {
 }
 
 // ConvertGroup converts the inventory into a map of groups with their respective hosts.
-// It ensures that all hosts are included in the "all" group and adds a default localhost if not present.
+// It ensures that hosts explicitly declared in the inventory or referenced by groups are included in the "all" group.
 // It also creates an "ungrouped" group for hosts that are not part of any specific group.
 //
 // Parameters:
@@ -144,18 +144,15 @@ func ConvertGroup(inv kkcorev1.Inventory) map[string][]string {
 	ungrouped := make([]string, len(all))
 	copy(ungrouped, all)
 
-	if !slices.Contains(all, _const.VariableLocalHost) { // set default localhost
-		all = append(all, _const.VariableLocalHost)
-	}
-
-	groups[_const.VariableGroupsAll] = all
-
 	groupsGraph := utils.NewKahnGraph()
 
 	for gn := range inv.Spec.Groups {
 		groups[gn] = hostsInGroup(inv, gn, groupsGraph)
 		if hosts, ok := groups[gn]; ok {
 			for _, v := range hosts {
+				if !slices.Contains(all, v) {
+					all = append(all, v)
+				}
 				if slices.Contains(ungrouped, v) {
 					ungrouped = slices.Delete(ungrouped, slices.Index(ungrouped, v), slices.Index(ungrouped, v)+1)
 				}
@@ -163,6 +160,7 @@ func ConvertGroup(inv kkcorev1.Inventory) map[string][]string {
 		}
 	}
 
+	groups[_const.VariableGroupsAll] = all
 	groups[_const.VariableUnGrouped] = ungrouped
 
 	return groups
