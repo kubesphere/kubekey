@@ -32,6 +32,7 @@ import (
 	"k8s.io/klog/v2"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/kubesphere/kubekey/v4/pkg/connector"
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/utils"
 	"github.com/kubesphere/kubekey/v4/pkg/web/api"
@@ -607,51 +608,40 @@ func isValidICMPReply(n int, reply []byte, src net.Addr, expectedIP net.IP, prot
 // It returns two booleans: the first indicates if the SSH port (22) is reachable, and the second indicates if SSH authorization using the local private key is successful.
 // The function attempts to find the user's private key, read and parse it, and then connect via SSH.
 func isSSHAuthorized(ipStr, sshPort string) (bool, bool) {
-	// First check if port 22 is reachable on the target IP address.
-	conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%s", ipStr, sshPort), time.Second)
+	// First check if the SSH port is reachable on the target IP address.
+	conn, err := net.DialTimeout("tcp", net.JoinHostPort(ipStr, sshPort), time.Second)
 	if err != nil {
-		klog.V(4).InfoS("port not reachable", "port", "22", "ip", ipStr, "error", err)
+		klog.V(4).InfoS("port not reachable", "port", sshPort, "ip", ipStr, "error", err)
 		return false, false
 	}
 	defer conn.Close()
 
-	// Set default SSH user and private key path.
+	// Set default SSH user.
 	sshUser := "root"
-	sshPrivateKey := "/root/.ssh/id_rsa"
-	// Try to get the current user and set the SSH user and private key path accordingly.
+	homeDir := "/root"
 	if currentUser, err := user.Current(); err == nil {
 		sshUser = currentUser.Username
-		sshPrivateKey = filepath.Join(currentUser.HomeDir, ".ssh/id_rsa")
+		if currentUser.HomeDir != "" {
+			homeDir = currentUser.HomeDir
+		}
+	} else if resolvedHome, err := os.UserHomeDir(); err == nil {
+		homeDir = resolvedHome
 	}
 
-	// Check if the private key file exists.
-	if _, err := os.Stat(sshPrivateKey); err != nil {
-		// Port 22 is reachable, but private key is not found.
-		klog.V(4).InfoS("private key file not found", "keyPath", sshPrivateKey, "ip", ipStr, "error", err)
-		return true, false
-	}
-
-	// Read the private key file.
-	key, err := os.ReadFile(sshPrivateKey)
+	signers, err := connector.DefaultPrivateKeySigners(homeDir)
 	if err != nil {
-		// Port 22 is reachable, but private key cannot be read.
-		klog.V(4).InfoS("cannot read private key", "keyPath", sshPrivateKey, "ip", ipStr, "error", err)
+		klog.V(4).InfoS("failed to load default private keys", "homeDir", homeDir, "ip", ipStr, "error", err)
+		return true, false
+	}
+	if len(signers) == 0 {
+		klog.V(4).InfoS("no default private keys found", "homeDir", homeDir, "ip", ipStr)
 		return true, false
 	}
 
-	// Parse the private key.
-	privateKey, err := ssh.ParsePrivateKey(key)
-	if err != nil {
-		// Port 22 is reachable, but private key cannot be parsed.
-		klog.V(4).InfoS("cannot parse private key", "keyPath", sshPrivateKey, "ip", ipStr, "error", err)
-		return true, false
-	}
-
-	// Prepare SSH authentication method.
-	auth := []ssh.AuthMethod{ssh.PublicKeys(privateKey)}
+	auth := []ssh.AuthMethod{ssh.PublicKeys(signers...)}
 
 	// Attempt to establish an SSH connection to the target IP.
-	sshClient, err := ssh.Dial("tcp", ipStr+":22", &ssh.ClientConfig{
+	sshClient, err := ssh.Dial("tcp", net.JoinHostPort(ipStr, sshPort), &ssh.ClientConfig{
 		User:            sshUser,
 		Auth:            auth,
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
@@ -693,23 +683,12 @@ func checkSSHConnect(ipStr, sshPort, sshUser, sshPwd, sshPrivateKeyContent strin
 		}
 	} else {
 		klog.V(4).InfoS("no private key content provided, checking for default private keys")
-		foundKeys := findSSHPrivateKeys()
-		var signers = make([]ssh.Signer, 0)
-		for _, keyPath := range foundKeys {
-			keyBytes, err := os.ReadFile(keyPath)
-			if err != nil {
-				klog.V(4).InfoS("failed to read private key file", "keyPath", keyPath, "error", err)
-				continue
-			}
-
-			signer, err := ssh.ParsePrivateKey(keyBytes)
-			if err != nil {
-				klog.V(4).InfoS("failed to parse private key", "keyPath", keyPath, "error", err)
-				continue
-			}
-			signers = append(signers, signer)
-		}
-		if len(signers) > 0 {
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			klog.V(4).InfoS("failed to get user home directory", "error", err)
+		} else if signers, err := connector.DefaultPrivateKeySigners(homeDir); err != nil {
+			klog.V(4).InfoS("failed to load default private keys", "homeDir", homeDir, "error", err)
+		} else if len(signers) > 0 {
 			authMethods = append(authMethods, ssh.PublicKeys(signers...))
 		}
 	}
@@ -745,38 +724,6 @@ func checkSSHConnect(ipStr, sshPort, sshUser, sshPwd, sshPrivateKeyContent strin
 
 	klog.V(4).InfoS("SSH connection successful", "user", sshUser)
 	return true, true
-}
-
-func findSSHPrivateKeys() []string {
-	var keyFiles = make([]string, 0)
-
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		klog.V(4).InfoS("failed to get user home directory", "error", err)
-		homeDir = "/root"
-	}
-
-	sshDir := filepath.Join(homeDir, ".ssh")
-	var sshDirInfo os.FileInfo
-
-	if sshDirInfo, err = os.Stat(sshDir); os.IsNotExist(err) {
-		klog.V(4).InfoS("SSH directory does not exist", "dir", sshDir)
-		return keyFiles
-	}
-
-	if !sshDirInfo.IsDir() {
-		return keyFiles
-	}
-
-	dirs, _ := os.ReadDir(sshDir)
-	for _, dir := range dirs {
-		if dir.IsDir() {
-			continue
-		}
-		keyFiles = append(keyFiles, filepath.Join(sshDir, dir.Name()))
-	}
-
-	return keyFiles
 }
 
 // PreCheckHost check input ssh information.

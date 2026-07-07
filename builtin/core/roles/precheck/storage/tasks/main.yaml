@@ -7,11 +7,10 @@
       - or (.item.disk | empty | not) (.item.device | empty | not)
       - .item.filesystem | empty | not
       - (list "ext4" "xfs" "btrfs") | has (.item.filesystem | lower)
-      - or (.item.lvm | empty) (and (.item.lvm.vg_name | empty | not) (.item.lvm.lv_name | empty | not))
+      - or (.item.lvm | empty) (.item.lvm.vg_name | empty | not)
     fail_msg: >-
       Invalid storage configuration on host "{{ .inventory_hostname }}": each storage item must specify
-      at least one device, "filesystem" must be one of ext4, xfs, or btrfs, and LVM items require
-      lvm.vg_name and lvm.lv_name.
+      at least one device, "filesystem" must be one of ext4, xfs, or btrfs, and LVM items require lvm.vg_name.
 
 - name: Storage | Validate web installer storage disks
   when: .kubernetes.storage_disks | empty | not

@@ -21,8 +21,6 @@ import (
 	"strings"
 
 	"k8s.io/klog/v2"
-
-	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 )
 
 // GPUInfo represents GPU information gathered via lspci.
@@ -43,7 +41,7 @@ type GPUDevice struct {
 }
 
 // gpuInfoFromLspci runs lspci on the target host and returns parsed GPU info.
-func gpuInfoFromLspci(ctx context.Context, workdir string, run commandRunner) (GPUInfo, error) {
+func gpuInfoFromLspci(ctx context.Context, workdir string, conn Connector) (GPUInfo, error) {
 	gpu := GPUInfo{Devices: []GPUDevice{}}
 
 	vendorCfg, err := LoadGPUVendorConfig(workdir)
@@ -51,7 +49,7 @@ func gpuInfoFromLspci(ctx context.Context, workdir string, run commandRunner) (G
 		return gpu, err
 	}
 
-	stdout, stderr, err := run.ExecuteCommand(ctx, "lspci -mm -nn")
+	stdout, stderr, err := conn.ExecuteCommand(ctx, "lspci -mm -nn")
 	if err != nil {
 		return gpu, err
 	}
@@ -75,16 +73,6 @@ func gpuInfoFromLspci(ctx context.Context, workdir string, run commandRunner) (G
 	}
 
 	return gpu, nil
-}
-
-// enrichHostInfoWithGPU appends GPU info to host facts when lspci is available.
-func enrichHostInfoWithGPU(ctx context.Context, workdir string, hostInfo map[string]any, run commandRunner) {
-	gpu, err := gpuInfoFromLspci(ctx, workdir, run)
-	if err != nil {
-		klog.V(4).InfoS("skip gpu gathering", "error", err)
-		return
-	}
-	hostInfo[_const.VariableGPU] = gpu
 }
 
 func parseLspciMM(line string, vendorCfg *GPUVendorConfig) *GPUDevice {

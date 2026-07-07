@@ -25,17 +25,11 @@ import (
 
 	"github.com/cockroachdb/errors"
 	"k8s.io/klog/v2"
-
-	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 )
 
-type commandRunner interface {
-	ExecuteCommand(ctx context.Context, cmd string) ([]byte, []byte, error)
-}
-
 // blockDevicesFromLsblk runs lsblk on the target host and returns parsed block device trees.
-func blockDevicesFromLsblk(ctx context.Context, run commandRunner) (any, error) {
-	stdout, stderr, err := run.ExecuteCommand(ctx, "lsblk -J -b -o NAME,SIZE,TYPE,MOUNTPOINT,FSTYPE,MODEL")
+func blockDevicesFromLsblk(ctx context.Context, conn Connector) (any, error) {
+	stdout, stderr, err := conn.ExecuteCommand(ctx, "lsblk -J -b -o NAME,SIZE,TYPE,MOUNTPOINT,FSTYPE,MODEL")
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to run lsblk: stderr: %q", string(stderr))
 	}
@@ -44,7 +38,7 @@ func blockDevicesFromLsblk(ctx context.Context, run commandRunner) (any, error) 
 		return nil, err
 	}
 
-	lvsStdout, _, err := run.ExecuteCommand(ctx, "lvs --reportformat json -o lv_name,vg_name,lv_path,lv_dm_path 2>/dev/null")
+	lvsStdout, _, err := conn.ExecuteCommand(ctx, "lvs --reportformat json -o lv_name,vg_name,lv_path,lv_dm_path 2>/dev/null")
 	if err != nil {
 		return devices, nil
 	}
@@ -151,16 +145,6 @@ func enrichBlockDeviceList(devices []any, lvs map[string]map[string]string) {
 			enrichBlockDeviceList(children, lvs)
 		}
 	}
-}
-
-// enrichHostInfoWithBlockDevices appends block device info to host facts when lsblk is available.
-func enrichHostInfoWithBlockDevices(ctx context.Context, hostInfo map[string]any, run commandRunner) {
-	blockdevices, err := blockDevicesFromLsblk(ctx, run)
-	if err != nil {
-		klog.V(4).InfoS("skip block device gathering", "error", err)
-		return
-	}
-	hostInfo[_const.VariableBlockDevices] = blockdevices
 }
 
 // convertBytesToMap parses the given byte slice into a map[string]string using the provided split string.

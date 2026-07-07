@@ -17,12 +17,18 @@ limitations under the License.
 package multipath_conf
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"os"
 	"strings"
+	"time"
 
 	"github.com/cockroachdb/errors"
+	"k8s.io/klog/v2"
 
+	"github.com/kubesphere/kubekey/v4/pkg/connector"
+	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/modules/internal"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
@@ -49,12 +55,100 @@ func ModuleMultipathConf(ctx context.Context, opts internal.ExecOptions) (string
 	}
 	defer conn.Close(ctx)
 
-	stdout, stderr, err := conn.ExecuteCommand(ctx, buildScript(cfg))
+	stdout, err := applyMultipathConf(ctx, conn, cfg)
 	if err != nil {
-		return string(stdout), string(stderr), err
+		return internal.StdoutFailed, stdout, err
 	}
 
-	return string(stdout), string(stderr), nil
+	return stdout, "", nil
+}
+
+func applyMultipathConf(ctx context.Context, conn connector.Connector, cfg item) (string, error) {
+	original, exists, err := readRemoteFile(ctx, conn, cfg.Path)
+	if err != nil {
+		return "", err
+	}
+
+	updated, changed, err := updateMultipathConfig(string(original), cfg.DevNodes)
+	if err != nil {
+		return "", err
+	}
+	if !changed {
+		klog.V(4).InfoS("multipath config already contains requested devnode rules", "path", cfg.Path)
+	} else if cfg.Backup && exists {
+		backupPath := fmt.Sprintf("%s.%s.bak", cfg.Path, time.Now().UTC().Format("20060102_150405"))
+		if err := connector.PutData(ctx, original, backupPath, _const.PermFilePublic, conn); err != nil {
+			return "", errors.Wrapf(err, "failed to backup multipath config to %s", backupPath)
+		}
+		klog.V(4).InfoS("backed up multipath config", "path", cfg.Path, "backup", backupPath)
+	}
+
+	if changed {
+		if err := connector.PutData(ctx, []byte(updated), cfg.Path, _const.PermFilePublic, conn); err != nil {
+			return "", errors.Wrapf(err, "failed to write multipath config %s", cfg.Path)
+		}
+	}
+
+	if err := validateMultipathConfig(ctx, conn); err != nil {
+		return "", err
+	}
+	if cfg.Reload {
+		if err := reloadMultipathService(ctx, conn); err != nil {
+			return "", err
+		}
+	}
+
+	return "multipath config updated", nil
+}
+
+func readRemoteFile(ctx context.Context, conn connector.Connector, path string) ([]byte, bool, error) {
+	var buf bytes.Buffer
+	if err := conn.FetchFile(ctx, path, &buf); err != nil {
+		if isRemoteNotExist(err) {
+			return nil, false, nil
+		}
+		return nil, false, errors.Wrapf(err, "failed to read multipath config %s", path)
+	}
+	return buf.Bytes(), true, nil
+}
+
+func isRemoteNotExist(err error) bool {
+	if errors.Is(err, os.ErrNotExist) {
+		return true
+	}
+	return strings.Contains(strings.ToLower(err.Error()), "file does not exist")
+}
+
+func validateMultipathConfig(ctx context.Context, conn connector.Connector) error {
+	if _, _, err := conn.ExecuteCommand(ctx, "command -v multipath >/dev/null 2>&1"); err != nil {
+		klog.V(4).InfoS("multipath command not found, skip config validation")
+		return nil
+	}
+
+	_, stderr, err := conn.ExecuteCommand(ctx, "multipath -t")
+	if err != nil {
+		if len(bytes.TrimSpace(stderr)) > 0 {
+			return errors.Wrapf(err, "multipath config validation failed: %s", strings.TrimSpace(string(stderr)))
+		}
+		return errors.Wrap(err, "multipath config validation failed")
+	}
+	return nil
+}
+
+func reloadMultipathService(ctx context.Context, conn connector.Connector) error {
+	commands := []string{
+		"systemctl reload multipathd",
+		"systemctl restart multipathd",
+		"service multipathd reload",
+		"service multipathd restart",
+	}
+	for _, command := range commands {
+		if _, _, err := conn.ExecuteCommand(ctx, command); err == nil {
+			return nil
+		}
+	}
+	klog.V(4).InfoS("multipathd service not found, skip reload")
+	return nil
 }
 
 func parseItem(args map[string]any) (item, error) {
@@ -97,90 +191,4 @@ func nonEmptyTrimmed(values []string) []string {
 		}
 	}
 	return result
-}
-
-func buildScript(cfg item) string {
-	return fmt.Sprintf(`#!/bin/bash
-set -euo pipefail
-
-PATH_VALUE=%q
-BACKUP=%t
-RELOAD=%t
-DEVNODES=(%s)
-
-ensure_blacklist_block() {
-  if [ ! -f "$PATH_VALUE" ]; then
-    cat > "$PATH_VALUE" <<'EOF'
-blacklist {
-}
-EOF
-    return 0
-  fi
-
-  if ! grep -Eq '^blacklist[[:space:]]*\{' "$PATH_VALUE"; then
-    cat >> "$PATH_VALUE" <<'EOF'
-
-blacklist {
-}
-EOF
-  fi
-}
-
-ensure_devnode_rule() {
-  local rule="$1"
-  if grep -Eq "^[[:space:]]*devnode[[:space:]]+\"${rule//\\/\\\\}\"" "$PATH_VALUE"; then
-    return 0
-  fi
-
-  awk -v rule="$rule" '
-    BEGIN { inserted = 0; depth = 0; in_blacklist = 0 }
-    /^[[:space:]]*blacklist[[:space:]]*\{/ { in_blacklist = 1 }
-    {
-      if (in_blacklist) {
-        depth += gsub(/\{/, "{")
-        depth -= gsub(/\}/, "}")
-        if (depth == 0 && inserted == 0) {
-          print "    devnode \"" rule "\""
-          inserted = 1
-        }
-      }
-      print
-    }
-  ' "$PATH_VALUE" > "$PATH_VALUE.tmp"
-  install -m 0644 "$PATH_VALUE.tmp" "$PATH_VALUE"
-  rm -f "$PATH_VALUE.tmp"
-}
-
-mkdir -p "$(dirname "$PATH_VALUE")"
-if [ "$BACKUP" = true ] && [ -f "$PATH_VALUE" ]; then
-  cp -p "$PATH_VALUE" "$PATH_VALUE.$(date -u +%%Y%%m%%d_%%H%%M%%S).bak"
-fi
-
-ensure_blacklist_block
-for devnode in "${DEVNODES[@]}"; do
-  ensure_devnode_rule "$devnode"
-done
-
-if command -v multipath >/dev/null 2>&1; then
-  multipath -t >/dev/null
-fi
-
-if [ "$RELOAD" = true ]; then
-  if command -v systemctl >/dev/null 2>&1 && systemctl list-unit-files | grep -q '^multipathd\.service'; then
-    systemctl reload multipathd || systemctl restart multipathd
-  elif command -v service >/dev/null 2>&1 && service multipathd status >/dev/null 2>&1; then
-    service multipathd reload || service multipathd restart
-  else
-    echo "multipathd service not found, skip reload"
-  fi
-fi
-`, cfg.Path, cfg.Backup, cfg.Reload, quoteBashWords(cfg.DevNodes))
-}
-
-func quoteBashWords(values []string) string {
-	quoted := make([]string, 0, len(values))
-	for _, value := range values {
-		quoted = append(quoted, "'"+strings.ReplaceAll(value, "'", "'\\''")+"'")
-	}
-	return strings.Join(quoted, " ")
 }
