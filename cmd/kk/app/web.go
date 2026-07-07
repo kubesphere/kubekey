@@ -43,7 +43,7 @@ func newWebCommand() *cobra.Command {
 				Port:              o.Port,
 				SchemaPath:        o.SchemaPath,
 				UIPath:            o.UIPath,
-				HostCheckPlaybook: o.HostCheckPlaybookPath(),
+				HostCheckPlaybook: o.ResolvedHostCheckPlaybookPath(),
 				Client:            client,
 				Config:            restconfig,
 			}).Run(cmd.Context())

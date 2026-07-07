@@ -125,11 +125,6 @@ const ( // === From GatherFact ===
 	VariableGPU = "gpu"
 )
 
-const (
-	// GPUVendorConfigRelPath is the relative path to GPU vendor config under workdir.
-	GPUVendorConfigRelPath = "config/scanner/gpu_vendors.yaml"
-)
-
 const ( // === From runtime ===
 	// VariableItem for "loop" argument when run a task.
 	VariableItem = "item"

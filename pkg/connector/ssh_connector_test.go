@@ -18,84 +18,22 @@ package connector
 
 import (
 	"context"
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/x509"
-	"encoding/pem"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 )
 
-func testPrivateKeyPEM(t *testing.T) []byte {
-	t.Helper()
-	key, err := rsa.GenerateKey(rand.Reader, 1024)
-	if err != nil {
-		t.Fatalf("generate private key: %v", err)
-	}
-	return pem.EncodeToMemory(&pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(key),
-	})
-}
-
-func TestDefaultPrivateKeyPath(t *testing.T) {
-	t.Run("uses parsable private key with arbitrary filename", func(t *testing.T) {
-		homeDir := t.TempDir()
-		sshDir := filepath.Join(homeDir, ".ssh")
-		if err := os.MkdirAll(sshDir, 0o700); err != nil {
-			t.Fatalf("create ssh dir: %v", err)
-		}
-		if err := os.WriteFile(filepath.Join(sshDir, "known_hosts"), []byte("not a private key"), 0o600); err != nil {
-			t.Fatalf("write known_hosts: %v", err)
-		}
-		if err := os.WriteFile(filepath.Join(sshDir, "cluster-access.pub"), []byte("ssh-rsa public-key"), 0o600); err != nil {
-			t.Fatalf("write public key: %v", err)
-		}
-		keyPath := filepath.Join(sshDir, "cluster-access")
-		if err := os.WriteFile(keyPath, testPrivateKeyPEM(t), 0o600); err != nil {
-			t.Fatalf("write private key: %v", err)
-		}
-
-		if got := defaultPrivateKeyPath(homeDir); got != keyPath {
-			t.Fatalf("defaultPrivateKeyPath() = %q, want %q", got, keyPath)
-		}
-	})
-
-	t.Run("returns empty when no parsable private key exists", func(t *testing.T) {
-		homeDir := t.TempDir()
-		sshDir := filepath.Join(homeDir, ".ssh")
-		if err := os.MkdirAll(sshDir, 0o700); err != nil {
-			t.Fatalf("create ssh dir: %v", err)
-		}
-		if err := os.WriteFile(filepath.Join(sshDir, "config"), []byte("Host *"), 0o600); err != nil {
-			t.Fatalf("write config: %v", err)
-		}
-
-		if got := defaultPrivateKeyPath(homeDir); got != "" {
-			t.Fatalf("defaultPrivateKeyPath() = %q, want empty", got)
-		}
-	})
-
-	t.Run("returns empty when ssh dir does not exist", func(t *testing.T) {
-		if got := defaultPrivateKeyPath(t.TempDir()); got != "" {
-			t.Fatalf("defaultPrivateKeyPath() = %q, want empty", got)
-		}
-	})
-}
-
 // TestNewSSHConnector_PrivateKeyPriority tests the private key parameter extraction
 // and priority logic in the newSSHConnector function
 func TestNewSSHConnector_PrivateKeyPriority(t *testing.T) {
 	testCases := []struct {
-		name               string
-		hostVars           map[string]any
-		expectedPrivateKey string
-		expectedKeyContent string
-		description        string
+		name                   string
+		hostVars               map[string]any
+		expectedPrivateKey     string
+		expectedKeyContent     string
+		expectedUseDefaultKeys bool
+		description            string
 	}{
 		{
 			name: "custom private_key without content",
@@ -104,9 +42,10 @@ func TestNewSSHConnector_PrivateKeyPriority(t *testing.T) {
 					_const.VariableConnectorPrivateKey: "/custom/.ssh/cluster-access",
 				},
 			},
-			expectedPrivateKey: "/custom/.ssh/cluster-access",
-			expectedKeyContent: "",
-			description:        "When only private_key is set, it should be preserved (not overwritten by default)",
+			expectedPrivateKey:     "/custom/.ssh/cluster-access",
+			expectedKeyContent:     "",
+			expectedUseDefaultKeys: false,
+			description:            "When only private_key is set, it should be preserved",
 		},
 		{
 			name: "only private_key_content set",
@@ -115,9 +54,10 @@ func TestNewSSHConnector_PrivateKeyPriority(t *testing.T) {
 					_const.VariableConnectorPrivateKeyContent: "-----BEGIN OPENSSH PRIVATE KEY-----\ntest content\n-----END OPENSSH PRIVATE KEY-----",
 				},
 			},
-			expectedPrivateKey: defaultSSHPrivateKey,
-			expectedKeyContent: "-----BEGIN OPENSSH PRIVATE KEY-----\ntest content\n-----END OPENSSH PRIVATE KEY-----",
-			description:        "When only private_key_content is set, private_key should have default value",
+			expectedPrivateKey:     "",
+			expectedKeyContent:     "-----BEGIN OPENSSH PRIVATE KEY-----\ntest content\n-----END OPENSSH PRIVATE KEY-----",
+			expectedUseDefaultKeys: false,
+			description:            "When only private_key_content is set, default ~/.ssh keys should not be loaded",
 		},
 		{
 			name: "both private_key and private_key_content set",
@@ -127,25 +67,28 @@ func TestNewSSHConnector_PrivateKeyPriority(t *testing.T) {
 					_const.VariableConnectorPrivateKeyContent: "-----BEGIN OPENSSH PRIVATE KEY-----\ntest content\n-----END OPENSSH PRIVATE KEY-----",
 				},
 			},
-			expectedPrivateKey: "/custom/.ssh/cluster-access",
-			expectedKeyContent: "-----BEGIN OPENSSH PRIVATE KEY-----\ntest content\n-----END OPENSSH PRIVATE KEY-----",
-			description:        "When both are set, both should be preserved (content takes priority in Init())",
+			expectedPrivateKey:     "/custom/.ssh/cluster-access",
+			expectedKeyContent:     "-----BEGIN OPENSSH PRIVATE KEY-----\ntest content\n-----END OPENSSH PRIVATE KEY-----",
+			expectedUseDefaultKeys: false,
+			description:            "When both are set, both should be preserved (content takes priority in Init())",
 		},
 		{
-			name:               "neither private_key nor private_key_content set",
-			hostVars:           map[string]any{},
-			expectedPrivateKey: defaultSSHPrivateKey,
-			expectedKeyContent: "",
-			description:        "When neither is set, private_key should use the auto-detected default",
+			name:                   "neither private_key nor private_key_content set",
+			hostVars:               map[string]any{},
+			expectedPrivateKey:     "",
+			expectedKeyContent:     "",
+			expectedUseDefaultKeys: true,
+			description:            "When neither is set, Init() should load all default ~/.ssh private keys",
 		},
 		{
 			name: "empty connector variable",
 			hostVars: map[string]any{
 				_const.VariableConnector: map[string]any{},
 			},
-			expectedPrivateKey: defaultSSHPrivateKey,
-			expectedKeyContent: "",
-			description:        "When connector exists but keys are not set, should use default",
+			expectedPrivateKey:     "",
+			expectedKeyContent:     "",
+			expectedUseDefaultKeys: true,
+			description:            "When connector exists but keys are not set, Init() should load all default ~/.ssh private keys",
 		},
 		{
 			name: "custom key path",
@@ -154,9 +97,10 @@ func TestNewSSHConnector_PrivateKeyPriority(t *testing.T) {
 					_const.VariableConnectorPrivateKey: "~/.ssh/cluster-access",
 				},
 			},
-			expectedPrivateKey: "~/.ssh/cluster-access",
-			expectedKeyContent: "",
-			description:        "Custom key paths should be preserved",
+			expectedPrivateKey:     "~/.ssh/cluster-access",
+			expectedKeyContent:     "",
+			expectedUseDefaultKeys: false,
+			description:            "Custom key paths should be preserved",
 		},
 	}
 
@@ -172,6 +116,11 @@ func TestNewSSHConnector_PrivateKeyPriority(t *testing.T) {
 			if connector.PrivateKeyContent != tc.expectedKeyContent {
 				t.Errorf("%s\nExpected PrivateKeyContent: %q\nGot: %q",
 					tc.description, tc.expectedKeyContent, connector.PrivateKeyContent)
+			}
+
+			if connector.useDefaultPrivateKeys != tc.expectedUseDefaultKeys {
+				t.Errorf("%s\nExpected useDefaultPrivateKeys: %t\nGot: %t",
+					tc.description, tc.expectedUseDefaultKeys, connector.useDefaultPrivateKeys)
 			}
 		})
 	}
@@ -275,7 +224,7 @@ func TestSSHConnector_InitValidation(t *testing.T) {
 				Port:              22,
 				User:              "root",
 				Password:          "test-password",
-				PrivateKey:        "/tmp/custom/nonexistent/key.pem", // Explicit custom path (not default)
+				PrivateKey:        "/tmp/custom/nonexistent/key.pem",
 				PrivateKeyContent: "",
 			},
 			shouldError: true,

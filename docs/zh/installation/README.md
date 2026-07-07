@@ -82,6 +82,7 @@ spec:
 | `spec.groups.nfs` | Object | 否 | 安装 NFS 的节点组 |
 | `spec.groups.<group name>.hosts` | Array | 是 | 对应组的节点名称列表 |
 
+节点磁盘格式化与 multipath 配置见 [存储与 Multipath 配置](../reference/storage.md)。
 
 ## 定义关键配置信息
 

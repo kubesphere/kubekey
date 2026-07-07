@@ -18,17 +18,20 @@ package multipath_conf
 
 import "testing"
 
-func TestQuoteBashWords(t *testing.T) {
+func TestParseItemDefaults(t *testing.T) {
 	t.Parallel()
 
-	got := quoteBashWords([]string{
-		"^sd[a-z]",
-		"$(touch /tmp/pwn)",
-		"can'not",
-		"`uname`",
-	})
-	want := "'^sd[a-z]' '$(touch /tmp/pwn)' 'can'\\''not' '`uname`'"
-	if got != want {
-		t.Fatalf("quoteBashWords() = %q, want %q", got, want)
+	cfg, err := parseItem(map[string]any{})
+	if err != nil {
+		t.Fatalf("parseItem() error = %v", err)
+	}
+	if cfg.Path != defaultPath {
+		t.Fatalf("Path = %q, want %q", cfg.Path, defaultPath)
+	}
+	if !cfg.Backup || !cfg.Reload {
+		t.Fatalf("Backup = %t Reload = %t, want both true", cfg.Backup, cfg.Reload)
+	}
+	if len(cfg.DevNodes) != 4 {
+		t.Fatalf("DevNodes = %#v, want 4 defaults", cfg.DevNodes)
 	}
 }

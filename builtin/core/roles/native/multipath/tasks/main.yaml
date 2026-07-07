@@ -1,0 +1,8 @@
+---
+- name: Multipath | Configure blacklist
+  when: .kubernetes.multipath.enabled | default false
+  multipath_conf:
+    path: "{{ .kubernetes.multipath.path | default \"/etc/multipath.conf\" }}"
+    backup: "{{ .kubernetes.multipath.backup | default true }}"
+    reload: "{{ .kubernetes.multipath.reload | default true }}"
+    devnodes: "{{ .kubernetes.multipath.devnodes | default list | toJson }}"

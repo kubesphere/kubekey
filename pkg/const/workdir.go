@@ -141,3 +141,6 @@ const KubernetesDir = "kubernetes"
 
 // VarsDir is a directory name for vars
 const VarsDir = "vars"
+
+// GPUVendorConfigRelPath is the relative path to GPU vendor config under workdir.
+const GPUVendorConfigRelPath = "config/scanner/gpu_vendors.yaml"

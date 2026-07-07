@@ -196,12 +196,28 @@ func (c *localConnector) getHostInfo(ctx context.Context) (map[string]any, error
 		}
 		procVars[_const.VariableProcessMemory] = convertBytesToMap(mem.Bytes(), ":")
 
+		// block devices
+		blockdevicesVars, blockErr := blockDevicesFromLsblk(ctx, c)
+		if blockErr != nil {
+			klog.V(4).InfoS("skip block device gathering", "error", blockErr)
+		}
+
+		// gpu
+		gpuVars, gpuErr := gpuInfoFromLspci(ctx, c.workdir, c)
+		if gpuErr != nil {
+			klog.V(4).InfoS("skip gpu gathering", "error", gpuErr)
+		}
+
 		hostInfo := map[string]any{
 			_const.VariableOS:      osVars,
 			_const.VariableProcess: procVars,
 		}
-		enrichHostInfoWithBlockDevices(ctx, hostInfo, c)
-		enrichHostInfoWithGPU(ctx, c.workdir, hostInfo, c)
+		if blockErr == nil {
+			hostInfo[_const.VariableBlockDevices] = blockdevicesVars
+		}
+		if gpuErr == nil {
+			hostInfo[_const.VariableGPU] = gpuVars
+		}
 
 		return hostInfo, nil
 	default:
