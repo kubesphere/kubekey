@@ -1,6 +1,6 @@
 # KubeKey Code Logic Map
 
-Companion to [AGENTS.md](../../AGENTS.md). This doc traces the exact code paths for the most important flows so you can jump straight to the right function when debugging or adding features.
+Companion to [AGENTS.md](../../AGENTS.md). This doc traces the exact code paths for the most important flows so the [Developer Agent](./developer.md) can jump straight to the right function when debugging or adding features.
 
 ---
 
@@ -206,23 +206,30 @@ pkg/executor/playbook_executor.go:Exec(ctx)
 pkg/executor/role_executor.go:Exec(ctx)
     ├── merge role defaults into variable system
     ├── recursively execute dependency roles
+    │   └── dependency role inherits parent role's when/tags/ignore_errors
     └── for each block in role:
         └── blockExecutor.Exec(ctx)
+            └── blocks inherit role's when conditions
 ```
+
+`when` defined on a role is merged with parent conditions and passed down to all blocks and tasks within that role.
 
 ### Block execution
 
 ```text
 pkg/executor/block_executor.go:Exec(ctx)
     ├── evaluate tags: skip block if tags don't match
-    ├── evaluate when condition
+    ├── merge block's when condition with parent when conditions
     ├── if block has nested block/rescue/always:
     │   ├── run block tasks
     │   ├── on failure: run rescue tasks
     │   └── always: run always tasks
     └── else (leaf task):
         └── taskExecutor.Exec(ctx)
+            └── all inherited when conditions are evaluated per host
 ```
+
+`when` conditions are cumulative: a block or task must satisfy its own `when` expressions **and** all inherited `when` expressions from parent blocks and roles.
 
 ### Task execution
 
@@ -435,6 +442,53 @@ api/project/v1/conditional.go
     └── when expressions are always wrapped as templates
         and rendered to a boolean-like result
 ```
+
+`when` can be defined at **role**, **block**, and **task** levels:
+
+- Role-level `when` is inherited by all blocks and tasks in that role.
+- Block-level `when` is merged with parent block/role conditions and inherited by nested blocks and leaf tasks.
+- Task-level `when` is evaluated per host right before module execution.
+- All inherited conditions must evaluate to true for a task to run.
+
+### Tags
+
+```text
+api/project/v1/taggable.go
+    ├── Tags []string
+    ├── AlwaysTag = "always"
+    ├── NeverTag  = "never"
+    ├── AllTag    = "all"
+    ├── TaggedTag = "tagged"
+    └── IsEnabled(onlyTags, skipTags) bool
+```
+
+Tags are inherited the same way as `when`: role → block → nested block/task. Use `JoinTag()` to merge parent tags into child tags.
+
+Runtime filtering uses `playbook.Spec.Tags` (only run matching) and `playbook.Spec.SkipTags` (skip matching), typically set via CLI `--tags` and `--skip-tags`.
+
+Special tags:
+
+| Tag | Meaning |
+|-----|---------|
+| `always` | Always runs unless explicitly skipped by `always` in skipTags. |
+| `never` | Never runs unless explicitly included. |
+| `all` | Matches every block except those tagged `never`. |
+| `tagged` | Matches any block that has at least one tag. |
+
+Matching rules for `onlyTags`:
+
+- A block with `always` runs.
+- `all` or `tagged` runs everything except `never`.
+- Otherwise the block runs if any of its tags intersect with `onlyTags`.
+- Blocks without matching tags are skipped.
+
+Matching rules for `skipTags`:
+
+- `all` skips everything except blocks tagged `always` (unless `always` is also in skipTags).
+- Any tag intersection with `skipTags` skips the block.
+- `tagged` skips all tagged blocks.
+
+Like `when`, declare tags at the highest applicable scope; do not repeat the same tag at every nested level.
 
 ---
 
