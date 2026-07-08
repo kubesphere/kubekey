@@ -65,6 +65,9 @@ const (
 	// This tag helps organize and identify API endpoints that deal with
 	// resource management and operations
 	ResourceTag = "resources"
+	// HealthTag is the tag used for health check endpoints
+	// This tag helps organize and identify health and readiness probe endpoints
+	HealthTag = "health"
 
 	// StatusOK represents a successful operation status
 	// Used to indicate that an API operation completed successfully

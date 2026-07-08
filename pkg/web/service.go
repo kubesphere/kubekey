@@ -149,6 +149,40 @@ func NewCoreService(workdir string, client ctrlclient.Client, restconfig *rest.C
 	return ws
 }
 
+// NewHealthzService creates a new WebService that exposes the /healthz endpoint.
+// It returns HTTP 200 with "ok" to indicate the web server is alive.
+func NewHealthzService() *restful.WebService {
+	ws := new(restful.WebService)
+	ws.Path("/healthz")
+
+	ws.Route(ws.GET("").To(func(_ *restful.Request, resp *restful.Response) {
+		resp.WriteHeader(http.StatusOK)
+		_, _ = resp.Write([]byte("ok"))
+	}).
+		Doc("health check endpoint").
+		Metadata(restfulspec.KeyOpenAPITags, []string{api.HealthTag}).
+		Returns(http.StatusOK, api.StatusOK, "ok"))
+
+	return ws
+}
+
+// NewReadyzService creates a new WebService that exposes the /readyz endpoint.
+// It returns HTTP 200 with "ok" to indicate the web server is ready to serve traffic.
+func NewReadyzService() *restful.WebService {
+	ws := new(restful.WebService)
+	ws.Path("/readyz")
+
+	ws.Route(ws.GET("").To(func(_ *restful.Request, resp *restful.Response) {
+		resp.WriteHeader(http.StatusOK)
+		_, _ = resp.Write([]byte("ok"))
+	}).
+		Doc("readiness check endpoint").
+		Metadata(restfulspec.KeyOpenAPITags, []string{api.HealthTag}).
+		Returns(http.StatusOK, api.StatusOK, "ok"))
+
+	return ws
+}
+
 // NewSchemaService creates a new WebService that serves schema files from the specified root path.
 // It sets up a route that handles GET requests to /resources/schema/{subpath} and serves files from the rootPath directory.
 // The {subpath:*} parameter allows for matching any path under /resources/schema/.
