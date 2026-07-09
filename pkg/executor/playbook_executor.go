@@ -216,9 +216,6 @@ func (e playbookExecutor) execBatchHosts(ctx context.Context, play kkprojectv1.P
 
 // dealHosts "hosts" argument in playbook. get hostname from kkprojectv1.PlayHost
 func (e playbookExecutor) dealHosts(host kkprojectv1.PlayHost, i *[]string) error {
-	if err := e.variable.Merge(variable.EnsureLocalHost()); err != nil {
-		return err
-	}
 	ahn, err := e.variable.Get(variable.GetHostnames(host.Hosts))
 	if err != nil {
 		return err

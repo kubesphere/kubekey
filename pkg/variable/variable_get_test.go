@@ -23,8 +23,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-
-	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 )
 
 func TestGetHostnames(t *testing.T) {
@@ -125,26 +123,6 @@ func TestGetHostnames(t *testing.T) {
 				},
 			},
 			except: []string{"test"},
-		},
-		{
-			name:  "localhost host pattern resolves implicit localhost",
-			hosts: []string{_const.VariableLocalHost},
-			variable: &variable{
-				value: &value{
-					Inventory: kkcorev1.Inventory{
-						Spec: kkcorev1.InventorySpec{
-							Hosts: map[string]runtime.RawExtension{
-								"test": {},
-							},
-						},
-					},
-					Hosts: map[string]host{
-						"test":                   {},
-						_const.VariableLocalHost: {},
-					},
-				},
-			},
-			except: []string{_const.VariableLocalHost},
 		},
 	}
 
