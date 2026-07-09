@@ -125,20 +125,7 @@ func New(ctx context.Context, client ctrlclient.Client, playbook kkcorev1.Playbo
 		v.value.Hosts[k] = h
 	}
 
-	ensureImplicitLocalHost(v.value.Hosts)
-
 	return v, nil
-}
-
-// ensureImplicitLocalHost registers the implicit localhost host used by local download/certs plays.
-func ensureImplicitLocalHost(hosts map[string]host) {
-	if _, ok := hosts[_const.VariableLocalHost]; ok {
-		return
-	}
-	hosts[_const.VariableLocalHost] = host{
-		RemoteVars:  make(map[string]any),
-		RuntimeVars: make(map[string]any),
-	}
 }
 
 type variable struct {
@@ -224,19 +211,19 @@ func (v *variable) Merge(f MergeFunc) error {
 // syncSource sync hosts vars to source.
 func (v *variable) syncSource(newVal value) error {
 	v.value.Result = newVal.Result
-	for hn, hv := range newVal.Hosts {
-		if existing, ok := v.value.Hosts[hn]; ok && reflect.DeepEqual(hv, existing) {
+	for hn, hv := range v.value.Hosts {
+		if reflect.DeepEqual(newVal.Hosts[hn], hv) {
 			// nothing change skip.
 			continue
 		}
 		if err := v.source.Write(map[string]any{
-			"remote":  hv.RemoteVars,
-			"runtime": hv.RuntimeVars,
+			"remote":  newVal.Hosts[hn].RemoteVars,
+			"runtime": newVal.Hosts[hn].RuntimeVars,
 		}, hn); err != nil {
 			return errors.Wrapf(err, "failed to write host %s variable to source", hn)
 		}
 		// update new value to variable
-		v.value.Hosts[hn] = hv
+		v.value.Hosts[hn] = newVal.Hosts[hn]
 	}
 
 	return nil

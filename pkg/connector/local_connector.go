@@ -199,27 +199,21 @@ func (c *localConnector) getHostInfo(ctx context.Context) (map[string]any, error
 		// block devices
 		blockdevicesVars, blockErr := blockDevicesFromLsblk(ctx, c)
 		if blockErr != nil {
-			klog.V(4).InfoS("skip block device gathering", "error", blockErr)
+			klog.V(4).ErrorS(blockErr, "skip block device gathering")
 		}
 
 		// gpu
 		gpuVars, gpuErr := gpuInfoFromLspci(ctx, c.workdir, c)
 		if gpuErr != nil {
-			klog.V(4).InfoS("skip gpu gathering", "error", gpuErr)
+			klog.V(4).ErrorS(gpuErr, "skip gpu gathering")
 		}
 
-		hostInfo := map[string]any{
-			_const.VariableOS:      osVars,
-			_const.VariableProcess: procVars,
-		}
-		if blockErr == nil {
-			hostInfo[_const.VariableBlockDevices] = blockdevicesVars
-		}
-		if gpuErr == nil {
-			hostInfo[_const.VariableGPU] = gpuVars
-		}
-
-		return hostInfo, nil
+		return map[string]any{
+			_const.VariableOS:           osVars,
+			_const.VariableProcess:      procVars,
+			_const.VariableBlockDevices: blockdevicesVars,
+			_const.VariableGPU:          gpuVars,
+		}, nil
 	default:
 		klog.V(4).ErrorS(nil, "Unsupported platform", "platform", runtime.GOOS)
 		// os information
