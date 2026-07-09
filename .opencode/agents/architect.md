@@ -8,7 +8,7 @@ Analyze requirements and produce a design document. The Architect does **not** w
 
 - User requirement (feature request, bug report, refactor goal, etc.).
 - [AGENTS.md](../../AGENTS.md) – universal conventions.
-- [CODE_LOGIC.md](./CODE_LOGIC.md) – detailed code logic flows.
+- [CODE_LOGIC.md](../CODE_LOGIC.md) – detailed code logic flows.
 - Existing codebase, when necessary to assess impact.
 
 ## Output

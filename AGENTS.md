@@ -6,7 +6,7 @@ It is intentionally **not** a project tour or per-role workflow. For project arc
 
 - [README.md](README.md) – user-facing intro.
 - [docs/en/framework/README.md](docs/en/framework/README.md) – writing custom playbooks.
-- [.opencode/agents/CODE_LOGIC.md](.opencode/agents/CODE_LOGIC.md) – detailed code logic flows.
+- [.opencode/CODE_LOGIC.md](.opencode/CODE_LOGIC.md) – detailed code logic flows.
 
 For per-role instructions, see `.opencode/agents/`:
 
@@ -54,7 +54,9 @@ Two binaries are produced:
 ├── go.mod                    # Main module
 ├── go.work                   # Workspace including ./api
 ├── version/                  # Build-time version injection
-├── .opencode/agents/         # Agent role definitions
+├── .opencode/
+│   ├── agents/               # Agent role definitions
+│   └── CODE_LOGIC.md         # Shared code logic reference for all agents
 └── _output/agents/           # Agent-generated intermediate artifacts
 ```
 
@@ -210,7 +212,7 @@ The Reviewer agent generates `pr.md` and `commit.txt` based on the developer sum
 
 - [README.md](README.md)
 - [docs/en/framework/README.md](docs/en/framework/README.md)
-- [.opencode/agents/CODE_LOGIC.md](.opencode/agents/CODE_LOGIC.md)
+- [.opencode/CODE_LOGIC.md](.opencode/CODE_LOGIC.md)
 - `.opencode/agents/architect.md`
 - `.opencode/agents/developer.md`
 - `.opencode/agents/reviewer.md`

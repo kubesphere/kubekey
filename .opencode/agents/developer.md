@@ -8,7 +8,7 @@ Implement the design described in `_output/agents/design.md`.
 
 - `_output/agents/design.md`
 - [AGENTS.md](../../AGENTS.md) – universal conventions.
-- [CODE_LOGIC.md](./CODE_LOGIC.md) – detailed code logic flows.
+- [CODE_LOGIC.md](../CODE_LOGIC.md) – detailed code logic flows.
 
 ## Output
 
