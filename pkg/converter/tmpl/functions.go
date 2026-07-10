@@ -42,6 +42,7 @@ func funcMap() template.FuncMap {
 	f["toLowerByteUnit"] = toLowerByteUnit
 	f["mapToNamedStringArgs"] = mapToNamedStringArgs
 	f["toToml"] = toTOML
+	f["toBool"] = toBool
 
 	return f
 }
@@ -157,6 +158,36 @@ func toTOML(v any) string {
 	}
 
 	return buf.String()
+}
+
+// toBool converts a value to a boolean. bool values pass through, strings are
+// parsed with strconv.ParseBool semantics, and numeric types are true when non-zero.
+// nil and unsupported types return an error.
+func toBool(v any) (bool, error) {
+	switch value := v.(type) {
+	case bool:
+		return value, nil
+	case string:
+		b, err := strconv.ParseBool(value)
+		if err != nil {
+			return false, errors.Wrapf(err, "failed to convert %q to bool", value)
+		}
+		return b, nil
+	case nil:
+		return false, errors.New("cannot convert nil to bool")
+	default:
+		rv := reflect.ValueOf(v)
+		switch rv.Kind() {
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			return rv.Int() != 0, nil
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+			return rv.Uint() != 0, nil
+		case reflect.Float32, reflect.Float64:
+			return rv.Float() != 0, nil
+		default:
+			return false, errors.Errorf("cannot convert %T to bool", v)
+		}
+	}
 }
 
 // ipInCIDR takes a comma-separated list of CIDR strings, parses each one to extract IPs using parseIP,

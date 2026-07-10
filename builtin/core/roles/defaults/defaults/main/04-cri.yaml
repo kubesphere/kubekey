@@ -3,7 +3,6 @@ cri:
   container_manager: containerd
   # Cgroup driver for the container runtime. Supported: systemd, cgroupfs
   cgroup_driver: systemd
-    # tag: "3.9"
   # CRI socket endpoint for the selected container runtime
   cri_socket: >-
     {{- if .cri.container_manager | eq "containerd" -}}
@@ -23,7 +22,7 @@ cri:
     #     username: MyDockerAccount
     #     password: my_password
     #     skip_tls_verify: true
-    #     ca_cert: /etc/docker/certs.d/docker.io/ca.crt
+    #     ca_file: /etc/docker/certs.d/docker.io/ca.crt
     #     cert_file: /etc/docker/certs.d/docker.io/cert.crt
     #     key_file: /etc/docker/certs.d/docker.io/key.crt
 
@@ -73,6 +72,7 @@ cri:
         "io.containerd.timeout.task.state": "2s"
       plugins:
         "io.containerd.grpc.v1.cri":
+          sandbox_image: "{{ .kubernetes.sandbox_image.registry }}/{{ .kubernetes.sandbox_image.repository }}:{{ .kubernetes.sandbox_image.tag }}"
           containerd:
             runtimes:
               runc:
