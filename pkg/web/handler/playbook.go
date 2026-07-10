@@ -227,7 +227,9 @@ func (h *PlaybookHandler) Log(request *restful.Request, response *restful.Respon
 	}
 	defer file.Close()
 
-	response.AddHeader("Content-Type", "text/plain; charset=utf-8")
+	// response.AddHeader("Content-Type", "text/plain; charset=utf-8")
+	response.AddHeader("Content-Type", "text/plain")
+	response.AddHeader("X-Content-Type-Options", "nosniff")
 	writer := response.ResponseWriter
 	flusher, ok := writer.(http.Flusher)
 	if !ok {
