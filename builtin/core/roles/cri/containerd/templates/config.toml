@@ -1,8 +1,5 @@
 {{- $config := .cri.containerd.config }}
 {{- $_ := set $config "root" (.cri.containerd.data_root | default "/var/lib/containerd") }}
-{{- if .kubernetes.sandbox_image.tag | empty | not }}
-{{- $_ := set $config "sandbox_image" (printf "%s/%s:%s" .kubernetes.sandbox_image.registry .kubernetes.sandbox_image.repository .kubernetes.sandbox_image.tag) }}
-{{- end }}
 
 {{- $mirrors := dict }}
 {{- if .cri.registry.mirrors | empty | not }}
@@ -15,7 +12,11 @@
 {{- $configs := dict }}
 {{- if and (.image_registry.auth.registry | empty | not) (ne (.image_registry.auth.registry | splitList "/" | first) "hub.kubesphere.com.cn") }}
   {{- $registry_parts := .image_registry.auth.registry | splitList "/" | first }}
-  {{- $tls := dict "insecure_skip_verify" (hasKey .image_registry.auth "skip_tls_verify" | ternary .image_registry.auth.skip_tls_verify true) }}
+  {{- $skip_tls := true }}
+  {{- if hasKey .image_registry.auth "skip_tls_verify" }}
+  {{- $skip_tls = .image_registry.auth.skip_tls_verify | toBool }}
+  {{- end }}
+  {{- $tls := dict "insecure_skip_verify" $skip_tls }}
   {{- if printf "/etc/containerd/certs.d/%s/ca.crt" $registry_parts | fileExists }}
   {{- $_ := set $tls "ca_file" (printf "/etc/containerd/certs.d/%s/ca.crt" $registry_parts) }}
   {{- end }}
@@ -30,7 +31,11 @@
 {{- end }}
 {{- range .cri.registry.auths | default list }}
   {{- $parts := .registry | splitList "/" | first }}
-  {{- $tls := dict "insecure_skip_verify" (hasKey . "skip_tls_verify" | ternary .skip_tls_verify true) }}
+  {{- $skip_tls := true }}
+  {{- if hasKey . "skip_tls_verify" }}
+  {{- $skip_tls = .skip_tls_verify | toBool }}
+  {{- end }}
+  {{- $tls := dict "insecure_skip_verify" $skip_tls }}
   {{- if .ca_file }}
   {{- $_ := set $tls "ca_file" .ca_file }}
   {{- end }}
@@ -59,5 +64,11 @@
     {{- $existing := $existing_stdout | fromTOML }}
     {{- $config = mergeOverwrite $config $existing }}
   {{- end }}
+{{- end }}
+{{- $options := dig "plugins" "io.containerd.grpc.v1.cri" "containerd" "runtimes" "runc" "options" dict $config }}
+{{- if $options }}
+{{- if hasKey $options "SystemdCgroup" }}
+{{- $_ := set $options "SystemdCgroup" ($options.SystemdCgroup | toBool) }}
+{{- end }}
 {{- end }}
 {{- $config | toToml }}
