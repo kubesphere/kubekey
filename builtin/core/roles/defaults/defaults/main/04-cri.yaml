@@ -72,7 +72,6 @@ cri:
         "io.containerd.timeout.task.state": "2s"
       plugins:
         "io.containerd.grpc.v1.cri":
-          sandbox_image: "{{ .kubernetes.sandbox_image.registry }}/{{ .kubernetes.sandbox_image.repository }}:{{ .kubernetes.sandbox_image.tag }}"
           containerd:
             runtimes:
               runc:

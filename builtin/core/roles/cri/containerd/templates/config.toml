@@ -49,14 +49,15 @@
   {{- $_ := set $configs $parts (dict "auth" $auth "tls" $tls) }}
 {{- end }}
 
+{{- $cri := dict "sandbox_image" (printf "%s/%s:%s" .kubernetes.sandbox_image.registry .kubernetes.sandbox_image.repository .kubernetes.sandbox_image.tag) }}
 {{- if or $mirrors $configs }}
 {{- $registry := dict }}
 {{- if $mirrors }}{{- $_ := set $registry "mirrors" $mirrors }}{{- end }}
 {{- if $configs }}{{- $_ := set $registry "configs" $configs }}{{- end }}
-{{- $cri := dict "registry" $registry }}
+{{- $_ := set $cri "registry" $registry }}
+{{- end }}
 {{- $plugins := dict "io.containerd.grpc.v1.cri" $cri }}
 {{- $config = mergeOverwrite (dict "plugins" $plugins) $config }}
-{{- end }}
 {{- if and (.cri.containerd.config_policy | eq "merge") (.containerd_config_existing | default dict) }}
   {{- $existing_stdout := .containerd_config_existing.stdout | default "" }}
   {{- $err := .containerd_config_existing.error | default "" }}
