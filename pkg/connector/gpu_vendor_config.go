@@ -75,9 +75,9 @@ type GPUVendorEntry struct {
 	Priority    int    `yaml:"priority"`
 }
 
-// LoadGPUVendorConfig loads GPU vendor config from {workdir}/config/scanner/gpu_vendors.yaml.
+// LoadGPUVendorConfig loads GPU vendor config from {workdir}/gather_facts/gpu_vendors.yaml.
 func LoadGPUVendorConfig(workdir string) (*GPUVendorConfig, error) {
-	configPath := filepath.Join(workdir, _const.GPUVendorConfigRelPath)
+	configPath := filepath.Join(workdir, _const.GatherFactsDir, _const.GPUVendorConfig)
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		return nil, fmt.Errorf("read gpu vendor config %s: %w", configPath, err)
