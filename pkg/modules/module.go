@@ -30,12 +30,10 @@ import (
 	"github.com/kubesphere/kubekey/v4/pkg/modules/image"
 	"github.com/kubesphere/kubekey/v4/pkg/modules/include_vars"
 	"github.com/kubesphere/kubekey/v4/pkg/modules/internal"
-	"github.com/kubesphere/kubekey/v4/pkg/modules/multipath_conf"
 	"github.com/kubesphere/kubekey/v4/pkg/modules/prometheus"
 	"github.com/kubesphere/kubekey/v4/pkg/modules/result"
 	"github.com/kubesphere/kubekey/v4/pkg/modules/set_fact"
 	"github.com/kubesphere/kubekey/v4/pkg/modules/setup"
-	"github.com/kubesphere/kubekey/v4/pkg/modules/storage"
 	"github.com/kubesphere/kubekey/v4/pkg/modules/template"
 )
 
@@ -65,11 +63,9 @@ func init() {
 	utilruntime.Must(internal.RegisterModule(http_get_file.ModuleHttpGetFile, "http_get_file"))
 	utilruntime.Must(internal.RegisterModule(image.ModuleImage, "image"))
 	utilruntime.Must(internal.RegisterModule(include_vars.ModuleIncludeVars, "include_vars"))
-	utilruntime.Must(internal.RegisterModule(multipath_conf.ModuleMultipathConf, "multipath_conf"))
 	utilruntime.Must(internal.RegisterModule(prometheus.ModulePrometheus, "prometheus"))
 	utilruntime.Must(internal.RegisterModule(result.ModuleResult, "result"))
 	utilruntime.Must(internal.RegisterModule(set_fact.ModuleSetFact, "set_fact"))
 	utilruntime.Must(internal.RegisterModule(setup.ModuleSetup, "setup"))
-	utilruntime.Must(internal.RegisterModule(storage.ModuleStorage, "storage"))
 	utilruntime.Must(internal.RegisterModule(template.ModuleTemplate, "template"))
 }

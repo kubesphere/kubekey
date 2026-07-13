@@ -1,7 +1,7 @@
 dependencies:
   # Configure multipath blacklist before disk formatting when enabled.
+  # The native/multipath role applies its own when condition.
   - role: native/multipath
-    when: .kubernetes.multipath.enabled | default false
   # Format disks configured in inventory host vars before other initialization steps.
   - role: native/storage
   # Initialize new Kubernetes nodes

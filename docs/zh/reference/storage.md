@@ -4,10 +4,8 @@
 
 相关实现：
 
-- 磁盘格式化模块：`pkg/modules/storage`
-- Multipath 配置模块：`pkg/modules/multipath_conf`
-- Multipath 执行角色：`builtin/core/roles/native/multipath`
-- Storage 执行角色：`builtin/core/roles/native/storage`
+- 磁盘格式化角色：`builtin/core/roles/native/storage`
+- Multipath 配置角色：`builtin/core/roles/native/multipath`
 - 预检查：`builtin/core/roles/precheck/storage`
 
 当主机配置了 `storage` 或 `kubernetes.storage_disks` 时，`native` 角色会在其他初始化步骤之前执行磁盘格式化；`precheck` 阶段会校验配置合法性。
@@ -75,7 +73,7 @@ devnodes:
 - 若配置文件不存在，会创建仅含空 `blacklist {}` 块的新文件。
 - 若已有 `blacklist` 块，仅追加缺失的 `devnode` 规则，不重复写入。
 - 修改后会执行 `multipath -t` 校验配置；若存在 `multipathd` 服务则尝试 reload。
-- `devnodes` 至少包含一条非空规则，否则模块报错。
+- `devnodes` 至少包含一条非空规则，否则任务报错。
 
 ---
 
@@ -146,7 +144,7 @@ spec:
 
 ## Storage 配置（Web 安装器格式）
 
-Web 安装器将磁盘配置写入 `kubernetes.storage_disks`，字段名与 Inventory 标准格式略有不同，由同一 `storage` 模块解析。
+Web 安装器将磁盘配置写入 `kubernetes.storage_disks`，字段名与 Inventory 标准格式略有不同，由同一角色处理。
 
 ### 示例
 
@@ -238,7 +236,7 @@ spec:
 ## 注意事项
 
 1. **数据破坏性操作**：`overwrite: true` 或首次格式化会清除目标设备数据，请确认设备路径正确。
-2. **系统盘保护**：模块会检测并拒绝操作根文件系统所在磁盘，但仍建议事先用 `lsblk` 核对。
+2. **系统盘保护**：角色会检测并拒绝操作根文件系统所在磁盘，但仍建议事先用 `lsblk` 核对。
 3. **LVM 依赖**：LVM 模式要求目标节点已安装 `lvm2` 相关命令（`pvcreate`、`vgcreate`、`lvcreate` 等）。
 4. **Multipath 与存储顺序**：`native` 角色依赖中 `native/multipath` 在 `native/storage` 之前执行；仅开 multipath 时也会独立运行，不再依赖 storage 配置。
 5. **仅配置其一**：`storage` 与 `kubernetes.storage_disks` 面向不同入口，同一主机通常只配置一种；`multipath` 可单独启用。

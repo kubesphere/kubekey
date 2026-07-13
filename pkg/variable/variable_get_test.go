@@ -106,7 +106,7 @@ func TestGetHostnames(t *testing.T) {
 			except: []string{"n1"},
 		},
 		{
-			name:  "all group does not include implicit localhost",
+			name:  "all group includes implicit localhost",
 			hosts: []string{"all"},
 			variable: &variable{
 				value: &value{
@@ -122,7 +122,7 @@ func TestGetHostnames(t *testing.T) {
 					},
 				},
 			},
-			except: []string{"test"},
+			except: []string{"test", "localhost"},
 		},
 	}
 

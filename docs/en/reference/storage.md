@@ -4,10 +4,8 @@ This document describes how to configure disk formatting and multipath blacklist
 
 Related implementation:
 
-- Disk formatting module: `pkg/modules/storage`
-- Multipath configuration module: `pkg/modules/multipath_conf`
-- Multipath execution role: `builtin/core/roles/native/multipath`
-- Storage execution role: `builtin/core/roles/native/storage`
+- Disk formatting role: `builtin/core/roles/native/storage`
+- Multipath configuration role: `builtin/core/roles/native/multipath`
 - Precheck role: `builtin/core/roles/precheck/storage`
 
 When a host defines `storage` or `kubernetes.storage_disks`, the `native` role formats disks before other initialization steps. The `precheck` role validates the configuration first.
@@ -146,7 +144,7 @@ spec:
 
 ## Storage Configuration (Web Installer Format)
 
-The web installer stores disk settings in `kubernetes.storage_disks`. Field names differ slightly from the Inventory standard format, but the same `storage` module parses both.
+The web installer stores disk settings in `kubernetes.storage_disks`. Field names differ slightly from the Inventory standard format, but the same role handles both.
 
 ### Example
 
@@ -238,7 +236,7 @@ spec:
 ## Notes
 
 1. **Destructive operations**: `overwrite: true` or first-time formatting erases data on the target device. Verify device paths with `lsblk` first.
-2. **Root disk protection**: The module refuses to operate on the root filesystem disk, but manual verification is still recommended.
+2. **Root disk protection**: The role refuses to operate on the root filesystem disk, but manual verification is still recommended.
 3. **LVM dependencies**: LVM mode requires `lvm2` tools (`pvcreate`, `vgcreate`, `lvcreate`, etc.) on the target node.
 4. **Execution order**: In the `native` role dependencies, `native/multipath` runs before `native/storage`. Multipath can run on its own and no longer depends on storage configuration.
 5. **Use one format**: `storage` and `kubernetes.storage_disks` target different entry points; configure only one per host. `multipath` can be enabled independently.

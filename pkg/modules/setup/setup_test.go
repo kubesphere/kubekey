@@ -143,7 +143,9 @@ func TestSetupModuleReturnsConnectorError(t *testing.T) {
 		Variable: v,
 	})
 
+	// setup does not propagate connector errors because it has no ignore_errors option.
+	// A hard error here would abort subsequent tasks for the host.
 	require.Equal(t, internal.StdoutFailed, stdout)
 	require.Equal(t, internal.StderrGetConnector, stderr)
-	require.ErrorIs(t, err, expectedErr)
+	require.NoError(t, err)
 }

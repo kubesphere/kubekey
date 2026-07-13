@@ -17,6 +17,7 @@ limitations under the License.
 package connector
 
 import (
+	"os"
 	"path/filepath"
 	"runtime"
 	"testing"
@@ -31,7 +32,22 @@ func loadTestGPUVendorConfig(t *testing.T) *GPUVendorConfig {
 		t.Fatal("failed to resolve test path")
 	}
 	repoRoot := filepath.Clean(filepath.Join(filepath.Dir(file), "..", ".."))
-	cfg, err := LoadGPUVendorConfig(repoRoot)
+	src := filepath.Join(repoRoot, "docs", "en", "reference", "gpu_vendors.yaml")
+
+	tmp := t.TempDir()
+	dstDir := filepath.Join(tmp, "gather_facts")
+	if err := os.MkdirAll(dstDir, 0755); err != nil {
+		t.Fatalf("create temp gather_facts dir: %v", err)
+	}
+	data, err := os.ReadFile(src)
+	if err != nil {
+		t.Fatalf("read sample gpu vendor config: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(dstDir, "gpu_vendors.yaml"), data, 0644); err != nil {
+		t.Fatalf("write temp gpu vendor config: %v", err)
+	}
+
+	cfg, err := LoadGPUVendorConfig(tmp)
 	if err != nil {
 		t.Fatalf("load gpu vendor config: %v", err)
 	}

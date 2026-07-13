@@ -1,29 +1,22 @@
 ---
-- name: Storage | Format disks configured in inventory
+- name: Storage | Generate inventory disk formatting script
   when: .storage | empty | not
-  loop: "{{ .storage | toJson }}"
-  storage:
-    disk: "{{ index .item \"disk\" }}"
-    device: "{{ index .item \"device\" | toJson }}"
-    filesystem: "{{ index .item \"filesystem\" }}"
-    partition: "{{ index .item \"partition\" | default false }}"
-    overwrite: "{{ index .item \"overwrite\" | default false }}"
-    mount_point: "{{ index .item \"mount_point\" }}"
-    mount_options: "{{ index .item \"mount_options\" }}"
-    lvm:
-      vg_name: "{{ with index .item \"lvm\" }}{{ index . \"vg_name\" }}{{ end }}"
-      lv_name: "{{ with index .item \"lvm\" }}{{ index . \"lv_name\" }}{{ end }}"
-      lv_size: "{{ with index .item \"lvm\" }}{{ index . \"lv_size\" }}{{ end }}"
+  template:
+    src: format-storage-inventory.sh
+    dest: /etc/kubekey/scripts/format-storage-inventory.sh
+    mode: 0755
 
-- name: Storage | Format web installer storage disks
+- name: Storage | Execute inventory disk formatting script
+  when: .storage | empty | not
+  command: /etc/kubekey/scripts/format-storage-inventory.sh
+
+- name: Storage | Generate web installer disk formatting script
   when: .kubernetes.storage_disks | empty | not
-  loop: "{{ .kubernetes.storage_disks | toJson }}"
-  storage:
-    device: "{{ index .item \"device\" }}"
-    filesystem: "{{ index .item \"filesystem\" | default \"xfs\" }}"
-    partition: "{{ index .item \"partition\" | default false }}"
-    overwrite: "{{ index .item \"overwrite\" | default true }}"
-    mountpoint: "{{ index .item \"mountpoint\" }}"
-    mount_option: "{{ index .item \"mount_option\" }}"
-    vg_name: "{{ index .item \"vg_name\" }}"
-    lv_name: "{{ index .item \"lv_name\" }}"
+  template:
+    src: format-storage-web.sh
+    dest: /etc/kubekey/scripts/format-storage-web.sh
+    mode: 0755
+
+- name: Storage | Execute web installer disk formatting script
+  when: .kubernetes.storage_disks | empty | not
+  command: /etc/kubekey/scripts/format-storage-web.sh

@@ -283,9 +283,11 @@ func (e *taskExecutor) execTaskHostLogs(ctx context.Context, h string, loopResul
 		var skipped bool
 
 		// determine overall status by scanning all register results
+		// A module's failure is determined solely by its returned error.
+		// StdoutFailed is only a human-readable marker and must not be used as a failure signal.
 		skipped = true // assume skip until we find a non-skip stdout
 		for _, r := range *loopResults {
-			if r.Error != "" || r.Stdout == modules.StdoutFailed {
+			if r.Error != "" {
 				failed = true
 				break
 			}
@@ -498,7 +500,8 @@ func (e *taskExecutor) dealRegister(host string, loopResults []kkcorev1alpha1.Lo
 		}
 
 		// If there is any error at the module level, set the global error flag.
-		hasItemError = hasItemError || strings.TrimSpace(r.Error) != "" || r.Stdout == modules.StdoutFailed
+		// Do not check StdoutFailed here; module failure is signaled exclusively through Error.
+		hasItemError = hasItemError || strings.TrimSpace(r.Error) != ""
 	} else {
 		// Otherwise, collect all items as an array of results.
 		var arr []any
@@ -511,7 +514,7 @@ func (e *taskExecutor) dealRegister(host string, loopResults []kkcorev1alpha1.Lo
 			})
 
 			// If any item has error, set the global error flag.
-			hasItemError = hasItemError || strings.TrimSpace(r.Error) != "" || r.Stdout == modules.StdoutFailed
+			hasItemError = hasItemError || strings.TrimSpace(r.Error) != ""
 		}
 		value = arr
 	}

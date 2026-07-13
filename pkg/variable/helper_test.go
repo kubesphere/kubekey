@@ -139,7 +139,7 @@ func TestConvertGroup(t *testing.T) {
 		wantAll   []string
 	}{
 		{
-			name: "does not add implicit localhost",
+			name: "adds implicit localhost",
 			inventory: kkcorev1.Inventory{
 				Spec: kkcorev1.InventorySpec{
 					Hosts: kkcorev1.InventoryHost{
@@ -147,7 +147,7 @@ func TestConvertGroup(t *testing.T) {
 					},
 				},
 			},
-			wantAll: []string{"test"},
+			wantAll: []string{"test", "localhost"},
 		},
 		{
 			name: "includes localhost when referenced by a group",
