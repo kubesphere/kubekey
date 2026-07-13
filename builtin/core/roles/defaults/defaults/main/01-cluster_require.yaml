@@ -17,7 +17,7 @@ cluster_require:
     - rocky
     - '"rocky"'
   # Required network plugins
-  require_network_plugin: ['calico', 'flannel', 'cilium', 'hybridnet', 'kube-ovn']
+  require_network_plugin: ['none', 'calico', 'flannel', 'cilium', 'hybridnet', 'kube-ovn']
   # Minimum supported Kubernetes version
   kube_version_min_required: v1.23.0
   # Minimum memory (in MB) required for each control plane node
