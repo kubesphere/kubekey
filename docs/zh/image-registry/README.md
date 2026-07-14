@@ -59,6 +59,8 @@ spec:
 | `spec.vars.zone` | boolean | 否 | 文件及镜像的下载区域。如果您访问 GitHub/GoogleAPIs 受限，请将该值设置为cn |
 | `spec.vars.image_registry` | Object | 否 | 镜像仓库相关配置 |
 | `spec.vars.image_registry.type` | String | 否 | 镜像仓库类型，可选 `harbor` 或 `docker-registry` |
+| `spec.vars.image_registry.harbor.http_port` | Integer | 否 | Harbor HTTP 服务端口，默认为 `80` |
+| `spec.vars.image_registry.harbor.https_port` | Integer | 否 | Harbor HTTPS 服务端口，默认为 `443` |
 | `spec.vars.image_registry.auth` | Object | 否 | 镜像仓库认证配置 |
 | `spec.vars.image_registry.auth.registry` | String | 否 | 镜像仓库域名 |
 | `spec.vars.image_registry.auth.password` | String | 否 | 镜像仓库登录密码，默认为Harbor12345 |
@@ -138,6 +140,8 @@ Inventory 字段解释：
 | `spec.vars.image_registry` | Object | 否 | 镜像仓库相关配置 |
 | `spec.vars.image_registry.ha_vip` | String | 是（高可用场景） | 负载均衡虚 IP，作为镜像仓库的统一访问入口 |
 | `spec.vars.image_registry.type` | String | 否 | 镜像仓库类型，可选 `harbor` 或 `docker-registry` |
+| `spec.vars.image_registry.harbor.http_port` | Integer | 否 | Harbor HTTP 服务端口，默认为 `80` |
+| `spec.vars.image_registry.harbor.https_port` | Integer | 否 | Harbor HTTPS 服务端口，默认为 `443` |
 | `spec.vars.image_registry.auth` | Object | 否 | 镜像仓库认证配置 |
 | `spec.vars.image_registry.auth.registry` | String | 否 | 镜像仓库访问域名，对应 VIP 的域名，供外部客户端访问使用。（实际部署的 Harbor 以 inventory_hostname 作为内部域名）|
 

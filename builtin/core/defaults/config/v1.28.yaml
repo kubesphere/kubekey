@@ -41,6 +41,10 @@ spec:
     # keepalived image tag for load balancing when multiple registry nodes exist.
     # keepalived_version: 2.3.4
     # ========== Image Registry - Harbor ==========
+    # Harbor port settings.
+    # harbor:
+    #   http_port: 80
+    #   https_port: 443
     # Harbor image tag (only valid if type is harbor).
     #harbor_version: v2.10.2
     # docker-compose binary

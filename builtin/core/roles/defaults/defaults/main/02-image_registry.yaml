@@ -6,6 +6,9 @@ image_registry:
   # If left empty, no image registry will be installed (assumes an existing registry is already available).
   type: ""
   ha_vip: ""
+  harbor:
+    http_port: 80
+    https_port: 443
   # Image registry authentication settings
   auth:
     registry: >-

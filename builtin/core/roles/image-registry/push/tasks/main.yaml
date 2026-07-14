@@ -5,14 +5,15 @@
   command: |
     # Traverse first-level subdirectories in images_dir, skipping 'blobs'
     registry_url="{{ .image_registry.auth.registry }}"
+    harbor_https_port="{{ .image_registry.harbor.https_port | default 443 }}"
     host_part=$(echo "$registry_url" | cut -d'/' -f1)
     base_project=$(echo "$registry_url" | cut -s -d'/' -f2-)
     if [ -n "$base_project" ]; then
-      resp=$(curl -u "{{ .image_registry.auth.username }}:{{ .image_registry.auth.password }}" -k -X GET "https://${host_part}/api/v2.0/projects/${base_project}")
+      resp=$(curl -u "{{ .image_registry.auth.username }}:{{ .image_registry.auth.password }}" -k -X GET "https://${host_part}:${harbor_https_port}/api/v2.0/projects/${base_project}")
       if echo "$resp" | grep -q '"code":"NOT_FOUND"'; then
         curl -u "{{ .image_registry.auth.username }}:{{ .image_registry.auth.password }}" -k -X POST \
           -H "Content-Type: application/json" \
-          "https://${host_part}/api/v2.0/projects" \
+          "https://${host_part}:${harbor_https_port}/api/v2.0/projects" \
           -d "{ \"project_name\": \"${base_project}\", \"public\": true}"
       fi
     else
@@ -30,11 +31,11 @@
           project=$(basename "$project_dir")
 
           # Check if the Harbor project exists; create it if it does not
-          resp=$(curl -u "{{ .image_registry.auth.username }}:{{ .image_registry.auth.password }}" -k -X GET "https://${host_part}/api/v2.0/projects/${project}")
+          resp=$(curl -u "{{ .image_registry.auth.username }}:{{ .image_registry.auth.password }}" -k -X GET "https://${host_part}:${harbor_https_port}/api/v2.0/projects/${project}")
           if echo "$resp" | grep -q '"code":"NOT_FOUND"'; then
             curl -u "{{ .image_registry.auth.username }}:{{ .image_registry.auth.password }}" -k -X POST \
               -H "Content-Type: application/json" \
-              "https://${host_part}/api/v2.0/projects" \
+              "https://${host_part}:${harbor_https_port}/api/v2.0/projects" \
               -d "{ \"project_name\": \"${project}\", \"public\": true}"
           fi
         done

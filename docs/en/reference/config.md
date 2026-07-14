@@ -299,6 +299,9 @@ image_registry:
   type: ""
   # Virtual IP (VIP) for high availability of the image registry
   ha_vip: ""
+  harbor:
+    http_port: 80
+    https_port: 443
   # Image registry authentication settings
   auth:
     registry: >-
@@ -364,6 +367,8 @@ image_registry:
 |-----------|-------------|
 | `image_registry.type` | Type of image registry to deploy: `harbor`, `docker-registry`, or `""` (use existing registry). |
 | `image_registry.ha_vip` | Virtual IP used when deploying high-availability registries such as Harbor. |
+| `image_registry.harbor.http_port` | Harbor HTTP service port. Defaults to `80`. |
+| `image_registry.harbor.https_port` | Harbor HTTPS service port. Defaults to `443`. |
 | `image_registry.auth.registry` | Actual image registry address used by the cluster. If a registry is deployed, it is automatically rendered based on `ha_vip` or node IP; empty in online mode; if zone is `cn`, defaults to `hub.kubesphere.com.cn`. |
 | `image_registry.auth.username` | Username for logging into the image registry. Defaults to `admin` when deploying Harbor. |
 | `image_registry.auth.password` | Password for logging into the image registry. Defaults to `Harbor12345` when deploying Harbor. |
