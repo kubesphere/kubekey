@@ -1,3 +1,5 @@
+{{- $harborHTTPPort := .image_registry.harbor.http_port | default 80 -}}
+{{- $harborHTTPSPort := .image_registry.harbor.https_port | default 443 -}}
 # Configuration file of Harbor
 
 # The IP address or hostname to access admin UI and registry service.
@@ -7,12 +9,12 @@ hostname: {{if .groups.image_registry | len | lt 1}}{{ .inventory_hostname }}{{e
 # http related config
 http:
   # port for http, default is 80. If https enabled, this port will redirect to https port
-  port: 80
+  port: {{ $harborHTTPPort }}
 
 # https related config
 https:
   # https port for harbor, default is 443
-  port: 443
+  port: {{ $harborHTTPSPort }}
   # The path of cert and key files for nginx
   certificate: /opt/harbor/{{ .image_registry.harbor_version }}/ssl/server.crt
   private_key: /opt/harbor/{{ .image_registry.harbor_version }}/ssl/server.key

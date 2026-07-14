@@ -6,9 +6,23 @@
 - include_tasks: install.yaml
   when: .harbor_install_LoadState.stdout | eq "not-found"
 
+- name: Harbor | Update existing Harbor configuration
+  when: .harbor_install_LoadState.stdout | ne "not-found"
+  block:
+    - name: Harbor | Generate Harbor configuration file
+      template:
+        src: harbor.yml
+        dest: >-
+          /opt/harbor/{{ .image_registry.harbor_version }}/harbor/harbor.yml
+
+    - name: Harbor | Apply Harbor configuration and restart service
+      command: |
+        cd /opt/harbor/{{ .image_registry.harbor_version }}/harbor && /bin/bash prepare
+        systemctl restart harbor.service
+
 - name : Harbor | Check harbor api health
   command: |
-    HARBOR_URL="https://{{ .image_registry.auth.registry | splitList "/" | first }}"
+    HARBOR_URL="https://{{ .image_registry.auth.registry | splitList "/" | first }}:{{ .image_registry.harbor.https_port | default 443 }}"
     MAX_WAIT_SECONDS=300
     CHECK_INTERVAL=2
     MAX_RETRIES=$((MAX_WAIT_SECONDS / CHECK_INTERVAL))

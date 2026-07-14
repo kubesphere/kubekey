@@ -297,6 +297,9 @@ image_registry:
   type: ""
   # 镜像仓库的高可用虚拟 IP（VIP）
   ha_vip: ""
+  harbor:
+    http_port: 80
+    https_port: 443
   # 镜像仓库认证设置
   auth:
     registry: >-
@@ -362,6 +365,8 @@ image_registry:
 |------|------|
 | `image_registry.type` | 要部署的镜像仓库类型：`harbor`、`docker-registry` 或 `""`（使用已有仓库）。 |
 | `image_registry.ha_vip` | 部署 Harbor 等高可用仓库时使用的虚拟 IP。 |
+| `image_registry.harbor.http_port` | Harbor HTTP 服务端口，默认为 `80`。 |
+| `image_registry.harbor.https_port` | Harbor HTTPS 服务端口，默认为 `443`。 |
 | `image_registry.auth.registry` | 集群实际使用的镜像仓库地址。若部署了仓库，会根据 `ha_vip` 或节点 IP 自动渲染；在线模式下为空；若 zone 为 `cn`，默认使用 `hub.kubesphere.com.cn`。 |
 | `image_registry.auth.username` | 登录镜像仓库的用户名。部署 Harbor 时默认为 `admin`。 |
 | `image_registry.auth.password` | 登录镜像仓库的密码。部署 Harbor 时默认为 `Harbor12345`。 |

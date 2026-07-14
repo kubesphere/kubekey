@@ -59,6 +59,8 @@ spec:
 | `spec.vars.zone` | boolean | No | Download zone for files and images. If access to GitHub/GoogleAPIs is restricted, please set this to cn |
 | `spec.vars.image_registry` | Object | No | Image registry-related configuration |
 | `spec.vars.image_registry.type` | String | No | Image registry type, supports `harbor` or `docker-registry` |
+| `spec.vars.image_registry.harbor.http_port` | Integer | No | Harbor HTTP service port, defaults to `80` |
+| `spec.vars.image_registry.harbor.https_port` | Integer | No | Harbor HTTPS service port, defaults to `443` |
 | `spec.vars.image_registry.auth` | Object | No | Image registry authentication configuration |
 | `spec.vars.image_registry.auth.registry` | String | No | Image registry domain name |
 | `spec.vars.image_registry.auth.password` | String | No | Image registry login password, defaults to Harbor12345 |
@@ -138,6 +140,8 @@ Inventory field descriptions:
 | `spec.vars.image_registry` | Object | No | Image registry-related configuration |
 | `spec.vars.image_registry.ha_vip` | String | Yes (HA scenario) | Virtual IP for load balancing, used as the unified access entry for the image registry |
 | `spec.vars.image_registry.type` | String | No | Image registry type, supports `harbor` or `docker-registry` |
+| `spec.vars.image_registry.harbor.http_port` | Integer | No | Harbor HTTP service port, defaults to `80` |
+| `spec.vars.image_registry.harbor.https_port` | Integer | No | Harbor HTTPS service port, defaults to `443` |
 | `spec.vars.image_registry.auth` | Object | No | Image registry authentication configuration |
 | `spec.vars.image_registry.auth.registry` | String | No | Image registry access domain name, corresponding to the VIP domain name for external client access. (The actually deployed Harbor uses inventory_hostname as the internal domain name) |
 
