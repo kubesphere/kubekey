@@ -75,17 +75,40 @@ type GPUVendorEntry struct {
 	Priority    int    `yaml:"priority"`
 }
 
-// LoadGPUVendorConfig loads GPU vendor config from {workdir}/gather_facts/gpu_vendors.yaml.
+// LoadGPUVendorConfig loads GPU vendor config from {workdir}/config/scanner/gpu_vendors.yaml.
 func LoadGPUVendorConfig(workdir string) (*GPUVendorConfig, error) {
-	configPath := filepath.Join(workdir, _const.GatherFactsDir, _const.GPUVendorConfig)
-	data, err := os.ReadFile(configPath)
+	configPath, data, err := readGPUVendorConfig(workdir)
 	if err != nil {
-		return nil, fmt.Errorf("read gpu vendor config %s: %w", configPath, err)
+		return nil, err
 	}
 
+	return parseGPUVendorConfig(configPath, data)
+}
+
+func readGPUVendorConfig(workdir string) (string, []byte, error) {
+	paths := []string{
+		filepath.Join(workdir, "config", "scanner", _const.GPUVendorConfig),
+		filepath.Join(workdir, _const.GatherFactsDir, _const.GPUVendorConfig),
+	}
+	missing := make([]string, 0, len(paths))
+	for _, configPath := range paths {
+		data, err := os.ReadFile(configPath)
+		if err == nil {
+			return configPath, data, nil
+		}
+		if !os.IsNotExist(err) {
+			return "", nil, fmt.Errorf("read gpu vendor config %s: %w", configPath, err)
+		}
+		missing = append(missing, configPath)
+	}
+
+	return "", nil, fmt.Errorf("read gpu vendor config: not found in %s", strings.Join(missing, ", "))
+}
+
+func parseGPUVendorConfig(configPath string, data []byte) (*GPUVendorConfig, error) {
 	var cfg GPUVendorConfig
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
-		return nil, fmt.Errorf("parse gpu_vendors.yaml: %w", err)
+		return nil, fmt.Errorf("parse gpu vendor config %s: %w", configPath, err)
 	}
 
 	cfg.classCodeSet = make(map[string]bool, len(cfg.GPUClassCodes))

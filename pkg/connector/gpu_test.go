@@ -32,12 +32,12 @@ func loadTestGPUVendorConfig(t *testing.T) *GPUVendorConfig {
 		t.Fatal("failed to resolve test path")
 	}
 	repoRoot := filepath.Clean(filepath.Join(filepath.Dir(file), "..", ".."))
-	src := filepath.Join(repoRoot, "docs", "en", "reference", "gpu_vendors.yaml")
+	src := filepath.Join(repoRoot, "config", "scanner", "gpu_vendors.yaml")
 
 	tmp := t.TempDir()
-	dstDir := filepath.Join(tmp, "gather_facts")
+	dstDir := filepath.Join(tmp, "config", "scanner")
 	if err := os.MkdirAll(dstDir, 0755); err != nil {
-		t.Fatalf("create temp gather_facts dir: %v", err)
+		t.Fatalf("create temp scanner config dir: %v", err)
 	}
 	data, err := os.ReadFile(src)
 	if err != nil {
@@ -52,6 +52,33 @@ func loadTestGPUVendorConfig(t *testing.T) *GPUVendorConfig {
 		t.Fatalf("load gpu vendor config: %v", err)
 	}
 	return cfg
+}
+
+func TestLoadGPUVendorConfigFallsBackToGatherFactsPath(t *testing.T) {
+	_, file, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("failed to resolve test path")
+	}
+	repoRoot := filepath.Clean(filepath.Join(filepath.Dir(file), "..", ".."))
+	data, err := os.ReadFile(filepath.Join(repoRoot, "config", "scanner", "gpu_vendors.yaml"))
+	if err != nil {
+		t.Fatalf("read sample gpu vendor config: %v", err)
+	}
+
+	tmp := t.TempDir()
+	dstDir := filepath.Join(tmp, "gather_facts")
+	if err := os.MkdirAll(dstDir, 0755); err != nil {
+		t.Fatalf("create temp gather_facts dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(dstDir, "gpu_vendors.yaml"), data, 0644); err != nil {
+		t.Fatalf("write temp gpu vendor config: %v", err)
+	}
+
+	cfg, err := LoadGPUVendorConfig(tmp)
+	if err != nil {
+		t.Fatalf("load gpu vendor config: %v", err)
+	}
+	assert.True(t, cfg.IsGPUClass("0302", "3D controller"))
 }
 
 func TestGPUVendorConfigRestrictsAIComputeClasses(t *testing.T) {
@@ -90,6 +117,12 @@ func TestParseLspciMMRestrictsAIComputeDevices(t *testing.T) {
 		{
 			name:            "nvidia 3d controller remains detected",
 			line:            `01:00.0 "3D controller [0302]" "NVIDIA Corporation [10de]" "GA100 [A100 PCIe 40GB] [20f1]" -ra1 "" ""`,
+			wantDetected:    true,
+			wantDriverClass: "nvidia",
+		},
+		{
+			name:            "nvidia p100 3d controller remains detected",
+			line:            `00:06.0 "3D controller [0302]" "NVIDIA Corporation [10de]" "GP100GL [Tesla P100 PCIe 12GB] [15f7]" -ra1 "NVIDIA Corporation [10de]" "GP100GL [Tesla P100 PCIe 12GB] [11da]"`,
 			wantDetected:    true,
 			wantDriverClass: "nvidia",
 		},
