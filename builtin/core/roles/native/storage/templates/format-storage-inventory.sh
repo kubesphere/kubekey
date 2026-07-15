@@ -36,6 +36,44 @@ refuse_system_disk() {
   fi
 }
 
+mount_point_already_used() {
+  [ -n "$MOUNT_POINT" ] || return 1
+  mountpoint -q "$MOUNT_POINT"
+}
+
+device_has_lvm_allocation() {
+  local dev="$1" name pv
+  command -v pvs >/dev/null 2>&1 || return 1
+  while IFS= read -r name; do
+    [ -n "$name" ] || continue
+    pv="/dev/$name"
+    if pvs --noheadings "$pv" >/dev/null 2>&1; then
+      return 0
+    fi
+  done < <(lsblk -nr -o NAME "$dev" 2>/dev/null || true)
+  return 1
+}
+
+device_has_existing_allocation() {
+  local dev="$1" allocated
+  [ -b "$dev" ] || return 1
+
+  if findmnt -rn -S "$dev" >/dev/null 2>&1; then
+    return 0
+  fi
+
+  allocated=$({ lsblk -nr -o FSTYPE,MOUNTPOINT "$dev" 2>/dev/null || true; } | awk '$1 != "" || $2 != "" { found = 1 } END { print found + 0 }')
+  if [ "$allocated" -gt 0 ]; then
+    return 0
+  fi
+
+  if device_has_lvm_allocation "$dev"; then
+    return 0
+  fi
+
+  return 1
+}
+
 cleanup_fstab_entries() {
   local dev="$1" mp="${2:-}" uuid="" tmp
   uuid=$(blkid -s UUID -o value "$dev" 2>/dev/null || true)
@@ -107,6 +145,11 @@ clear_lvm_device() {
 }
 
 process_item() {
+  if mount_point_already_used; then
+    echo "mount point $MOUNT_POINT is already mounted, skipping storage item"
+    return 0
+  fi
+
   if [ -z "$VG_NAME" ]; then
     # Direct formatting: exactly one device.
     if [ ${#DEVICES[@]} -ne 1 ]; then
@@ -116,8 +159,16 @@ process_item() {
     DEVICE="${DEVICES[0]}"
     [ -b "$DEVICE" ] || { echo "block device $DEVICE does not exist" >&2; exit 1; }
     refuse_system_disk "$DEVICE"
+    if device_has_existing_allocation "$DEVICE"; then
+      echo "device $DEVICE already has existing storage allocation, skipping"
+      return 0
+    fi
     resolve_target_device
     [ -b "$TARGET_DEV" ] || { echo "target device $TARGET_DEV does not exist" >&2; exit 1; }
+    if [ "$TARGET_DEV" != "$DEVICE" ] && device_has_existing_allocation "$TARGET_DEV"; then
+      echo "target device $TARGET_DEV already has existing storage allocation, skipping"
+      return 0
+    fi
     force_unmount_device "$TARGET_DEV"
     FORMAT_DEV="$TARGET_DEV"
     if blkid "$FORMAT_DEV" >/dev/null 2>&1; then
@@ -136,12 +187,24 @@ process_item() {
     for cmd in pvcreate pvremove pvs vgcreate vgextend vgremove vgs lvcreate lvremove lvs mkfs wipefs; do
       command -v "$cmd" >/dev/null 2>&1 || { echo "required command $cmd is not installed" >&2; exit 1; }
     done
+    if [ -n "$VG_NAME" ] && [ -n "$LV_NAME" ] && lvs --noheadings "$VG_NAME/$LV_NAME" >/dev/null 2>&1; then
+      echo "logical volume $VG_NAME/$LV_NAME already exists, skipping storage item"
+      return 0
+    fi
     PV_DEVS=()
     for DEVICE in "${DEVICES[@]}"; do
       [ -b "$DEVICE" ] || { echo "block device $DEVICE does not exist" >&2; exit 1; }
       refuse_system_disk "$DEVICE"
+      if device_has_existing_allocation "$DEVICE"; then
+        echo "device $DEVICE already has existing storage allocation, skipping storage item"
+        return 0
+      fi
       resolve_target_device
       [ -b "$TARGET_DEV" ] || { echo "target device $TARGET_DEV does not exist" >&2; exit 1; }
+      if [ "$TARGET_DEV" != "$DEVICE" ] && device_has_existing_allocation "$TARGET_DEV"; then
+        echo "target device $TARGET_DEV already has existing storage allocation, skipping storage item"
+        return 0
+      fi
       force_unmount_device "$TARGET_DEV"
       CURRENT_VG=$(pvs --noheadings -o vg_name "$TARGET_DEV" 2>/dev/null | awk '{$1=$1;print}' | head -1 || true)
       if [ -n "$CURRENT_VG" ]; then
