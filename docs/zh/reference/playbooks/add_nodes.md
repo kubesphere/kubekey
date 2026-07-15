@@ -9,6 +9,14 @@
 
 2. **Pre Install Hook**
    - 导入并执行 `hook/pre_install.yaml` 中的前置脚本。
+   - 执行流程：
+     1. 如果 `scripts_dir` 下存在 `pre_install.sh`，则将其复制到所有远程节点的 `/etc/kubekey/scripts/pre_install.sh`
+     2. 按照 `pre_install_groups` 中定义的顺序，如果当前主机属于该组且 `{{ .scripts_dir }}/{{ group }}/pre_install.sh` 存在，则将其复制到 `/etc/kubekey/scripts/pre_install_group_{{ group }}.sh`
+     3. 如果存在，复制主机专属脚本 `pre_install_{{ .inventory_hostname }}.sh` 到 `/etc/kubekey/scripts/pre_install_{{ .inventory_hostname }}.sh`
+     4. 设置脚本文件权限为 0755
+     5. 如果存在，首先执行 `/etc/kubekey/scripts/pre_install.sh`
+     6. 按照 `pre_install_groups` 定义的顺序执行已复制的组脚本
+     7. 最后执行 `/etc/kubekey/scripts/pre_install_{{ .inventory_hostname }}.sh`（如果存在）
 
 3. **加载默认变量与预检查**
    - 在所有节点上加载默认配置（`defaults`）。
@@ -42,3 +50,14 @@
      - `kubernetes/join-kubernetes`：将新节点加入集群（仅在节点尚未加载 Kubernetes 服务时触发）。
      - `kubernetes/certs`：分发或续期证书（仅在控制平面节点上且启用证书续期时触发）。
    - 上述角色会根据 `add_nodes` 列表进行过滤，仅对需要添加的节点生效。
+
+9. **Post Install Hook**
+   - 导入并执行 `hook/post_install.yaml` 中的后置脚本。
+   - 执行流程：
+     1. 如果 `scripts_dir` 下存在 `post_install.sh`，则将其复制到所有远程节点的 `/etc/kubekey/scripts/post_install.sh`
+     2. 按照 `post_install_groups` 中定义的顺序，如果当前主机属于该组且 `{{ .scripts_dir }}/{{ group }}/post_install.sh` 存在，则将其复制到 `/etc/kubekey/scripts/post_install_group_{{ group }}.sh`
+     3. 如果存在，复制主机专属脚本 `post_install_{{ .inventory_hostname }}.sh` 到 `/etc/kubekey/scripts/post_install_{{ .inventory_hostname }}.sh`
+     4. 设置脚本文件权限为 0755
+     5. 如果存在，首先执行 `/etc/kubekey/scripts/post_install.sh`
+     6. 按照 `post_install_groups` 定义的顺序执行已复制的组脚本
+     7. 最后执行 `/etc/kubekey/scripts/post_install_{{ .inventory_hostname }}.sh`（如果存在）

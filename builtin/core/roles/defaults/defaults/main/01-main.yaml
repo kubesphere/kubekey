@@ -3,6 +3,17 @@ binary_dir: >-
   {{ .work_dir }}/kubekey
 scripts_dir: >-
   {{ .work_dir }}/scripts
+
+# Ordered list of inventory group names whose pre_install.sh scripts are copied
+# and executed before node-specific scripts. A host only runs scripts for groups
+# it actually belongs to, in the order defined here.
+pre_install_groups: []
+
+# Ordered list of inventory group names whose post_install.sh scripts are copied
+# and executed before node-specific scripts. A host only runs scripts for groups
+# it actually belongs to, in the order defined here.
+post_install_groups: []
+
 artifact_dir: >-
   {{ .work_dir }}/artifact
 tmp_dir: /tmp/kubekey

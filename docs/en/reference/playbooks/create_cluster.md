@@ -7,12 +7,17 @@
 The `pre_hook` allows users to execute scripts on corresponding nodes before creating the cluster.
 
 Execution flow:
-1. Copy local scripts to remote nodes at `/etc/kubekey/scripts/pre_install_{{ .inventory_hostname }}.sh`
-2. Set script file permissions to 0755
-3. Iterate over all `pre_install_*.sh` files in `/etc/kubekey/scripts/` on each remote node and execute them
+1. If `pre_install.sh` exists in `scripts_dir`, copy it to all remote nodes at `/etc/kubekey/scripts/pre_install.sh`
+2. For each group listed in `pre_install_groups` (in order), if the current host belongs to that group and `{{ .scripts_dir }}/{{ group }}/pre_install.sh` exists, copy it to `/etc/kubekey/scripts/pre_install_group_{{ group }}.sh`
+3. Copy the host-specific script `pre_install_{{ .inventory_hostname }}.sh` to `/etc/kubekey/scripts/pre_install_{{ .inventory_hostname }}.sh` if it exists
+4. Set script file permissions to 0755
+5. Execute `/etc/kubekey/scripts/pre_install.sh` first if it exists
+6. Execute the copied group scripts in the order defined by `pre_install_groups`
+7. Execute `/etc/kubekey/scripts/pre_install_{{ .inventory_hostname }}.sh` last if it exists
 
-> **work_dir**: working directory, defaults to the current command execution directory.  
-> **inventory_hostname**: the host name defined in the `inventory.yaml` file.
+> **scripts_dir**: scripts directory, defaults to the configured `scripts_dir` or the working directory.  
+> **inventory_hostname**: the host name defined in the `inventory.yaml` file.  
+> **pre_install_groups**: ordered list of inventory group names used to determine which group scripts to run and in what order. A host only runs scripts for groups it belongs to.
 
 ## precheck
 
@@ -75,9 +80,14 @@ The `install` phase is KubeKey's core installation phase, responsible for actual
 The `post_hook` phase executes after cluster installation completes, responsible for final cluster configuration and validation:
 
 Execution flow:
-1. Copy local scripts to remote nodes at `/etc/kubekey/scripts/post_install_{{ .inventory_hostname }}.sh`
-2. Set script file permissions to 0755
-3. Iterate over all `post_install_*.sh` files in `/etc/kubekey/scripts/` on each remote node and execute them
+1. If `post_install.sh` exists in `scripts_dir`, copy it to all remote nodes at `/etc/kubekey/scripts/post_install.sh`
+2. For each group listed in `post_install_groups` (in order), if the current host belongs to that group and `{{ .scripts_dir }}/{{ group }}/post_install.sh` exists, copy it to `/etc/kubekey/scripts/post_install_group_{{ group }}.sh`
+3. Copy the host-specific script `post_install_{{ .inventory_hostname }}.sh` to `/etc/kubekey/scripts/post_install_{{ .inventory_hostname }}.sh` if it exists
+4. Set script file permissions to 0755
+5. Execute `/etc/kubekey/scripts/post_install.sh` first if it exists
+6. Execute the copied group scripts in the order defined by `post_install_groups`
+7. Execute `/etc/kubekey/scripts/post_install_{{ .inventory_hostname }}.sh` last if it exists
 
-> **work_dir**: working directory, defaults to the current command execution directory.  
-> **inventory_hostname**: the host name defined in the `inventory.yaml` file.
+> **scripts_dir**: scripts directory, defaults to the configured `scripts_dir` or the working directory.  
+> **inventory_hostname**: the host name defined in the `inventory.yaml` file.  
+> **post_install_groups**: ordered list of inventory group names used to determine which group scripts to run and in what order. A host only runs scripts for groups it belongs to.

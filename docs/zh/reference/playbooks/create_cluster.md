@@ -7,14 +7,19 @@
 pre_hook 允许用户在创建集群之前，在对应的节点上执行脚本。
 
 执行流程：
-1. 复制本地目录的脚本文件到远程节点的 `/etc/kubekey/scripts/pre_install_{{ .inventory_hostname }}.sh`
-2. 设置脚本文件权限为 0755
-3. 遍历每个远程节点上 `/etc/kubekey/scripts/` 目录下所有 `pre_install_*.sh` 文件，并执行该脚本文件
- 
- > work_dir: 工作目录，默认当前命令执行目录。     
- > inventory_hostname: Inventory.yaml 文件中定义的host对应的名称。
+1. 如果 `scripts_dir` 下存在 `pre_install.sh`，则将其复制到所有远程节点的 `/etc/kubekey/scripts/pre_install.sh`
+2. 按照 `pre_install_groups` 中定义的顺序，如果当前主机属于该组且 `{{ .scripts_dir }}/{{ group }}/pre_install.sh` 存在，则将其复制到 `/etc/kubekey/scripts/pre_install_group_{{ group }}.sh`
+3. 如果存在，复制主机专属脚本 `pre_install_{{ .inventory_hostname }}.sh` 到 `/etc/kubekey/scripts/pre_install_{{ .inventory_hostname }}.sh`
+4. 设置脚本文件权限为 0755
+5. 如果存在，首先执行 `/etc/kubekey/scripts/pre_install.sh`
+6. 按照 `pre_install_groups` 定义的顺序执行已复制的组脚本
+7. 最后执行 `/etc/kubekey/scripts/pre_install_{{ .inventory_hostname }}.sh`（如果存在）
 
- ## precheck
+> **scripts_dir**：脚本目录，默认路径为 `work_dir/scripts`。  
+> **inventory_hostname**：Inventory.yaml 文件中定义的 host 对应的名称。  
+> **pre_install_groups**：有序的 inventory 组名列表，用于决定执行哪些组脚本以及执行顺序。主机仅执行其所属组的脚本。
+
+## precheck
 
 precheck 集群安装前，对集群节点进行检查是否满足集群安装条件。
 
@@ -76,9 +81,14 @@ install 阶段是 KubeKey 的核心安装阶段，负责在集群节点上实际
 post_hook 阶段在集群安装完成后执行，负责集群的最终配置和验证：
 
 执行流程：
-1. 复制本地目录的脚本文件到远程节点的 `/etc/kubekey/scripts/post_install_{{ .inventory_hostname }}.sh`
-2. 设置脚本文件权限为 0755
-3. 遍历每个远程节点上 `/etc/kubekey/scripts/` 目录下所有 `post_install_*.sh` 文件，并执行该脚本文件
- 
- > **work_dir**: 工作目录，默认当前命令执行目录。     
- > **inventory_hostname**: Inventory.yaml 文件中定义的host对应的名称。
+1. 如果 `scripts_dir` 下存在 `post_install.sh`，则将其复制到所有远程节点的 `/etc/kubekey/scripts/post_install.sh`
+2. 按照 `post_install_groups` 中定义的顺序，如果当前主机属于该组且 `{{ .scripts_dir }}/{{ group }}/post_install.sh` 存在，则将其复制到 `/etc/kubekey/scripts/post_install_group_{{ group }}.sh`
+3. 如果存在，复制主机专属脚本 `post_install_{{ .inventory_hostname }}.sh` 到 `/etc/kubekey/scripts/post_install_{{ .inventory_hostname }}.sh`
+4. 设置脚本文件权限为 0755
+5. 如果存在，首先执行 `/etc/kubekey/scripts/post_install.sh`
+6. 按照 `post_install_groups` 定义的顺序执行已复制的组脚本
+7. 最后执行 `/etc/kubekey/scripts/post_install_{{ .inventory_hostname }}.sh`（如果存在）
+
+> **scripts_dir**：脚本目录，默认路径为 `work_dir/scripts`。  
+> **inventory_hostname**：Inventory.yaml 文件中定义的 host 对应的名称。  
+> **post_install_groups**：有序的 inventory 组名列表，用于决定执行哪些组脚本以及执行顺序。主机仅执行其所属组的脚本。

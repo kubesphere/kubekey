@@ -3,8 +3,29 @@
   hosts:
     - all
   tasks:
-    - name: Pre | Copy pre-installation scripts to remote hosts
-      when: (print "%s/scripts/pre_install_%s.sh" .work_dir .inventory_hostname) | fileExists
+    - name: Pre | Copy global pre-installation script to remote hosts
+      when: (print "%s/pre_install.sh" .scripts_dir) | fileExists
+      copy:
+        src: >-
+          {{ .scripts_dir }}/pre_install.sh
+        dest: >-
+          /etc/kubekey/scripts/pre_install.sh
+        mode: 0755
+
+    - name: Pre | Copy group pre-installation scripts to remote hosts
+      copy:
+        src: >-
+          {{ .scripts_dir }}/{{ .item }}/pre_install.sh
+        dest: >-
+          /etc/kubekey/scripts/pre_install_group_{{ .item }}.sh
+        mode: 0755
+      loop: "{{ .pre_install_groups | default list | toJson }}"
+      when:
+        - (getStringSlice .groups .item) | default list | has .inventory_hostname
+        - (print "%s/%s/pre_install.sh" .scripts_dir .item) | fileExists
+
+    - name: Pre | Copy node-specific pre-installation script to remote hosts
+      when: (print "%s/pre_install_%s.sh" .scripts_dir .inventory_hostname) | fileExists
       copy:
         src: >-
           {{ .scripts_dir }}/pre_install_{{ .inventory_hostname }}.sh
@@ -12,22 +33,20 @@
           /etc/kubekey/scripts/pre_install_{{ .inventory_hostname }}.sh
         mode: 0755
 
-    - name: Pre | Copy pre-installation config scripts to remote hosts
-      copy:
-        src: >-
-          {{ .scripts_dir }}/{{ .item.script }}
-        dest: >-
-          /etc/kubekey/scripts/pre_install_{{ .item.script }}
-        mode: 0755
-      loop: "{{ .pre_install | toJson }}"
-      when: 
-        - (getStringSlice .groups .item.group) | default list | has .inventory_hostname
-        - (print "%s/%s" .scripts_dir .item.script) | fileExists
+    - name: Pre | Execute global pre-installation script on remote hosts
+      when: (print "%s/pre_install.sh" .scripts_dir) | fileExists
+      command: /etc/kubekey/scripts/pre_install.sh
 
-    - name: Pre | Execute pre-installation scripts on remote hosts
+    - name: Pre | Execute group pre-installation scripts in defined order
       command: |
-        find /etc/kubekey/scripts -maxdepth 1 -type f -name 'pre_install_*.sh' | sort | while IFS= read -r file; do
-          # Make the script executable and run it
-          chmod +x "$file"
-          "$file"
+        for group in {{ .pre_install_groups | default list | join " " }}; do
+          file="/etc/kubekey/scripts/pre_install_group_${group}.sh"
+          if [ -f "$file" ]; then
+            chmod +x "$file"
+            "$file"
+          fi
         done
+
+    - name: Pre | Execute node-specific pre-installation script on remote hosts
+      when: (print "%s/pre_install_%s.sh" .scripts_dir .inventory_hostname) | fileExists
+      command: /etc/kubekey/scripts/pre_install_{{ .inventory_hostname }}.sh

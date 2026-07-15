@@ -109,3 +109,5 @@
       command: >-
         /usr/local/bin/kubectl taint --overwrite nodes {{ $.hostname }}
         {{- range .kubernetes.custom_taints }} {{ . }}{{- end }}
+
+- import_playbook: hook/post_install.yaml
