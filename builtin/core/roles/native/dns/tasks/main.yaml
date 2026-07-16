@@ -37,7 +37,7 @@
       {{- end }}
     {{- end }}
     # kubekey image_registry control_plane_endpoint BEGIN
-    {{- $registryHost := .image_registry.auth.registry | splitList "/" | first }}
+    {{- $registryHost := .image_registry.auth.registry | splitList "/" | first | splitList ":" | first }}
     {{- if and ($registryHost | empty | not) ($registryHost | isIP | not) }}
       {{- if .image_registry.ha_vip | empty | not }}
     {{ .image_registry.ha_vip }} {{ $registryHost }}
@@ -73,6 +73,7 @@
     # Write the latest Kubekey image registry control plane endpoint DNS configuration
     cat >> {{ .item }} <<EOF
     # kubekey image_registry control_plane_endpoint BEGIN
+    {{- if .image_registry.type | empty | not }}
     {{- $registryHost := .image_registry.auth.registry | splitList "/" | first }}
     {{- if and ($registryHost | empty | not) ($registryHost | isIP | not) }}
       {{- if .image_registry.ha_vip | empty | not }}

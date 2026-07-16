@@ -32,12 +32,12 @@ func loadTestGPUVendorConfig(t *testing.T) *GPUVendorConfig {
 		t.Fatal("failed to resolve test path")
 	}
 	repoRoot := filepath.Clean(filepath.Join(filepath.Dir(file), "..", ".."))
-	src := filepath.Join(repoRoot, "config", "scanner", "gpu_vendors.yaml")
+	src := filepath.Join(repoRoot, "docs", "en", "reference", "gpu_vendors.yaml")
 
 	tmp := t.TempDir()
-	dstDir := filepath.Join(tmp, "config", "scanner")
+	dstDir := filepath.Join(tmp, "gather_facts")
 	if err := os.MkdirAll(dstDir, 0755); err != nil {
-		t.Fatalf("create temp scanner config dir: %v", err)
+		t.Fatalf("create temp gather_facts dir: %v", err)
 	}
 	data, err := os.ReadFile(src)
 	if err != nil {
@@ -52,33 +52,6 @@ func loadTestGPUVendorConfig(t *testing.T) *GPUVendorConfig {
 		t.Fatalf("load gpu vendor config: %v", err)
 	}
 	return cfg
-}
-
-func TestLoadGPUVendorConfigFallsBackToGatherFactsPath(t *testing.T) {
-	_, file, _, ok := runtime.Caller(0)
-	if !ok {
-		t.Fatal("failed to resolve test path")
-	}
-	repoRoot := filepath.Clean(filepath.Join(filepath.Dir(file), "..", ".."))
-	data, err := os.ReadFile(filepath.Join(repoRoot, "config", "scanner", "gpu_vendors.yaml"))
-	if err != nil {
-		t.Fatalf("read sample gpu vendor config: %v", err)
-	}
-
-	tmp := t.TempDir()
-	dstDir := filepath.Join(tmp, "gather_facts")
-	if err := os.MkdirAll(dstDir, 0755); err != nil {
-		t.Fatalf("create temp gather_facts dir: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(dstDir, "gpu_vendors.yaml"), data, 0644); err != nil {
-		t.Fatalf("write temp gpu vendor config: %v", err)
-	}
-
-	cfg, err := LoadGPUVendorConfig(tmp)
-	if err != nil {
-		t.Fatalf("load gpu vendor config: %v", err)
-	}
-	assert.True(t, cfg.IsGPUClass("0302", "3D controller"))
 }
 
 func TestGPUVendorConfigRestrictsAIComputeClasses(t *testing.T) {

@@ -1,25 +1,25 @@
-{{- $harborHTTPPort := .image_registry.harbor.http_port | default 80 -}}
-{{- $harborHTTPSPort := .image_registry.harbor.https_port | default 443 -}}
 # Configuration file of Harbor
 
 # The IP address or hostname to access admin UI and registry service.
 # DO NOT use localhost or 127.0.0.1, because Harbor needs to be accessed by external clients.
-hostname: {{if .groups.image_registry | len | lt 1}}{{ .inventory_hostname }}{{else}}{{ .image_registry.auth.registry | splitList "/" | first }}{{ end }}
+hostname: {{if .groups.image_registry | len | lt 1}}{{ .inventory_hostname }}{{else}}{{ .image_registry.auth.registry | splitList "/" | first | regexReplaceAll ":[0-9]+$" "" }}{{ end }}
 
 # http related config
 http:
   # port for http, default is 80. If https enabled, this port will redirect to https port
-  port: {{ $harborHTTPPort }}
+  port: {{ .image_registry.harbor.http_port | default 80 }}
 
+{{ if not (.image_registry.auth.plain_http | default false) -}}
 # https related config
 https:
   # https port for harbor, default is 443
-  port: {{ $harborHTTPSPort }}
+  port: {{ .image_registry.harbor.https_port }}
   # The path of cert and key files for nginx
   certificate: /opt/harbor/{{ .image_registry.harbor_version }}/ssl/server.crt
   private_key: /opt/harbor/{{ .image_registry.harbor_version }}/ssl/server.key
   # enable strong ssl ciphers (default: false)
   # strong_ssl_ciphers: false
+{{ end -}}
 
 # # Uncomment following will enable tls communication between all harbor components
 # internal_tls:

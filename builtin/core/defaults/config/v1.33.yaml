@@ -33,15 +33,22 @@ spec:
     # Leave empty to skip installation (assuming an existing registry is available).
     type: ""
     # auth:
-    #   # Address of the private image registry
+    #   # Address of the private image registry. Format: host:port/project
+    #   # The port (if present) is used as Harbor's http_port when plain_http=true,
+    #   # or as https_port when plain_http=false.
     #   registry: "dockerhub.kubekey.local"
+    #   # Use plain HTTP (no TLS). Default is false.
+    #   plain_http: false
+    #   username: admin
+    #   password: Harbor12345
     # Specify a VIP for image registry high availability. If set, enables HA.
     ha_vip: ""
     # ========== Image Registry - High Availability ==========
     # keepalived image tag for load balancing when multiple registry nodes exist.
     # keepalived_version: 2.3.4
     # ========== Image Registry - Harbor ==========
-    # Harbor port settings.
+    # Harbor port settings. Usually you do not need to set them manually;
+    # they are derived from image_registry.auth.registry and plain_http.
     # harbor:
     #   http_port: 80
     #   https_port: 443
