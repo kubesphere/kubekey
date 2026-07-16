@@ -57,7 +57,7 @@ func TestNewReadyzService(t *testing.T) {
 }
 
 func TestNewCoreService_RoutesExist(t *testing.T) {
-	ws := NewCoreService(t.TempDir(), newFakeClient(t), &rest.Config{})
+	ws := NewCoreService(t.TempDir(), "", newFakeClient(t), &rest.Config{})
 	paths := collectRoutePaths(ws)
 	base := "/kapis/" + kkcorev1.SchemeGroupVersion.String()
 

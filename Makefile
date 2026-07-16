@@ -190,7 +190,9 @@ generate-goimports:  ## Format all import, `goimports` is required.
 .PHONY: lint
 lint: $(GOLANGCI_LINT) ## Lint the codebase
 	@$(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS)
-	@cd $(TEST_DIR); $(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS)
+	@if find $(TEST_DIR) -name '*.go' | grep -q .; then \
+		cd $(TEST_DIR); $(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS); \
+	fi
 
 .PHONY: verify-dockerfiles
 verify-dockerfiles:

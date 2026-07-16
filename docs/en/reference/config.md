@@ -299,11 +299,11 @@ image_registry:
   type: ""
   # Virtual IP (VIP) for high availability of the image registry
   ha_vip: ""
-  harbor:
-    http_port: 80
-    https_port: 443
   # Image registry authentication settings
+  # Note: The 'harbor' section below depends on values computed in this 'auth' section.
   auth:
+    # Whether to use plain HTTP for the registry (no TLS).
+    plain_http: false
     registry: >-
       {{- if .image_registry.type | empty | not -}}
         {{- if .image_registry.ha_vip | empty | not -}}
@@ -344,6 +344,31 @@ image_registry:
       {{- if .groups.image_registry | default list | empty | not -}}
       {{ .binary_dir }}/pki/image-registry-client.key
       {{- end -}}
+
+  # Harbor specific configuration.
+  # http_port / https_port are derived from image_registry.auth.registry and plain_http by default.
+  harbor:
+    http_port: >-
+      {{- if and (.image_registry.type | eq "harbor") (.image_registry.auth.registry | empty | not) (.image_registry.auth.plain_http | default false) -}}
+        {{- $hostPart := .image_registry.auth.registry | splitList "/" | first -}}
+        {{- $port := regexReplaceAll "^.*:([0-9]+)$" $hostPart "$1" -}}
+        {{- if and (ne $port $hostPart) (ne $port "") -}}
+      {{ $port }}
+        {{- else -}}
+      80
+        {{- end -}}
+      {{- end -}}
+    https_port: >-
+      {{- if and (.image_registry.type | eq "harbor") (.image_registry.auth.registry | empty | not) (not (.image_registry.auth.plain_http | default false)) -}}
+        {{- $hostPart := .image_registry.auth.registry | splitList "/" | first -}}
+        {{- $port := regexReplaceAll "^.*:([0-9]+)$" $hostPart "$1" -}}
+        {{- if and (ne $port $hostPart) (ne $port "") -}}
+      {{ $port }}
+        {{- else -}}
+      443
+        {{- end -}}
+      {{- end -}}
+
   # Registry endpoint for images from docker.io
   dockerio_registry: >-
     {{- .image_registry.auth.registry | empty | ternary "docker.io" .image_registry.auth.registry -}}
@@ -367,9 +392,10 @@ image_registry:
 |-----------|-------------|
 | `image_registry.type` | Type of image registry to deploy: `harbor`, `docker-registry`, or `""` (use existing registry). |
 | `image_registry.ha_vip` | Virtual IP used when deploying high-availability registries such as Harbor. |
-| `image_registry.harbor.http_port` | Harbor HTTP service port. Defaults to `80`. |
-| `image_registry.harbor.https_port` | Harbor HTTPS service port. Defaults to `443`. |
+| `image_registry.auth.plain_http` | Whether to use plain HTTP for the registry (no TLS). Defaults to `false`. |
 | `image_registry.auth.registry` | Actual image registry address used by the cluster. If a registry is deployed, it is automatically rendered based on `ha_vip` or node IP; empty in online mode; if zone is `cn`, defaults to `hub.kubesphere.com.cn`. |
+| `image_registry.harbor.http_port` | Harbor HTTP service port. When `plain_http=true`, it is derived from the port in `auth.registry` by default, or `80` if no port is specified; empty when `plain_http=false`. Explicit user values still override. |
+| `image_registry.harbor.https_port` | Harbor HTTPS service port. When `plain_http=false`, it is derived from the port in `auth.registry` by default, or `443` if no port is specified; empty when `plain_http=true`. Explicit user values still override. |
 | `image_registry.auth.username` | Username for logging into the image registry. Defaults to `admin` when deploying Harbor. |
 | `image_registry.auth.password` | Password for logging into the image registry. Defaults to `Harbor12345` when deploying Harbor. |
 | `image_registry.auth.skip_tls_verify` | Whether to skip TLS certificate verification. Defaults to `false` when deploying Harbor. |

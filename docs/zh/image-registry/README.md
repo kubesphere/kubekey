@@ -41,6 +41,7 @@ spec:
       type: harbor
       auth:
         registry: dockerhub.kubekey.local
+        # plain_http: false
         password: Harbor12345
 
 ```
@@ -59,10 +60,11 @@ spec:
 | `spec.vars.zone` | boolean | 否 | 文件及镜像的下载区域。如果您访问 GitHub/GoogleAPIs 受限，请将该值设置为cn |
 | `spec.vars.image_registry` | Object | 否 | 镜像仓库相关配置 |
 | `spec.vars.image_registry.type` | String | 否 | 镜像仓库类型，可选 `harbor` 或 `docker-registry` |
-| `spec.vars.image_registry.harbor.http_port` | Integer | 否 | Harbor HTTP 服务端口，默认为 `80` |
-| `spec.vars.image_registry.harbor.https_port` | Integer | 否 | Harbor HTTPS 服务端口，默认为 `443` |
+| `spec.vars.image_registry.harbor.http_port` | Integer | 否 | Harbor HTTP 服务端口。`plain_http=true` 时默认从 `auth.registry` 派生，未指定端口则为 `80`；`plain_http=false` 时为空 |
+| `spec.vars.image_registry.harbor.https_port` | Integer | 否 | Harbor HTTPS 服务端口。`plain_http=false` 时默认从 `auth.registry` 派生，未指定端口则为 `443`；`plain_http=true` 时为空 |
 | `spec.vars.image_registry.auth` | Object | 否 | 镜像仓库认证配置 |
-| `spec.vars.image_registry.auth.registry` | String | 否 | 镜像仓库域名 |
+| `spec.vars.image_registry.auth.plain_http` | Boolean | 否 | 是否使用纯 HTTP（不启用 TLS），默认为 `false` |
+| `spec.vars.image_registry.auth.registry` | String | 否 | 镜像仓库域名，格式 `host:port/project`，端口会用于派生 Harbor 监听端口 |
 | `spec.vars.image_registry.auth.password` | String | 否 | 镜像仓库登录密码，默认为Harbor12345 |
 
 ### 安装
@@ -121,6 +123,7 @@ spec:
       type: harbor
       auth:
         registry: dockerhub.kubekey.local
+        # plain_http: false
 ```
 
 Inventory 字段解释：
@@ -140,10 +143,11 @@ Inventory 字段解释：
 | `spec.vars.image_registry` | Object | 否 | 镜像仓库相关配置 |
 | `spec.vars.image_registry.ha_vip` | String | 是（高可用场景） | 负载均衡虚 IP，作为镜像仓库的统一访问入口 |
 | `spec.vars.image_registry.type` | String | 否 | 镜像仓库类型，可选 `harbor` 或 `docker-registry` |
-| `spec.vars.image_registry.harbor.http_port` | Integer | 否 | Harbor HTTP 服务端口，默认为 `80` |
-| `spec.vars.image_registry.harbor.https_port` | Integer | 否 | Harbor HTTPS 服务端口，默认为 `443` |
+| `spec.vars.image_registry.harbor.http_port` | Integer | 否 | Harbor HTTP 服务端口。`plain_http=true` 时默认从 `auth.registry` 派生，未指定端口则为 `80`；`plain_http=false` 时为空 |
+| `spec.vars.image_registry.harbor.https_port` | Integer | 否 | Harbor HTTPS 服务端口。`plain_http=false` 时默认从 `auth.registry` 派生，未指定端口则为 `443`；`plain_http=true` 时为空 |
 | `spec.vars.image_registry.auth` | Object | 否 | 镜像仓库认证配置 |
-| `spec.vars.image_registry.auth.registry` | String | 否 | 镜像仓库访问域名，对应 VIP 的域名，供外部客户端访问使用。（实际部署的 Harbor 以 inventory_hostname 作为内部域名）|
+| `spec.vars.image_registry.auth.plain_http` | Boolean | 否 | 是否使用纯 HTTP（不启用 TLS），默认为 `false` |
+| `spec.vars.image_registry.auth.registry` | String | 否 | 镜像仓库访问域名，对应 VIP 的域名，供外部客户端访问使用。格式 `host:port/project`，端口会用于派生 Harbor 监听端口。（实际部署的 Harbor 以 inventory_hostname 作为内部域名）|
 
 > **高可用配置注意事项：**
 > - `image_registry` 组中需设置多个节点，用于实现多实例部署。
