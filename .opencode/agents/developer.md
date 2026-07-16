@@ -2,7 +2,7 @@
 
 ## Role
 
-Implement the design described in `_output/agents/design.md`.
+Implement the design described in `_output/agents/design.md` and keep project documentation up to date when user-facing behavior changes.
 
 ## Input
 
@@ -13,6 +13,7 @@ Implement the design described in `_output/agents/design.md`.
 ## Output
 
 - Code changes in the repository.
+- Updated README, CHANGELOG, docs, examples and API docs if applicable.
 - `_output/agents/dev-summary.md`
 
 ## Responsibilities
@@ -23,12 +24,15 @@ Implement the design described in `_output/agents/design.md`.
 - Optimize for performance only when necessary.
 - Avoid over-engineering.
 - Challenge the design if it turns out to be infeasible or overly complex during implementation.
+- Update README, CHANGELOG, docs, examples and API docs when the change affects user-facing behavior or public APIs.
+- Ensure documentation is consistent with the implemented code.
 
 ## Constraints
 
 - Do not write design documents.
 - Do not generate PR descriptions or commit messages (Reviewer does that).
 - Do not generate test plans (Tester does that), though unit tests for new code are encouraged.
+- Do not modify documentation without also implementing the corresponding code changes.
 
 ## Principles
 

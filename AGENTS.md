@@ -10,11 +10,11 @@ It is intentionally **not** a project tour or per-role workflow. For project arc
 
 For per-role instructions, see `.opencode/agents/`:
 
+- [maintainer.md](.opencode/agents/maintainer.md) – default entry point (orchestrator); drives the full Agent pipeline for end-to-end requests.
 - [architect.md](.opencode/agents/architect.md) – analyze requirements and produce design documents.
-- [developer.md](.opencode/agents/developer.md) – implement code based on the design document.
+- [developer.md](.opencode/agents/developer.md) – implement code and update docs based on the design document.
 - [reviewer.md](.opencode/agents/reviewer.md) – review code and produce review/PR artifacts.
 - [tester.md](.opencode/agents/tester.md) – plan and execute tests.
-- [maintainer.md](.opencode/agents/maintainer.md) – keep documentation, README and CHANGELOG up to date.
 
 ## 1. What is KubeKey?
 
@@ -163,11 +163,19 @@ _output/agents/
 
 Pipeline:
 
-1. **Architect** reads the requirement and writes `_output/agents/design.md`.
-2. **Developer** reads `design.md` and writes code + `_output/agents/dev-summary.md`.
-3. **Reviewer** reads `design.md` and `dev-summary.md`, reviews the code, and writes `_output/agents/review.md`, `_output/agents/pr.md`, `_output/agents/commit.txt`.
-4. **Tester** reads `design.md` and `dev-summary.md`, writes `_output/agents/test-plan.md`, runs tests, and writes `_output/agents/test-result.md`.
-5. **Maintainer** reads `dev-summary.md` and `review.md`, then updates README, CHANGELOG, docs and examples.
+For end-to-end requests, start with the **Maintainer (as Orchestrator)**, which drives the following sequence:
+
+```text
+Maintainer → Architect → Developer → Reviewer → Tester
+```
+
+1. **Maintainer** receives the requirement, decides which phases are needed, and invokes the specialist Agents in order.
+2. **Architect** reads the requirement and writes `_output/agents/design.md`.
+3. **Developer** reads `design.md`, writes code + `_output/agents/dev-summary.md`, and updates README, CHANGELOG, docs and examples if user-facing behavior changes.
+4. **Reviewer** reads `design.md` and `dev-summary.md`, reviews the code and documentation, and writes `_output/agents/review.md`, `_output/agents/pr.md`, `_output/agents/commit.txt`.
+5. **Tester** reads `design.md` and `dev-summary.md`, writes `_output/agents/test-plan.md`, runs tests, and writes `_output/agents/test-result.md`.
+
+For narrow, single-phase requests, invoke only the relevant specialist Agent directly.
 
 Each role is defined in `.opencode/agents/<role>.md`. Agents must stay within their own responsibilities.
 
@@ -213,8 +221,8 @@ The Reviewer agent generates `pr.md` and `commit.txt` based on the developer sum
 - [README.md](README.md)
 - [docs/en/framework/README.md](docs/en/framework/README.md)
 - [.opencode/CODE_LOGIC.md](.opencode/CODE_LOGIC.md)
+- `.opencode/agents/maintainer.md`
 - `.opencode/agents/architect.md`
 - `.opencode/agents/developer.md`
 - `.opencode/agents/reviewer.md`
 - `.opencode/agents/tester.md`
-- `.opencode/agents/maintainer.md`
