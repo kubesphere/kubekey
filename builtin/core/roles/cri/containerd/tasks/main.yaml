@@ -1,4 +1,21 @@
 ---
+# Scenario 1: Create cluster or upgrading CRI together.
+# Full containerd installation/upgrade including backup, runc, binaries, config, and certs.
+- name: Containerd | Full containerd installation or upgrade
+  when:
+    - or (.kubernetes_install_LoadState.stdout | default "" | ne "loaded") (.upgrade.cri)
+  block:
+    - name: Containerd | Backup containerd configuration and binaries before upgrade
+      when:
+        - .kubernetes_install_LoadState.stdout | default "" | eq "loaded"
+      command: |
+        BACKUP_DIR="/etc/kubekey/backup/containerd/$(date +%Y%m%d-%H%M%S)"
+        mkdir -p "${BACKUP_DIR}"
+        cp /etc/containerd/config.toml "${BACKUP_DIR}/" 2>/dev/null || true
+        cp /usr/local/bin/containerd "${BACKUP_DIR}/" 2>/dev/null || true
+        cp /usr/local/bin/ctr "${BACKUP_DIR}/" 2>/dev/null || true
+        cp /usr/local/bin/runc "${BACKUP_DIR}/" 2>/dev/null || true
+        echo "✅ Containerd backup saved to ${BACKUP_DIR}"
 
 - name: Containerd | Sync Containerd binaries
   block:
@@ -77,3 +94,13 @@
   when: or .upgrade.cri (or (.containerd_install_version.error | empty | not) (.containerd_install_version.stdout | contains (printf " %s " .cri.containerd_version) | not))
   command: |
     systemctl daemon-reload && systemctl restart containerd.service && systemctl enable containerd.service
+
+# Scenario 2: Upgrading Kubernetes but NOT upgrading CRI.
+# Containerd is already installed and running, skip all installation steps.
+- name: Containerd | Skip containerd operations when not upgrading cri
+  when:
+    - .kubernetes_install_LoadState.stdout | default "" | eq "loaded"
+    - .upgrade.cri | not
+  debug:
+    msg: >-
+      ⏭️ Containerd is not marked for upgrade (upgrade.cri=false). Skipping containerd installation/update. If the installed containerd version is incompatible with Kubernetes {{ .kubernetes.kube_version }}, set --all or --set upgrade.cri=true to upgrade CRI.

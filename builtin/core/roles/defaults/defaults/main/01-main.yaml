@@ -55,9 +55,31 @@ delete:
 # This is typically used with --with-data flag or delete.data: true
   data: false
 
+# Upgrade component toggles.
+# When running 'kk upgrade cluster', only kubelet/kubeadm are upgraded by default.
+# Set individual fields to true (or use --all / --set) to upgrade additional components.
 upgrade:
-  # Whether to modify CRI configuration file
+# When upgrading the cluster, also upgrade the container runtime (CRI), such as Docker or containerd.
   cri: false
+
+# When upgrading the cluster, also upgrade the etcd cluster.
+  etcd: false
+
+# When upgrading the cluster, also upgrade CoreDNS and NodeLocalDNS.
+  dns: false
+
+# When upgrading the cluster, also upgrade the private image registry (such as Harbor or registry).
+# This is typically used in conjunction with nodes defined in inventory.groups.image_registry.
+  image_registry: false
+
+# When upgrading the cluster, also upgrade the CNI plugin (e.g., Calico, Cilium, Flannel, Kube-OVN).
+  cni: false
+
+# When upgrading the cluster, also upgrade the storage class provisioner (e.g., localpv-provisioner, nfs-provisioner).
+  storage_class: false
+
+# When upgrading the cluster, also upgrade the NFS server.
+  nfs: false
 
 # image_manifests: List of container images to be synchronized to the private registry
 image_manifests: []
