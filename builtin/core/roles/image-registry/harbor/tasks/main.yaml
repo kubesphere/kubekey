@@ -6,15 +6,36 @@
 - include_tasks: install.yaml
   when: .harbor_install_LoadState.stdout | eq "not-found"
 
+- name: Harbor | Update existing Harbor configuration
+  when: .harbor_install_LoadState.stdout | ne "not-found"
+  block:
+    - name: Harbor | Generate Harbor configuration file
+      template:
+        src: harbor.yml
+        dest: >-
+          /opt/harbor/{{ .image_registry.harbor_version }}/harbor/harbor.yml
+
+    - name: Harbor | Apply Harbor configuration and restart service
+      command: |
+        cd /opt/harbor/{{ .image_registry.harbor_version }}/harbor && /bin/bash prepare
+        systemctl restart harbor.service
+
 - name : Harbor | Check harbor api health
   command: |
-    HARBOR_URL="https://{{ .image_registry.auth.registry | splitList "/" | first }}"
+    {{- $registryHost := .image_registry.auth.registry | splitList "/" | first | splitList ":" | first }}
+    {{- if .image_registry.auth.plain_http | default false }}
+    HARBOR_URL="http://{{ $registryHost }}:{{ .image_registry.harbor.http_port }}/api/v2.0/health"
+    curl_opts=""
+    {{- else }}
+    HARBOR_URL="https://{{ $registryHost }}:{{ .image_registry.harbor.https_port }}/api/v2.0/health"
+    curl_opts="-k"
+    {{- end }}
     MAX_WAIT_SECONDS=300
     CHECK_INTERVAL=2
     MAX_RETRIES=$((MAX_WAIT_SECONDS / CHECK_INTERVAL))
     for ((i=1; i<=MAX_RETRIES; i++)); do
       # Check health endpoint
-      response=$(curl -k -s -w "%{http_code}" -o /tmp/harbor_health_response.json "$HARBOR_URL/api/v2.0/health")
+      response=$(curl $curl_opts -s -w "%{http_code}" -o /tmp/harbor_health_response.json "$HARBOR_URL")
       http_code=${response: -3}
       # Check if healthy
       if [ "$http_code" -eq 200 ] && grep -q "\"status\":\"healthy\"" /tmp/harbor_health_response.json 2>/dev/null; then

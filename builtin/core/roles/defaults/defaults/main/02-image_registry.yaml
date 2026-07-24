@@ -7,7 +7,10 @@ image_registry:
   type: ""
   ha_vip: ""
   # Image registry authentication settings
+  # Note: The 'harbor' section below depends on values computed in this 'auth' section.
   auth:
+    # Whether to use plain HTTP for the registry (no TLS).
+    plain_http: false
     registry: >-
       {{- if .image_registry.type | empty | not -}}
         {{- if .image_registry.ha_vip | empty | not -}}
@@ -48,6 +51,31 @@ image_registry:
       {{- if .groups.image_registry | default list | empty | not -}}
       {{ .binary_dir }}/pki/image-registry-client.key
       {{- end -}}
+
+  # Harbor specific configuration.
+  # http_port / https_port are derived from image_registry.auth.registry and plain_http by default.
+  harbor:
+    http_port: >-
+      {{- if and (.image_registry.type | eq "harbor") (.image_registry.auth.registry | empty | not) (.image_registry.auth.plain_http | default false) -}}
+        {{- $hostPart := .image_registry.auth.registry | splitList "/" | first -}}
+        {{- $port := $hostPart | splitList ":" | last -}}
+        {{- if and (ne $port $hostPart) (ne $port "") -}}
+      {{ $port }}
+        {{- else -}}
+      80
+        {{- end -}}
+      {{- end -}}
+    https_port: >-
+      {{- if and (.image_registry.type | eq "harbor") (.image_registry.auth.registry | empty | not) (not (.image_registry.auth.plain_http | default false)) -}}
+        {{- $hostPart := .image_registry.auth.registry | splitList "/" | first -}}
+        {{- $port := $hostPart | splitList ":" | last -}}
+        {{- if and (ne $port $hostPart) (ne $port "") -}}
+      {{ $port }}
+        {{- else -}}
+      443
+        {{- end -}}
+      {{- end -}}
+
   # Registry endpoint for images from docker.io
   dockerio_registry: >-
     {{- .image_registry.auth.registry | empty | ternary "docker.io" .image_registry.auth.registry -}}

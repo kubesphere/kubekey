@@ -24,7 +24,6 @@ import (
 	"io"
 	"io/fs"
 	"os"
-	"os/user"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -44,16 +43,6 @@ const (
 	defaultSSHPort = 22
 	defaultSSHUser = "root"
 )
-
-var defaultSSHPrivateKey string
-
-func init() {
-	if currentUser, err := user.Current(); err == nil {
-		defaultSSHPrivateKey = filepath.Join(currentUser.HomeDir, ".ssh/id_rsa")
-	} else {
-		defaultSSHPrivateKey = filepath.Join(defaultSSHUser, ".ssh/id_rsa")
-	}
-}
 
 var _ Connector = &sshConnector{}
 var _ GatherFacts = &sshConnector{}
@@ -82,11 +71,10 @@ func newSSHConnector(workdir, host string, hostVars map[string]any) *sshConnecto
 	if err != nil {
 		klog.V(4).InfoS("connector password is empty use public key")
 	}
-	// get private key path in connector variable. if empty, set default path: /root/.ssh/id_rsa.
-	keyParam, err := variable.StringVar(nil, hostVars, _const.VariableConnector, _const.VariableConnectorPrivateKey)
-	if err != nil {
-		klog.V(4).InfoS("ssh private key path is empty, using default", "path", defaultSSHPrivateKey)
-		keyParam = defaultSSHPrivateKey
+	// get private key path in connector variable. if empty, load all parsable keys from ~/.ssh.
+	keyParam, keyErr := variable.StringVar(nil, hostVars, _const.VariableConnector, _const.VariableConnectorPrivateKey)
+	if keyErr != nil {
+		klog.V(4).InfoS("ssh private key path is empty, will load default private keys from ~/.ssh")
 	}
 	keycontentParam, err := variable.StringVar(nil, hostVars, _const.VariableConnector, _const.VariableConnectorPrivateKeyContent)
 	if err != nil {
@@ -95,27 +83,31 @@ func newSSHConnector(workdir, host string, hostVars map[string]any) *sshConnecto
 	}
 	cacheType, _ := variable.StringVar(nil, hostVars, _const.VariableGatherFactsCache)
 	connector := &sshConnector{
-		Host:              hostParam,
-		Port:              *portParam,
-		User:              userParam,
-		Password:          passwdParam,
-		PrivateKey:        keyParam,
-		PrivateKeyContent: keycontentParam,
+		workdir:               workdir,
+		Host:                  hostParam,
+		Port:                  *portParam,
+		User:                  userParam,
+		Password:              passwdParam,
+		PrivateKey:            keyParam,
+		PrivateKeyContent:     keycontentParam,
+		useDefaultPrivateKeys: keyParam == "" && keycontentParam == "",
 	}
 
 	// Initialize the cacheGatherFact with a function that will call getHostInfoFromRemote
-	connector.gatherFacts = newCacheGatherFact(_const.VariableLocalHost, cacheType, workdir, connector.getHostInfo)
+	connector.gatherFacts = newCacheGatherFact(host, cacheType, workdir, connector.getHostInfo)
 
 	return connector
 }
 
 type sshConnector struct {
-	Host              string
-	Port              int
-	User              string
-	Password          string
-	PrivateKey        string
-	PrivateKeyContent string
+	workdir               string
+	Host                  string
+	Port                  int
+	User                  string
+	Password              string
+	PrivateKey            string
+	PrivateKeyContent     string
+	useDefaultPrivateKeys bool
 
 	client *ssh.Client
 	// shell to execute command
@@ -131,7 +123,7 @@ type sshConnector struct {
 // - Key auth (exclusive priority):
 //  1. PrivateKeyContent - if set, use ONLY this
 //  2. PrivateKey path - if explicitly set and content not set, use ONLY this
-//  3. Default ~/.ssh/id_rsa - use if exists, skip silently if missing (allows password-only)
+//  3. All parsable private keys from ~/.ssh when inventory does not specify private_key
 func (c *sshConnector) Init(context.Context) error {
 	if c.Host == "" {
 		return errors.New("host is not set")
@@ -146,49 +138,41 @@ func (c *sshConnector) Init(context.Context) error {
 
 	// Key auth: EXCLUSIVE priority
 	if c.PrivateKeyContent != "" {
-		// Priority 1: Use ONLY PrivateKeyContent
-		privateKey, err := ssh.ParsePrivateKey([]byte(c.PrivateKeyContent))
+		signer, err := ssh.ParsePrivateKey([]byte(c.PrivateKeyContent))
 		if err != nil {
 			return errors.Wrapf(err, "failed to parse private key content")
 		}
-		auth = append(auth, ssh.PublicKeys(privateKey))
+		auth = append(auth, ssh.PublicKeys(signer))
 		klog.V(4).InfoS("using private key content for authentication")
-	} else if c.PrivateKey != "" {
-		// Priority 2: Use ONLY PrivateKey path (if content not set)
-
-		// Check if this is the default key path
-		isDefaultKey := c.PrivateKey == defaultSSHPrivateKey
-		_, statErr := os.Stat(c.PrivateKey)
-
-		if statErr != nil {
-			// If the file doesn't exist, we have special handling.
-			if os.IsNotExist(statErr) {
-				if isDefaultKey {
-					// For the default key, non-existence is not an error. We just skip it.
-					klog.V(4).InfoS("default private key file not found, skipping key auth", "path", c.PrivateKey)
-				} else {
-					// For an explicitly provided key, non-existence is a configuration error.
-					return errors.Wrapf(statErr, "private key file not found: %s", c.PrivateKey)
-				}
-			} else {
-				// For any other error (e.g., permissions), it's always a failure.
-				return errors.Wrapf(statErr, "failed to stat private key file: %s", c.PrivateKey)
-			}
+	} else if c.useDefaultPrivateKeys {
+		homeDir, err := userHomeDir()
+		if err != nil {
+			klog.V(4).InfoS("failed to resolve home dir for default private keys", "error", err)
 		} else {
-			// File exists, proceed with key auth
-			key, err := os.ReadFile(c.PrivateKey)
+			signers, err := DefaultPrivateKeySigners(homeDir)
 			if err != nil {
-				return errors.Wrapf(err, "failed to read private key %q", c.PrivateKey)
+				return err
 			}
-			privateKey, err := ssh.ParsePrivateKey(key)
-			if err != nil {
-				return errors.Wrapf(err, "failed to parse private key %q", c.PrivateKey)
+			if len(signers) > 0 {
+				auth = append(auth, ssh.PublicKeys(signers...))
+				klog.V(4).InfoS("using default private keys from ~/.ssh", "count", len(signers))
 			}
-			auth = append(auth, ssh.PublicKeys(privateKey))
-			klog.V(4).InfoS("using private key file for authentication", "path", c.PrivateKey)
 		}
+	} else if c.PrivateKey != "" {
+		if _, err := os.Stat(c.PrivateKey); err != nil {
+			if os.IsNotExist(err) {
+				return errors.Wrapf(err, "private key file not found: %s", c.PrivateKey)
+			}
+			return errors.Wrapf(err, "failed to stat private key file: %s", c.PrivateKey)
+		}
+
+		signer, err := privateKeySignerFromFile(c.PrivateKey)
+		if err != nil {
+			return err
+		}
+		auth = append(auth, ssh.PublicKeys(signer))
+		klog.V(4).InfoS("using private key file for authentication", "path", c.PrivateKey)
 	}
-	// Note: If neither content nor path is set, c.PrivateKey already has default from newSSHConnector line 89
 
 	// Validate we have at least one auth method
 	if len(auth) == 0 {
@@ -434,10 +418,22 @@ func (c *sshConnector) getHostInfo(ctx context.Context) (map[string]any, error) 
 	}
 	procVars[_const.VariableProcessMemory] = convertBytesToMap(mem.Bytes(), ":")
 
-	// persistence the hostInfo
+	// block devices
+	blockdevicesVars, blockErr := blockDevicesFromLsblk(ctx, c)
+	if blockErr != nil {
+		klog.V(4).ErrorS(blockErr, "skip block device gathering")
+	}
+
+	// gpu
+	gpuVars, gpuErr := gpuInfoFromLspci(ctx, c.workdir, c)
+	if gpuErr != nil {
+		klog.V(4).ErrorS(gpuErr, "skip gpu gathering")
+	}
 
 	return map[string]any{
-		_const.VariableOS:      osVars,
-		_const.VariableProcess: procVars,
+		_const.VariableOS:           osVars,
+		_const.VariableProcess:      procVars,
+		_const.VariableBlockDevices: blockdevicesVars,
+		_const.VariableGPU:          gpuVars,
 	}, nil
 }

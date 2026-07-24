@@ -41,6 +41,12 @@
   command: |
     cd /opt/harbor/{{ .image_registry.harbor_version }}/harbor && /bin/bash install.sh
 
+- name: Harbor | Disable HTTP port in docker-compose when http_port is empty
+  when:
+    - .image_registry.harbor.http_port | empty
+  command: |
+    sed -i -E '/^[[:space:]]*- 80:8080$/d' /opt/harbor/{{ .image_registry.harbor_version }}/harbor/docker-compose.yml
+
 - name: Harbor | Register Harbor as a systemd service
   template:
     src: harbor.service
@@ -95,13 +101,20 @@
         systemctl restart harbor.service
     - name: Harbor | Wait for Harbor service to become ready
       command: |
-        HARBOR_URL="https://{{ .image_registry.auth.registry | splitList "/" | first }}"
+        {{- $registryHost := .image_registry.auth.registry | splitList "/" | first | splitList ":" | first }}
+        {{- if .image_registry.auth.plain_http | default false }}
+        HARBOR_URL="http://{{ $registryHost }}:{{ .image_registry.harbor.http_port }}/api/v2.0/health"
+        curl_opts=""
+        {{- else }}
+        HARBOR_URL="https://{{ $registryHost }}:{{ .image_registry.harbor.https_port }}/api/v2.0/health"
+        curl_opts="-k"
+        {{- end }}
         MAX_WAIT_SECONDS=300
         CHECK_INTERVAL=2
         MAX_RETRIES=$((MAX_WAIT_SECONDS / CHECK_INTERVAL))
         for ((i=1; i<=MAX_RETRIES; i++)); do
           # Check health endpoint
-          response=$(curl -k -s -w "%{http_code}" -o /tmp/harbor_health_response.json "$HARBOR_URL/api/v2.0/health")
+          response=$(curl $curl_opts -s -w "%{http_code}" -o /tmp/harbor_health_response.json "$HARBOR_URL")
           http_code=${response: -3}
           # Check if healthy
           if [ "$http_code" -eq 200 ] && grep -q "\"status\":\"healthy\"" /tmp/harbor_health_response.json 2>/dev/null; then

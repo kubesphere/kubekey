@@ -1,4 +1,9 @@
 dependencies:
+  # Configure multipath blacklist before disk formatting when enabled.
+  # The native/multipath role applies its own when condition.
+  - role: native/multipath
+  # Format disks configured in inventory host vars before other initialization steps.
+  - role: native/storage
   # Initialize new Kubernetes nodes
   - role: native/repository
     when:
@@ -12,5 +17,4 @@ dependencies:
       - or (.groups.k8s_cluster | default list | has .inventory_hostname) (.groups.image_registry | default list | has .inventory_hostname)
   - role: native/init
   - role: native/dns
-
 

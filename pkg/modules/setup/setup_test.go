@@ -19,15 +19,43 @@ package setup
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"io"
+	"io/fs"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
+	"github.com/kubesphere/kubekey/v4/pkg/modules/internal"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 	"github.com/kubesphere/kubekey/v4/pkg/variable/source"
 )
+
+type failingConnector struct {
+	initErr error
+}
+
+func (c failingConnector) Init(context.Context) error {
+	return c.initErr
+}
+
+func (c failingConnector) Close(context.Context) error {
+	return nil
+}
+
+func (c failingConnector) PutFile(context.Context, []byte, string, fs.FileMode) error {
+	return nil
+}
+
+func (c failingConnector) FetchFile(context.Context, string, io.Writer) error {
+	return nil
+}
+
+func (c failingConnector) ExecuteCommand(context.Context, string) ([]byte, []byte, error) {
+	return nil, nil, nil
+}
 
 // NewTestVariable creates a new variable.Variable for testing purposes.
 func NewTestVariable(hosts []string, vars map[string]any) variable.Variable {
@@ -103,4 +131,21 @@ func TestSetupModule(t *testing.T) {
 	t.Run("module exists", func(t *testing.T) {
 		require.NotNil(t, ModuleSetup)
 	})
+}
+
+func TestSetupModuleReturnsConnectorError(t *testing.T) {
+	expectedErr := errors.New("connector init failed")
+	ctx := context.WithValue(context.Background(), internal.ConnKey, failingConnector{initErr: expectedErr})
+	v := NewTestVariable([]string{"node1"}, map[string]any{})
+
+	stdout, stderr, err := ModuleSetup(ctx, internal.ExecOptions{
+		Host:     "node1",
+		Variable: v,
+	})
+
+	// setup does not propagate connector errors because it has no ignore_errors option.
+	// A hard error here would abort subsequent tasks for the host.
+	require.Equal(t, internal.StdoutFailed, stdout)
+	require.Equal(t, internal.StderrGetConnector, stderr)
+	require.NoError(t, err)
 }

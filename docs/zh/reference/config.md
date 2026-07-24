@@ -298,7 +298,10 @@ image_registry:
   # 镜像仓库的高可用虚拟 IP（VIP）
   ha_vip: ""
   # 镜像仓库认证设置
+  # 注意：下方的 harbor 段依赖本 auth 段中计算出的字段。
   auth:
+    # 是否对镜像仓库使用纯 HTTP（不启用 TLS）。
+    plain_http: false
     registry: >-
       {{- if .image_registry.type | empty | not -}}
         {{- if .image_registry.ha_vip | empty | not -}}
@@ -339,6 +342,31 @@ image_registry:
       {{- if .groups.image_registry | default list | empty | not -}}
       {{ .binary_dir }}/pki/image-registry-client.key
       {{- end -}}
+
+  # Harbor 专用配置。
+  # http_port / https_port 默认会根据 image_registry.auth.registry 和 plain_http 自动派生。
+  harbor:
+    http_port: >-
+      {{- if and (.image_registry.type | eq "harbor") (.image_registry.auth.registry | empty | not) (.image_registry.auth.plain_http | default false) -}}
+        {{- $hostPart := .image_registry.auth.registry | splitList "/" | first -}}
+        {{- $port := $hostPart | splitList ":" | last -}}
+        {{- if and (ne $port $hostPart) (ne $port "") -}}
+      {{ $port }}
+        {{- else -}}
+      80
+        {{- end -}}
+      {{- end -}}
+    https_port: >-
+      {{- if and (.image_registry.type | eq "harbor") (.image_registry.auth.registry | empty | not) (not (.image_registry.auth.plain_http | default false)) -}}
+        {{- $hostPart := .image_registry.auth.registry | splitList "/" | first -}}
+        {{- $port := $hostPart | splitList ":" | last -}}
+        {{- if and (ne $port $hostPart) (ne $port "") -}}
+      {{ $port }}
+        {{- else -}}
+      443
+        {{- end -}}
+      {{- end -}}
+
   # docker.io 来源镜像所使用的镜像仓库端点
   dockerio_registry: >-
     {{- .image_registry.auth.registry | empty | ternary "docker.io" .image_registry.auth.registry -}}
@@ -362,7 +390,10 @@ image_registry:
 |------|------|
 | `image_registry.type` | 要部署的镜像仓库类型：`harbor`、`docker-registry` 或 `""`（使用已有仓库）。 |
 | `image_registry.ha_vip` | 部署 Harbor 等高可用仓库时使用的虚拟 IP。 |
+| `image_registry.auth.plain_http` | 是否对镜像仓库使用纯 HTTP（不启用 TLS），默认为 `false`。 |
 | `image_registry.auth.registry` | 集群实际使用的镜像仓库地址。若部署了仓库，会根据 `ha_vip` 或节点 IP 自动渲染；在线模式下为空；若 zone 为 `cn`，默认使用 `hub.kubesphere.com.cn`。 |
+| `image_registry.harbor.http_port` | Harbor HTTP 服务端口。当 `plain_http=true` 时，默认从 `auth.registry` 中的端口派生，未指定端口则为 `80`；当 `plain_http=false` 时为空；用户显式设置仍可覆盖。 |
+| `image_registry.harbor.https_port` | Harbor HTTPS 服务端口。当 `plain_http=false` 时，默认从 `auth.registry` 中的端口派生，未指定端口则为 `443`；当 `plain_http=true` 时为空；用户显式设置仍可覆盖。 |
 | `image_registry.auth.username` | 登录镜像仓库的用户名。部署 Harbor 时默认为 `admin`。 |
 | `image_registry.auth.password` | 登录镜像仓库的密码。部署 Harbor 时默认为 `Harbor12345`。 |
 | `image_registry.auth.skip_tls_verify` | 是否跳过 TLS 证书校验。部署 Harbor 时默认为 `false`。 |

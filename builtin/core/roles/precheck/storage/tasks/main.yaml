@@ -1,0 +1,25 @@
+---
+- name: Storage | Validate storage configuration
+  when: .storage | empty | not
+  loop: "{{ .storage | toJson }}"
+  assert:
+    that:
+      - or (.item.disk | empty | not) (.item.device | empty | not)
+      - .item.filesystem | empty | not
+      - (list "ext4" "xfs" "btrfs") | has (.item.filesystem | lower)
+      - or (.item.lvm | empty) (.item.lvm.vg_name | empty | not)
+    fail_msg: >-
+      Invalid storage configuration on host "{{ .inventory_hostname }}": each storage item must specify
+      at least one device, "filesystem" must be one of ext4, xfs, or btrfs, and LVM items require lvm.vg_name.
+
+- name: Storage | Validate web installer storage disks
+  when: .kubernetes.storage_disks | empty | not
+  loop: "{{ .kubernetes.storage_disks | toJson }}"
+  assert:
+    that:
+      - .item.device | empty | not
+      - .item.mountpoint | empty | not
+      - (list "ext4" "xfs" "btrfs") | has (.item.filesystem | default "xfs" | lower)
+    fail_msg: >-
+      Invalid storage disk configuration on host "{{ .inventory_hostname }}": each storage_disks item must specify
+      device and mountpoint, and filesystem must be one of ext4, xfs, or btrfs when set.

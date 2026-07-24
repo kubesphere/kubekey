@@ -1,0 +1,57 @@
+---
+- name: Multipath | Configure blacklist
+  when: .kubernetes.multipath.enabled | default false
+  command: |
+    set -euo pipefail
+    CFG_PATH="{{ .kubernetes.multipath.path | default "/etc/multipath.conf" }}"
+    BACKUP={{ .kubernetes.multipath.backup | default true }}
+    RELOAD={{ .kubernetes.multipath.reload | default true }}
+    DEVNODES=(
+      {{ range .kubernetes.multipath.devnodes | default (list "^sd[a-z]" "^vd[a-z]" "^xvd[a-z]" "^nvme[0-9]n[0-9]") }}
+      "{{ . }}"
+      {{ end }}
+    )
+    BEGIN_MARKER="# kubekey multipath blacklist BEGIN"
+    END_MARKER="# kubekey multipath blacklist END"
+
+    if ! command -v multipath >/dev/null 2>&1; then
+      echo "multipath command not found, skipping blacklist configuration"
+      exit 0
+    fi
+
+    if [ ! -f "$CFG_PATH" ]; then
+      : > "$CFG_PATH"
+    fi
+
+    # Backup the current configuration before modifying.
+    if [ "$BACKUP" = true ]; then
+      cp -a "$CFG_PATH" "$CFG_PATH.$(date +%Y%m%d_%H%M%S).bak"
+    fi
+
+    # Remove any previously managed kubekey blacklist block.
+    if grep -q "$BEGIN_MARKER" "$CFG_PATH"; then
+      sed -i "/$BEGIN_MARKER/,/$END_MARKER/d" "$CFG_PATH"
+    fi
+
+    # Append the managed blacklist block.
+    {
+      echo "$BEGIN_MARKER"
+      echo "blacklist {"
+      for devnode in "${DEVNODES[@]}"; do
+        echo "    devnode \"$devnode\""
+      done
+      echo "}"
+      echo "$END_MARKER"
+    } >> "$CFG_PATH"
+
+    # Validate the resulting configuration.
+    multipath -t >/dev/null
+
+    # Reload the multipath daemon when requested.
+    if [ "$RELOAD" = true ]; then
+      systemctl reload multipathd 2>/dev/null || \
+      systemctl restart multipathd 2>/dev/null || \
+      service multipathd reload 2>/dev/null || \
+      service multipathd restart 2>/dev/null || \
+      true
+    fi

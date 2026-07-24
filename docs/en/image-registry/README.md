@@ -41,6 +41,7 @@ spec:
       type: harbor
       auth:
         registry: dockerhub.kubekey.local
+        # plain_http: false
         password: Harbor12345
 
 ```
@@ -59,8 +60,11 @@ spec:
 | `spec.vars.zone` | boolean | No | Download zone for files and images. If access to GitHub/GoogleAPIs is restricted, please set this to cn |
 | `spec.vars.image_registry` | Object | No | Image registry-related configuration |
 | `spec.vars.image_registry.type` | String | No | Image registry type, supports `harbor` or `docker-registry` |
+| `spec.vars.image_registry.harbor.http_port` | Integer | No | Harbor HTTP service port. Derived from `auth.registry` when `plain_http=true`, or `80` if no port is specified; empty when `plain_http=false` |
+| `spec.vars.image_registry.harbor.https_port` | Integer | No | Harbor HTTPS service port. Derived from `auth.registry` when `plain_http=false`, or `443` if no port is specified; empty when `plain_http=true` |
 | `spec.vars.image_registry.auth` | Object | No | Image registry authentication configuration |
-| `spec.vars.image_registry.auth.registry` | String | No | Image registry domain name |
+| `spec.vars.image_registry.auth.plain_http` | Boolean | No | Whether to use plain HTTP (no TLS). Defaults to `false` |
+| `spec.vars.image_registry.auth.registry` | String | No | Image registry domain name, format `host:port/project`; the port is used to derive Harbor listening ports |
 | `spec.vars.image_registry.auth.password` | String | No | Image registry login password, defaults to Harbor12345 |
 
 ### Installation
@@ -119,6 +123,7 @@ spec:
       type: harbor
       auth:
         registry: dockerhub.kubekey.local
+        # plain_http: false
 ```
 
 Inventory field descriptions:
@@ -138,8 +143,11 @@ Inventory field descriptions:
 | `spec.vars.image_registry` | Object | No | Image registry-related configuration |
 | `spec.vars.image_registry.ha_vip` | String | Yes (HA scenario) | Virtual IP for load balancing, used as the unified access entry for the image registry |
 | `spec.vars.image_registry.type` | String | No | Image registry type, supports `harbor` or `docker-registry` |
+| `spec.vars.image_registry.harbor.http_port` | Integer | No | Harbor HTTP service port. Derived from `auth.registry` when `plain_http=true`, or `80` if no port is specified; empty when `plain_http=false` |
+| `spec.vars.image_registry.harbor.https_port` | Integer | No | Harbor HTTPS service port. Derived from `auth.registry` when `plain_http=false`, or `443` if no port is specified; empty when `plain_http=true` |
 | `spec.vars.image_registry.auth` | Object | No | Image registry authentication configuration |
-| `spec.vars.image_registry.auth.registry` | String | No | Image registry access domain name, corresponding to the VIP domain name for external client access. (The actually deployed Harbor uses inventory_hostname as the internal domain name) |
+| `spec.vars.image_registry.auth.plain_http` | Boolean | No | Whether to use plain HTTP (no TLS). Defaults to `false` |
+| `spec.vars.image_registry.auth.registry` | String | No | Image registry access domain name, corresponding to the VIP domain name for external client access. Format `host:port/project`; the port is used to derive Harbor listening ports. (The actually deployed Harbor uses inventory_hostname as the internal domain name) |
 
 > **Notes for HA configuration:**
 > - Multiple nodes must be set in the `image_registry` group for multi-instance deployment.

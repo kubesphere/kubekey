@@ -25,12 +25,12 @@ import (
 
 // NewCoreService creates and configures a new RESTful web service for managing inventories and playbooks.
 // It sets up routes for CRUD operations on inventories and playbooks, including pagination, sorting, and filtering.
-func NewCoreService(workdir string, client ctrlclient.Client, restconfig *rest.Config) *restful.WebService {
+func NewCoreService(workdir, hostCheckPlaybook string, client ctrlclient.Client, restconfig *rest.Config) *restful.WebService {
 	ws := new(restful.WebService).
 		// the GroupVersion might be empty, we need to remove the final /
 		Path(strings.TrimRight(api.CoreAPIPath+kkcorev1.SchemeGroupVersion.String(), "/"))
 
-	inventoryHandler := handler.NewInventoryHandler(workdir, restconfig, client)
+	inventoryHandler := handler.NewInventoryHandler(workdir, hostCheckPlaybook, restconfig, client)
 	// Inventory management routes
 	ws.Route(ws.POST("/inventories").To(inventoryHandler.Post).
 		Metadata(restfulspec.KeyOpenAPITags, []string{api.KubeKeyTag}).
