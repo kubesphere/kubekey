@@ -50,6 +50,7 @@
   command: |
     {{- if or (.os.release.ID | eq "ubuntu") (.os.release.ID_LIKE | eq "debian") }}
     systemctl restart chrony.service
-    {{- end }}
+    {{- else }}
     systemctl restart chronyd.service
+    {{- end }}
   when: or (and .native.ntp.enabled (.native.ntp.servers | empty | not)) (.native.timezone | empty | not)
