@@ -22,7 +22,7 @@
 
 - name : Harbor | Check harbor api health
   command: |
-    {{- $registryHost := .image_registry.auth.registry | splitList "/" | first | regexReplaceAll ":[0-9]+$" "" }}
+    {{- $registryHost := .image_registry.auth.registry | splitList "/" | first | splitList ":" | first }}
     {{- if .image_registry.auth.plain_http | default false }}
     HARBOR_URL="http://{{ $registryHost }}:{{ .image_registry.harbor.http_port }}/api/v2.0/health"
     curl_opts=""

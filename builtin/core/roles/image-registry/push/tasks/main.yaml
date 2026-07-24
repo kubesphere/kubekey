@@ -5,7 +5,7 @@
   command: |
     # Traverse first-level subdirectories in images_dir, skipping 'blobs'
     registry_url="{{ .image_registry.auth.registry }}"
-    registry_host="{{ .image_registry.auth.registry | splitList "/" | first | regexReplaceAll ":[0-9]+$" "" }}"
+    registry_host="{{ .image_registry.auth.registry | splitList "/" | first | splitList ":" | first }}"
     base_project=$(echo "$registry_url" | cut -s -d'/' -f2-)
     {{ if .image_registry.auth.plain_http | default false -}}
     scheme="http"

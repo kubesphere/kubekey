@@ -349,7 +349,7 @@ image_registry:
     http_port: >-
       {{- if and (.image_registry.type | eq "harbor") (.image_registry.auth.registry | empty | not) (.image_registry.auth.plain_http | default false) -}}
         {{- $hostPart := .image_registry.auth.registry | splitList "/" | first -}}
-        {{- $port := regexReplaceAll "^.*:([0-9]+)$" $hostPart "$1" -}}
+        {{- $port := $hostPart | splitList ":" | last -}}
         {{- if and (ne $port $hostPart) (ne $port "") -}}
       {{ $port }}
         {{- else -}}
@@ -359,7 +359,7 @@ image_registry:
     https_port: >-
       {{- if and (.image_registry.type | eq "harbor") (.image_registry.auth.registry | empty | not) (not (.image_registry.auth.plain_http | default false)) -}}
         {{- $hostPart := .image_registry.auth.registry | splitList "/" | first -}}
-        {{- $port := regexReplaceAll "^.*:([0-9]+)$" $hostPart "$1" -}}
+        {{- $port := $hostPart | splitList ":" | last -}}
         {{- if and (ne $port $hostPart) (ne $port "") -}}
       {{ $port }}
         {{- else -}}
