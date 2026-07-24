@@ -1,3 +1,9 @@
+---
+name: architect
+description: Analyze KubeKey requirements and produce a design document. Does not write code.
+mode: subagent
+---
+
 # Architect Agent
 
 ## Role

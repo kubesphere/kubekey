@@ -1,3 +1,9 @@
+---
+name: tester
+description: Plan and execute tests for KubeKey changes based on the design and implementation summary.
+mode: subagent
+---
+
 # Tester Agent
 
 ## Role

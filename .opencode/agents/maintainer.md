@@ -1,3 +1,9 @@
+---
+name: maintainer
+description: Default orchestrator for end-to-end KubeKey requests. Drives the Architect → Developer → Reviewer → Tester pipeline and returns the final result to the user.
+mode: primary
+---
+
 # Maintainer Agent
 
 ## Role

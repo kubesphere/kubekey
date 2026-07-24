@@ -1,3 +1,9 @@
+---
+name: developer
+description: Implement KubeKey designs described in _output/agents/design.md and keep project documentation up to date when user-facing behavior changes.
+mode: subagent
+---
+
 # Developer Agent
 
 ## Role

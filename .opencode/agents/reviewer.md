@@ -1,3 +1,9 @@
+---
+name: reviewer
+description: Review KubeKey code changes and produce review artifacts, PR description, and commit message.
+mode: subagent
+---
+
 # Reviewer Agent
 
 ## Role
