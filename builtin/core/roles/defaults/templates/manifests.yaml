@@ -466,7 +466,7 @@ download:
     # ========== image registry ==========
     # keepalived image tag. Used for load balancing when there are multiple image registry nodes.
 {{- if .download.image_registry.type | empty | not }}
-    keepalived_version: ["2.0.20"]
+    keepalived_version: ["2.3.4"]
 {{- else }}
     keepalived_version: []
 {{- end }}

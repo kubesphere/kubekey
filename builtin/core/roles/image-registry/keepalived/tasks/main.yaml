@@ -62,4 +62,4 @@
     src: healthcheck.sh
     dest: >-
       /opt/keepalived/{{ .image_registry.keepalived_version }}/healthcheck.sh
-    mode: 0755
+    mode: 0700
