@@ -801,10 +801,10 @@ a2:
 			variable: make(map[string]any),
 			excepted: "8",
 		},
-		// ======= regexReplaceAll port extraction =======
+		// ======= splitList port extraction =======
 		{
 			name:  "extract port from host:port",
-			input: `{{ $hostPart := .foo | splitList "/" | first }}{{ regexReplaceAll "^.*:([0-9]+)$" $hostPart "$1" }}`,
+			input: `{{ $hostPart := .foo | splitList "/" | first }}{{ $hostPart | splitList ":" | last }}`,
 			variable: map[string]any{
 				"foo": "dockerhub.kubekey.local:5000/project",
 			},
@@ -812,7 +812,7 @@ a2:
 		},
 		{
 			name:  "extract port from host without port",
-			input: `{{ $hostPart := .foo | splitList "/" | first }}{{ $port := regexReplaceAll "^.*:([0-9]+)$" $hostPart "$1" }}{{ if ne $port $hostPart }}{{ $port }}{{ else }}443{{ end }}`,
+			input: `{{ $hostPart := .foo | splitList "/" | first }}{{ $port := $hostPart | splitList ":" | last }}{{ if ne $port $hostPart }}{{ $port }}{{ else }}443{{ end }}`,
 			variable: map[string]any{
 				"foo": "dockerhub.kubekey.local/project",
 			},
@@ -820,7 +820,7 @@ a2:
 		},
 		{
 			name:  "strip port from host:port",
-			input: `{{ $hostPart := .foo | splitList "/" | first }}{{ regexReplaceAll ":[0-9]+$" $hostPart "" }}`,
+			input: `{{ $hostPart := .foo | splitList "/" | first }}{{ $hostPart | splitList ":" | first }}`,
 			variable: map[string]any{
 				"foo": "dockerhub.kubekey.local:5000/project",
 			},
