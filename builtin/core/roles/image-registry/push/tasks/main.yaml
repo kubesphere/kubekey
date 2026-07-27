@@ -9,11 +9,11 @@
     base_project=$(echo "$registry_url" | cut -s -d'/' -f2-)
     {{ if .image_registry.auth.plain_http | default false -}}
     scheme="http"
-    harbor_port="{{ .image_registry.harbor.http_port }}"
+    harbor_port="{{ .image_registry.http_port | default 80 }}"
     curl_opts=""
     {{ else -}}
     scheme="https"
-    harbor_port="{{ .image_registry.harbor.https_port }}"
+    harbor_port="{{ .image_registry.https_port | default 443 }}"
     curl_opts="-k"
     {{ end -}}
     if [ -n "$base_project" ]; then

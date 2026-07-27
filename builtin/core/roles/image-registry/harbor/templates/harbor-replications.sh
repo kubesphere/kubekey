@@ -2,11 +2,11 @@
 
 {{ if $.image_registry.auth.plain_http | default false -}}
 scheme="http"
-port="{{ $.image_registry.harbor.http_port }}"
+port="{{ $.image_registry.http_port | default 80 }}"
 curl_opts=""
 {{ else -}}
 scheme="https"
-port="{{ $.image_registry.harbor.https_port }}"
+port="{{ $.image_registry.https_port | default 443 }}"
 curl_opts="-k"
 {{ end -}}
 

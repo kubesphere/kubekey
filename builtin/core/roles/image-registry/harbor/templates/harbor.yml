@@ -7,13 +7,13 @@ hostname: {{if .groups.image_registry | len | lt 1}}{{ .inventory_hostname }}{{e
 # http related config
 http:
   # port for http, default is 80. If https enabled, this port will redirect to https port
-  port: {{ .image_registry.harbor.http_port | default 80 }}
+  port: {{ .image_registry.http_port | default 80 }}
 
 {{ if not (.image_registry.auth.plain_http | default false) -}}
 # https related config
 https:
   # https port for harbor, default is 443
-  port: {{ .image_registry.harbor.https_port }}
+  port: {{ .image_registry.https_port | default 443 }}
   # The path of cert and key files for nginx
   certificate: /opt/harbor/{{ .image_registry.harbor_version }}/ssl/server.crt
   private_key: /opt/harbor/{{ .image_registry.harbor_version }}/ssl/server.key

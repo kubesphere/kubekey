@@ -24,10 +24,10 @@
   command: |
     {{- $registryHost := .image_registry.auth.registry | splitList "/" | first | splitList ":" | first }}
     {{- if .image_registry.auth.plain_http | default false }}
-    HARBOR_URL="http://{{ $registryHost }}:{{ .image_registry.harbor.http_port }}/api/v2.0/health"
+    HARBOR_URL="http://{{ $registryHost }}:{{ .image_registry.http_port | default 80 }}/api/v2.0/health"
     curl_opts=""
     {{- else }}
-    HARBOR_URL="https://{{ $registryHost }}:{{ .image_registry.harbor.https_port }}/api/v2.0/health"
+    HARBOR_URL="https://{{ $registryHost }}:{{ .image_registry.https_port | default 443 }}/api/v2.0/health"
     curl_opts="-k"
     {{- end }}
     MAX_WAIT_SECONDS=300

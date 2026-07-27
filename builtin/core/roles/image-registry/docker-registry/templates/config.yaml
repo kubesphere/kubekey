@@ -130,9 +130,11 @@ http:
   secret: asecretforlocaldevelopment
   relativeurls: false
   draintimeout: 60s
+{{- if not (.image_registry.auth.plain_http | default false) }}
   tls:
     certificate: /etc/registry/ssl/server.crt
     key: /etc/registry/ssl/server.key
+{{- end }}
 #    clientcas:
 #      - /path/to/ca.pem
 #      - /path/to/another/ca.pem

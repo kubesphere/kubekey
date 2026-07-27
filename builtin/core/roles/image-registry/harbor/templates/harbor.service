@@ -5,7 +5,7 @@ Requires=docker.service
 
 [Service]
 Type=simple
-ExecStart=/usr/local/bin/docker-compose -p harbor -f /opt/harbor/{{ .image_registry.harbor_version }}/harbor/docker-compose.yml up
+ExecStart=/usr/local/bin/docker-compose -p harbor -f /opt/harbor/{{ .image_registry.harbor_version }}/harbor/docker-compose.yml {{ if and (.image_registry.ha_vip | empty | not) (.groups.image_registry | len | lt 1) }}-f /opt/keepalived/{{ .image_registry.keepalived_version }}/docker-compose.yaml{{ end }} up
 ExecStop=/usr/local/bin/docker-compose -p harbor down
 Restart=on-failure
 [Install]

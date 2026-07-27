@@ -8,7 +8,7 @@
 
 - name: DockerRegistry | Wait for registry service to become available
   command: |
-    if ! timeout 300 bash -c 'while ! nc -zv localhost 443; do sleep 2; done'; then
+    if ! timeout 300 bash -c 'while ! nc -zv localhost {{ if .image_registry.auth.plain_http | default false }}{{ .image_registry.http_port | default 80 }}{{ else }}{{ .image_registry.https_port | default 443 }}{{ end }}; do sleep 2; done'; then
         echo "ERROR: Docker Registry did not start within 5 minutes!"
         exit 1
     fi  

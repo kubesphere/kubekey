@@ -3,6 +3,8 @@ package handler
 import (
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 	"reflect"
 	"slices"
 	"strings"
@@ -161,6 +163,26 @@ func (h *InventoryHandler) Patch(request *restful.Request, response *restful.Res
 	if err := h.client.Patch(request.Request.Context(), updatedInventory, ctrlclient.MergeFrom(oldInventory)); err != nil {
 		api.HandleError(response, request, errors.Wrapf(err, "failed to patch Inventory %s/%s in cluster", namespace, inventoryName))
 		return
+	}
+
+	// Delete the previous host-check playbook associated with this inventory if it exists.
+	if oldPlaybookName, ok := oldInventory.Annotations[kkcorev1.HostCheckPlaybookAnnotation]; ok && oldPlaybookName != "" {
+		oldPlaybook := &kkcorev1.Playbook{}
+		if err := h.client.Get(request.Request.Context(), ctrlclient.ObjectKey{Namespace: namespace, Name: oldPlaybookName}, oldPlaybook); err != nil {
+			if apierrors.IsNotFound(err) {
+				klog.Warningf("previous host-check playbook %s/%s not found, skipping deletion", namespace, oldPlaybookName)
+			} else {
+				api.HandleError(response, request, errors.Wrapf(err, "failed to get previous host-check playbook %s/%s", namespace, oldPlaybookName))
+				return
+			}
+		} else {
+			playbookManager.stopPlaybook(oldPlaybook)
+			if err := h.client.Delete(request.Request.Context(), oldPlaybook); err != nil && !apierrors.IsNotFound(err) {
+				api.HandleError(response, request, errors.Wrapf(err, "failed to delete previous host-check playbook %s/%s", namespace, oldPlaybookName))
+				return
+			}
+			_ = os.RemoveAll(filepath.Join(_const.GetWorkdirFromConfig(oldPlaybook.Spec.Config), _const.RuntimeDir, kkcorev1.SchemeGroupVersion.Group, kkcorev1.SchemeGroupVersion.Version, "playbooks", oldPlaybook.Namespace, oldPlaybook.Name))
+		}
 	}
 
 	// Create a host-check playbook and set the workdir
