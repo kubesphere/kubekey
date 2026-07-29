@@ -134,6 +134,11 @@ kubernetes:
     # Automatically renew service certificates (Note: CA certificates cannot be renewed automatically)
     renew: true
 
+  # Backup configuration for Kubernetes disaster recovery.
+  backup:
+    # Directory for timestamped kubeadm-config backups on control-plane nodes.
+    kubeadm_config_dir: /etc/kubekey/backup/kubernetes
+
   patches: []
     # Patches applied via a directory containing patch files.
     # - name: kube-apiserver0+merge.yaml
