@@ -1,4 +1,27 @@
 ---
+# Back up kubeadm-config.yaml on every control-plane node with a timestamp.
+- hosts:
+    - kube_control_plane
+  tasks:
+    - name: Post | Back up kubeadm-config.yaml with timestamp
+      when: .kubernetes.backup.kubeadm_config_dir | empty | not
+      command: |
+        set -e
+        BACKUP_DIR="{{ .kubernetes.backup.kubeadm_config_dir }}"
+        SRC_FILE="/etc/kubernetes/kubeadm-config.yaml"
+        BACKUP_FILE="${BACKUP_DIR}/kubeadm-config-$(date +%Y%m%d-%H%M%S).yaml"
+
+        mkdir -p "${BACKUP_DIR}"
+        chmod 0700 "${BACKUP_DIR}"
+
+        if [ ! -f "${SRC_FILE}" ]; then
+          echo "ERROR: ${SRC_FILE} not found, backup aborted" >&2
+          exit 1
+        fi
+
+        cp -f "${SRC_FILE}" "${BACKUP_FILE}"
+        chmod 0600 "${BACKUP_FILE}"
+
 - name: Post | Apply Security Enhancements
   hosts:
     - all

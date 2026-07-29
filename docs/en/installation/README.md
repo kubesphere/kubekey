@@ -117,6 +117,10 @@ When installing online, KubeKey automatically downloads required Kubernetes comp
 
 Offline installation is suitable for air-gapped environments, requiring an artifact package and system dependencies in advance. For detailed steps, see [Offline Installation](offline.md).
 
+## Disaster Recovery Backup
+
+On every run of `create_cluster.yaml` and `add_nodes.yaml`, KubeKey copies `/etc/kubernetes/kubeadm-config.yaml` to a timestamped file on every control-plane node. The default backup directory is `/etc/kubekey/backup/kubernetes`; each backup is named `kubeadm-config-YYYYMMDD-HHMMSS.yaml`. You can customize the directory with `kubernetes.backup.kubeadm_config_dir` in the `Config` resource. This backup is intended for manual disaster recovery when the cluster becomes unreachable.
+
 ## Cluster Node Management
 
 After the cluster is created, you can scale nodes according to business requirements.
