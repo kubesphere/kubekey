@@ -18,6 +18,9 @@
     - name: Harbor | Apply Harbor configuration and restart service
       command: |
         cd /opt/harbor/{{ .image_registry.harbor_version }}/harbor && /bin/bash prepare
+        {{ if .image_registry.http_port | empty }}
+        sed -i -E '/^[[:space:]]*- 80:8080$/d' /opt/harbor/{{ .image_registry.harbor_version }}/harbor/docker-compose.yml
+        {{ end }}
         systemctl restart harbor.service
 
 - name : Harbor | Check harbor api health

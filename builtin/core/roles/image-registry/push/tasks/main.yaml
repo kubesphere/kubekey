@@ -53,6 +53,7 @@
 - name: ImageRegistry | Push images package to image registry
   tags: ["push"]
   run_once: true
+  retries: 3
   image:
     platform: >
       {{- $platform := list }}
