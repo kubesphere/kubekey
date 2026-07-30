@@ -250,6 +250,12 @@ func (o *CommonOptions) completeConfig() error {
 		if err := unstructured.SetNestedField(o.Config.Value(), o.Artifact, "download", "artifact_file"); err != nil {
 			return errors.Wrapf(err, "failed to set %q to config", "download.artifact_file")
 		}
+		// change default value to false
+		if _, ok, _ := unstructured.NestedFieldNoCopy(o.Config.Value(), "download", "fetch"); !ok {
+			if err := unstructured.SetNestedField(o.Config.Value(), false, "download", "fetch"); err != nil {
+				return errors.Wrapf(err, "failed to set %q to config", "download.fetch")
+			}
+		}
 	}
 	for _, s := range o.Set {
 		for _, setVal := range strings.Split(s, ",") {

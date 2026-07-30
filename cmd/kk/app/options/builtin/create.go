@@ -102,13 +102,6 @@ func (o *CreateClusterOptions) completeConfig() error {
 			return errors.Wrapf(err, "failed to set %q to config", "kube_version")
 		}
 	}
-	if o.Artifact != "" { // change default value to false
-		if _, ok, _ := unstructured.NestedFieldNoCopy(o.Config.Value(), "download", "fetch"); !ok {
-			if err := unstructured.SetNestedField(o.Config.Value(), false, "download", "fetch"); err != nil {
-				return errors.Wrapf(err, "failed to set %q to config", "download.fetch")
-			}
-		}
-	}
 
 	return nil
 }
