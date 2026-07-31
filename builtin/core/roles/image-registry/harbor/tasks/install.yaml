@@ -91,6 +91,15 @@
         rm -f /tmp/harbor_health_response.json
         echo "ERROR: Harbor service did not became health within 5 minutes!"
         exit 1
+    - name: Harbor | Create registries for other harbor
+      template:
+        src: harbor-registries.sh
+        dest: /opt/harbor/scripts/harbor-registries.sh
+        mode: 0755
+    - name: Harbor | Create registries for other harbor nodes and retrieve registry list
+      command: bash /opt/harbor/scripts/harbor-registries.sh
+      register: install_harbor_registries
+      register_type: json
     - name: Harbor | Synchronize harbor-replications script to remote host
       template:
         src: harbor-replications.sh
