@@ -1,20 +1,13 @@
 # KubeKey Agent Guide
 
-This file contains the **unified rules and conventions** that every AI agent working on the KubeKey v4 codebase must follow.
+This is the single entry point for any AI agent (or new contributor) working on the KubeKey v4 codebase. It covers **what the project is**, **how the code actually flows**, and **the conventions you must follow** when changing it.
 
-It is intentionally **not** a project tour or per-role workflow. For project architecture and code logic details, see:
+Read it top to bottom once; afterwards use §3 (Code Logic Map) and §8 (File-to-Concern Map) as lookup tables.
+
+Further reading:
 
 - [README.md](README.md) – user-facing intro.
 - [docs/en/framework/README.md](docs/en/framework/README.md) – writing custom playbooks.
-- [.opencode/CODE_LOGIC.md](.opencode/CODE_LOGIC.md) – detailed code logic flows.
-
-For per-role instructions, see `.opencode/agents/`:
-
-- [maintainer.md](.opencode/agents/maintainer.md) – default entry point (orchestrator); drives the full Agent pipeline for end-to-end requests.
-- [architect.md](.opencode/agents/architect.md) – analyze requirements and produce design documents.
-- [developer.md](.opencode/agents/developer.md) – implement code and update docs based on the design document.
-- [reviewer.md](.opencode/agents/reviewer.md) – review code and produce review/PR artifacts.
-- [tester.md](.opencode/agents/tester.md) – plan and execute tests.
 
 ## 1. What is KubeKey?
 
@@ -25,13 +18,18 @@ Two binaries are produced:
 - `kk` – CLI tool that runs playbooks locally or inside a Kubernetes pod.
 - `kk-controller-manager` – Kubernetes operator that watches `Playbook` CRs and spawns executor pods.
 
+A third build target, `capkk`, provides the Cluster API infrastructure provider (built with the `clusterapi` tag).
+
 ## 2. Repository Layout
 
 ```text
-/Users/liujian/code/kubesphere/kubekey
+kubekey/
 ├── cmd/kk                    # CLI binary entry
 ├── cmd/controller-manager    # Operator binary entry
 ├── api/                      # Separate Go module for CRD Go types
+│   ├── core/v1               # Playbook / Inventory / Config CRDs
+│   ├── core/v1alpha1         # Task CRD
+│   └── project/v1            # Playbook YAML types (play/role/block/...)
 ├── pkg/                      # Core packages
 │   ├── executor/             # Playbook/role/block/task execution engine
 │   ├── project/              # Project loading (builtin/local/git)
@@ -53,18 +51,528 @@ Two binaries are produced:
 ├── Makefile                  # Build targets, generate, test, lint
 ├── go.mod                    # Main module
 ├── go.work                   # Workspace including ./api
-├── version/                  # Build-time version injection
-├── .opencode/
-│   ├── agents/               # Agent role definitions
-│   └── CODE_LOGIC.md         # Shared code logic reference for all agents
-└── _output/agents/           # Agent-generated intermediate artifacts
+└── version/                  # Build-time version injection
 ```
 
-## 3. Universal Conventions
+## 3. Code Logic Map
 
-All agents must follow these conventions when producing or modifying code.
+Exact code paths for the most important flows, so you can jump straight to the right function when debugging or adding a feature.
 
-### 3.1 Logging
+### 3.1 CLI Startup Flow
+
+`kk` binary entry:
+
+```text
+cmd/kk/kubekey.go:main()
+    └── app.NewRootCommand().Execute()
+```
+
+Root command construction:
+
+```text
+cmd/kk/app/root.go:NewRootCommand()
+    ├── options.AddProfilingFlags()      # pprof/gops
+    ├── options.AddKlogFlags()
+    ├── options.AddGOPSFlags()
+    ├── newRunCommand()
+    ├── newPlaybookCommand()
+    ├── newVersionCommand()
+    ├── newWebCommand()
+    └── internalCommand...               # built-in commands registered by init()
+```
+
+Built-in commands registration (gated by `//go:build builtin`):
+
+```text
+cmd/kk/app/builtin.go:init()
+    └── imports cmd/kk/app/builtin/* packages
+
+cmd/kk/app/builtin/create.go:init()
+    └── internalCommand = append(internalCommand, newCreateCommand())
+
+cmd/kk/app/builtin/add.go:init()
+cmd/kk/app/builtin/delete.go:init()
+cmd/kk/app/builtin/init.go:init()
+cmd/kk/app/builtin/precheck.go:init()
+cmd/kk/app/builtin/artifact.go:init()
+cmd/kk/app/builtin/certs.go:init()
+```
+
+Each built-in command constructs a `CommonOptions` and calls `CommonOptions.Run()`.
+
+Built-in command flow (example: create cluster):
+
+```text
+cmd/kk/app/builtin/create.go:newCreateCommand()
+    └── cmd.RunE = func(...)
+        ├── options.NewCommonOptions()
+        │   └── sets up Playbook/Inventory/Config references
+        ├── options.Complete()
+        │   ├── resolve inventory/config files
+        │   ├── apply --set overrides
+        │   └── determine workdir
+        └── options.Run()
+            └── manager.NewCommandManager(playbook, inventory, config)
+                └── commandManager.Run()
+                    └── executor.NewPlaybookExecutor(...).Exec(ctx)
+```
+
+Arbitrary playbook flow (`kk run`):
+
+```text
+cmd/kk/app/run.go:newRunCommand()
+    └── options.KubeKeyRunOptions.Complete()
+        ├── project.New() for git/local project
+        └── build Playbook CR pointing at that project
+    └── options.Run() -> CommandManager -> PlaybookExecutor
+```
+
+In-cluster executor (`kk playbook`):
+
+```text
+cmd/kk/app/playbook.go:newPlaybookCommand()
+    └── PlaybookOptions.Complete()
+        ├── read Playbook CR from API server
+        └── read Inventory/Config CRs
+    └── Run() -> CommandManager -> PlaybookExecutor
+```
+
+### 3.2 Manager Layer
+
+All three binaries converge on the `Manager` interface in `pkg/manager/manager.go`.
+
+Command manager:
+
+```text
+pkg/manager/command_manager.go:NewCommandManager()
+    └── Run(ctx)
+        ├── create controller-runtime client for local file storage
+        ├── if local run and not dry-run: create/update Playbook CR locally
+        └── PlaybookExecutor.Exec(ctx)
+```
+
+Controller manager:
+
+```text
+cmd/controller-manager/controller_manager.go:main()
+    └── app.NewControllerManagerCommand().Execute()
+        └── pkg/manager/controller_manager.go:NewControllerManager().Run(ctx)
+            ├── create controller-runtime manager
+            ├── register enabled controllers via options.Register()
+            └── mgr.Start(ctx)
+```
+
+Controllers register in `pkg/controllers/core/register.go:init()` and `pkg/controllers/infrastructure/register.go:init()`.
+
+Web manager:
+
+```text
+pkg/manager/web_manager.go:NewWebManager().Run(ctx)
+    ├── create local REST config via pkg/proxy
+    ├── build go-restful container
+    ├── pkg/web.NewCoreService()
+    ├── pkg/web.NewSchemaService()
+    ├── pkg/web.NewUIService()
+    └── http.ListenAndServe()
+```
+
+### 3.3 Project Loading
+
+Project factory:
+
+```text
+pkg/project/project.go:New(ctx, playbook, update)
+    ├── if playbook address looks like git: newGitProject()
+    │   └── go-git clone/pull into workdir
+    ├── else if BuiltinsProjectAnnotation is set: builtinProjectFunc()
+    │   └── builtin/core.BuiltinPlaybook embed.FS
+    └── else: newLocalProject()
+        └── os.DirFS(path)
+```
+
+Playbook marshaling:
+
+```text
+pkg/project/project.go:MarshalPlaybook()
+    ├── ReadFile(playbook.yaml)
+    ├── yaml.Unmarshal -> kkprojectv1.Playbook
+    ├── resolve import_playbook recursively
+    ├── load vars_files
+    ├── load roles:
+    │   ├── read defaults/main.yaml
+    │   ├── read meta/main.yaml dependencies
+    │   └── recursively marshal dependency roles
+    ├── expand include_tasks
+    └── validate playbook/role/block
+```
+
+YAML project types live in `api/project/v1/`:
+
+- `playbook.go:Playbook` – top-level list of Plays.
+- `play.go:Play` – hosts, gather_facts, vars_files, roles, pre_tasks/tasks/post_tasks.
+- `role.go:Role` / `RoleInfo` – dependencies, name, blocks.
+- `block.go:Block` – nested block/rescue/always or leaf task.
+- `base.go:Base` – name, connection, vars, environment, run_once, ignore_errors, become.
+- `taggable.go:Taggable` – tags logic (always/never/all/tagged).
+- `conditional.go:When` – conditional evaluation.
+
+### 3.4 Execution Engine
+
+Executor creation:
+
+```text
+pkg/executor/playbook_executor.go:NewPlaybookExecutor(client, playbook, variable, logOutput)
+    └── returns *playbookExecutor{ option{...}, project }
+```
+
+Playbook execution:
+
+```text
+pkg/executor/playbook_executor.go:Exec(ctx)
+    ├── project.MarshalPlaybook() -> kkprojectv1.Playbook
+    ├── set Playbook phase Running
+    ├── for each Play:
+    │   ├── select hosts from inventory by pattern
+    │   ├── group hosts by serial batches
+    │   │   └── pkg/converter/converter.go:GroupHostBySerial()
+    │   ├── for each batch:
+    │   │   ├── gather_facts (if play.gather_facts != false)
+    │   │   │   └── setup module on each host
+    │   │   ├── run pre_tasks
+    │   │   ├── for each role:
+    │   │   │   └── roleExecutor.Exec(ctx)
+    │   │   ├── run tasks
+    │   │   └── run post_tasks
+    │   └── update Playbook status
+    ├── set Playbook phase Succeeded/Failed
+    └── store final result
+```
+
+Role execution:
+
+```text
+pkg/executor/role_executor.go:Exec(ctx)
+    ├── merge role defaults into variable system
+    ├── recursively execute dependency roles
+    │   └── dependency role inherits parent role's when/tags/ignore_errors
+    └── for each block in role:
+        └── blockExecutor.Exec(ctx)
+            └── blocks inherit role's when conditions
+```
+
+`when` defined on a role is merged with parent conditions and passed down to all blocks and tasks within that role.
+
+Block execution:
+
+```text
+pkg/executor/block_executor.go:Exec(ctx)
+    ├── evaluate tags: skip block if tags don't match
+    ├── merge block's when condition with parent when conditions
+    ├── if block has nested block/rescue/always:
+    │   ├── run block tasks
+    │   ├── on failure: run rescue tasks
+    │   └── always: run always tasks
+    └── else (leaf task):
+        └── taskExecutor.Exec(ctx)
+            └── all inherited when conditions are evaluated per host
+```
+
+`when` conditions are cumulative: a block or task must satisfy its own `when` expressions **and** all inherited `when` expressions from parent blocks and roles.
+
+Task execution:
+
+```text
+pkg/executor/task_executor.go:Exec(ctx)
+    ├── if loop: expand loop items
+    ├── create/update kkcorev1alpha1.Task CR
+    ├── for each host in parallel (wait.Group):
+    │   ├── evaluate per-host when condition
+    │   ├── create progress bar
+    │   ├── FindModule(moduleName)
+    │   ├── moduleExecFunc(ctx, ExecOptions)
+    │   ├── evaluate failed_when
+    │   ├── handle ignore_errors
+    │   └── store register/result variables
+    └── update Task CR status
+```
+
+Module discovery:
+
+```text
+pkg/executor/block_executor.go:MarshalBlock()
+    ├── iterate over UnknownField(s) in kkprojectv1.Block
+    └── first unknown key that matches a registered module -> ModuleName
+```
+
+### 3.5 Variables
+
+Variable structure:
+
+```text
+pkg/variable/variable.go:value
+    ├── Config    kkcorev1.Config
+    ├── Inventory kkcorev1.Inventory
+    ├── Hosts     map[string]host
+    │   ├── RemoteVars  map[string]any   # gather_facts
+    │   └── RuntimeVars map[string]any   # set_fact, register
+    └── Result    map[string]any
+```
+
+Lookup precedence:
+
+```text
+pkg/variable/variable_get.go:GetFunc
+    └── resolves in order:
+        1. Config vars
+        2. Host-specific inventory vars
+        3. Group vars (for groups containing host)
+        4. Inventory vars
+        5. Runtime vars
+        6. Remote vars
+```
+
+Merge paths:
+
+```text
+pkg/variable/variable_merge.go
+    ├── MergeRemoteVariable()       # gather_facts -> Hosts[host].RemoteVars
+    ├── MergeRuntimeVariable()      # set_fact/register -> Hosts[host].RuntimeVars
+    ├── MergeHostsRuntimeVariable() # cross-host variable injection
+    └── MergeResultVariable()       # task result -> Playbook.Status.Result
+```
+
+Persistence:
+
+```text
+pkg/variable/source/file_source.go
+    └── reads/writes per-host vars to
+        <workdir>/runtime/<namespace>/<playbook>/variable/<hostname>.yaml
+```
+
+### 3.6 Connectors
+
+Factory:
+
+```text
+pkg/connector/connector.go:NewConnector(host, vars, logger)
+    ├── connector.type == "local"      -> localConnector
+    ├── connector.type == "ssh"        -> sshConnector
+    ├── connector.type == "kubernetes" -> kubernetesConnector
+    ├── connector.type == "prometheus" -> prometheusConnector
+    └── default:
+        ├── localhost -> localConnector
+        └── otherwise -> sshConnector
+```
+
+SSH connector (`pkg/connector/ssh_connector.go`): `Init()` parses auth (password/key); `ExecuteCommand()` via `golang.org/x/crypto/ssh`; `PutFile()` / `FetchFile()` via sftp.
+
+Local connector (`pkg/connector/local_connector.go`): `ExecuteCommand()` via `os/exec`; `PutFile()` / `FetchFile()` operate on the local filesystem.
+
+Fact gathering (`pkg/connector/gather_facts.go`): local/ssh connectors implement `HostInfo()`, collecting OS, arch, hostname, IP, memory and CPU facts.
+
+Modules must stay decoupled from the local OS: always go through the `Connector` interface, never hardcode Linux paths or bash-only syntax.
+
+### 3.7 Modules
+
+Registry:
+
+```text
+pkg/modules/internal/options.go
+    ├── RegisterModule(fn, names...)
+    ├── FindModule(name)
+    └── ModuleExecFunc signature
+```
+
+Module list (registered in `pkg/modules/module.go`):
+
+| Module | Package | Key file |
+|--------|---------|----------|
+| add_hostvars | `pkg/modules/add_hostvars` | `add_hostvars.go` |
+| assert | `pkg/modules/assert` | `assert.go` |
+| command/shell | `pkg/modules/command` | `command.go` |
+| copy | `pkg/modules/copy` | `copy.go` |
+| debug | `pkg/modules/debug` | `debug.go` |
+| fetch | `pkg/modules/fetch` | `fetch.go` |
+| gen_cert | `pkg/modules/gen_cert` | `gen_cert.go` |
+| http_get_file | `pkg/modules/http_get_file` | `http_get_file.go` |
+| image | `pkg/modules/image` | `image.go`, `image_deprecated.go`, `repository.go` |
+| include_vars | `pkg/modules/include_vars` | `include_vars.go` |
+| prometheus | `pkg/modules/prometheus` | `prometheus.go` |
+| result | `pkg/modules/result` | `result.go` |
+| set_fact | `pkg/modules/set_fact` | `set_fact.go` |
+| setup | `pkg/modules/setup` | `setup.go` |
+| template | `pkg/modules/template` | `template.go` |
+
+Representative implementations:
+
+```text
+pkg/modules/command/command.go:ModuleCommand(ctx, opts)
+    ├── render args through template
+    ├── build command string
+    ├── opts.Connector.ExecuteCommand(cmd)
+    └── return stdout/stderr
+
+pkg/modules/copy/copy.go:ModuleCopy(ctx, opts)
+    ├── resolve src/content
+    ├── optionally template content
+    ├── opts.Connector.PutFile(data, dst, mode)
+    └── return result
+
+pkg/modules/template/template.go:ModuleTemplate(ctx, opts)
+    ├── read src template
+    ├── render with variables
+    ├── opts.Connector.PutFile(rendered, dst, mode)
+    └── return result
+```
+
+### 3.8 Templates, `when` and Tags
+
+Rendering:
+
+```text
+pkg/converter/tmpl/template.go:ParseFunc()
+    ├── if string contains "{{" and "}}":
+    │   └── text/template.Execute()
+    └── else return original string
+```
+
+Custom functions (`pkg/converter/tmpl/functions.go`), on top of Sprig:
+
+```text
+toYaml / fromYaml / toToml
+ipInCIDR / ipFamily / isIP
+pow / subtractList
+fileExists / unquote / getStringSlice
+toLowerByteUnit
+mapToNamedStringArgs
+```
+
+**`when` conditions** (`api/project/v1/conditional.go`) are always wrapped as templates and rendered to a boolean-like result. They can be defined at **role**, **block** and **task** level:
+
+- Role-level `when` is inherited by all blocks and tasks in that role.
+- Block-level `when` is merged with parent block/role conditions and inherited by nested blocks and leaf tasks.
+- Task-level `when` is evaluated per host right before module execution.
+- All inherited conditions must evaluate to true for a task to run.
+
+**Tags** (`api/project/v1/taggable.go`):
+
+```text
+Tags []string
+AlwaysTag = "always"
+NeverTag  = "never"
+AllTag    = "all"
+TaggedTag = "tagged"
+IsEnabled(onlyTags, skipTags) bool
+```
+
+Tags are inherited the same way as `when`: role → block → nested block/task. Use `JoinTag()` to merge parent tags into child tags. Runtime filtering uses `playbook.Spec.Tags` (only run matching) and `playbook.Spec.SkipTags` (skip matching), typically set via CLI `--tags` and `--skip-tags`.
+
+| Tag | Meaning |
+|-----|---------|
+| `always` | Always runs unless explicitly skipped by `always` in skipTags. |
+| `never` | Never runs unless explicitly included. |
+| `all` | Matches every block except those tagged `never`. |
+| `tagged` | Matches any block that has at least one tag. |
+
+Matching rules for `onlyTags`:
+
+- A block with `always` runs.
+- `all` or `tagged` runs everything except `never`.
+- Otherwise the block runs if any of its tags intersect with `onlyTags`.
+- Blocks without matching tags are skipped.
+
+Matching rules for `skipTags`:
+
+- `all` skips everything except blocks tagged `always` (unless `always` is also in skipTags).
+- Any tag intersection with `skipTags` skips the block.
+- `tagged` skips all tagged blocks.
+
+Like `when`, declare tags at the highest applicable scope; do not repeat the same tag at every nested level (see §4.4).
+
+### 3.9 Kubernetes Controllers
+
+Playbook controller:
+
+```text
+pkg/controllers/core/playbook_controller.go:Reconcile()
+    ├── fetch Playbook CR
+    ├── if no executor Pod exists:
+    │   └── create Pod running "kk playbook --name <name> --namespace <ns>"
+    ├── watch owned Pods
+    └── sync Playbook status from Pod phase/logs
+```
+
+CAPKK controllers live in `pkg/controllers/infrastructure/`: `inventory_controller.go`, `kkcluster_controller.go`, `kkmachine_controller.go`.
+
+Registration:
+
+```text
+pkg/controllers/core/register.go:init()
+    ├── options.Register(&PlaybookReconciler{})
+    └── options.Register(&PlaybookWebhook{})
+
+pkg/controllers/infrastructure/register.go:init()
+    └── registers Inventory/KKCluster/KKMachine reconcilers
+```
+
+### 3.10 REST Proxy / Web
+
+Hybrid REST config:
+
+```text
+pkg/proxy/transport.go:RestConfig()
+    ├── if no k8s cluster: use file-based storage for Task/Inventory/Playbook
+    └── if cluster exists: forward non-local resources to API server,
+        keep Task local
+```
+
+This lets `kk` run without a Kubernetes cluster while still using controller-runtime clients.
+
+Web services (`pkg/web/service.go`):
+
+```text
+NewCoreService()       # /api/v1/playbooks, /inventories, /logs
+NewSchemaService()     # schema listing and config
+NewUIService()         # static SPA UI
+NewSwaggerUIService()  # swagger UI
+NewAPIService()        # OpenAPI JSON
+```
+
+### 3.11 Built-in Kubernetes Install Flow
+
+High-level flow of `builtin/core/playbooks/create_cluster.yaml`:
+
+```text
+ 1. native/root role on all hosts
+ 2. hook/pre_install.yaml
+ 3. load defaults + precheck on all hosts
+ 4. on localhost:
+        generate certs, download binaries/images
+ 5. on etcd/k8s_cluster/image_registry/nfs:
+        run native role
+ 6. on etcd hosts (when external):
+        etcd prepare/install
+ 7. on image_registry hosts:
+        docker + registry
+ 8. on localhost (when registry configured):
+        push images
+ 9. on k8s_cluster hosts:
+        CRI install
+        kubernetes pre/init/join
+        certs renewal
+        custom labels/taints
+10. on a random control plane host:
+        CNI + storage class
+11. hook/post_install.yaml
+```
+
+Default variables are loaded from `builtin/core/defaults/` and merged before playbook execution.
+
+## 4. Universal Conventions
+
+Follow these conventions when producing or modifying code.
+
+### 4.1 Logging
 
 Choose the appropriate log level.
 
@@ -77,7 +585,7 @@ Choose the appropriate log level.
 | `klog.V(5)` | Extension modules. Examples: `module`, `converter`. |
 | `klog.V(6)` | Debug information. May include detailed intermediate values and execution flow. |
 
-### 3.2 Errors
+### 4.2 Errors
 
 Wrap errors only where they originate.
 
@@ -87,7 +595,7 @@ Wrap errors only where they originate.
 
 KubeKey uses `github.com/cockroachdb/errors` with `errors.Wrapf` / `errors.Join`.
 
-### 3.3 Naming
+### 4.3 Naming
 
 Keep names concise. Prefer meaningful short names. Avoid unnecessary abbreviations and verbose names.
 
@@ -108,7 +616,7 @@ mgr
 conn
 ```
 
-### 3.4 Architecture
+### 4.4 Architecture
 
 Prefer modifying existing code instead of introducing new abstractions.
 
@@ -116,9 +624,9 @@ Prefer modifying existing code instead of introducing new abstractions.
 - Keep APIs stable.
 - Minimize public surface.
 - Favor composition over inheritance-like patterns.
-- Do not repeat inherited conditions (e.g. `when`) at every level; declare them at the highest applicable scope.
+- Do not repeat inherited conditions (e.g. `when`, `tags`) at every level; declare them at the highest applicable scope (see §3.8).
 
-### 3.5 Go Conventions
+### 4.5 Go Conventions
 
 - Package aliases: `kkcorev1`, `kkcorev1alpha1`, `kkprojectv1`.
 - `pkg/const` is imported as `_const` to avoid keyword collision.
@@ -127,7 +635,7 @@ Prefer modifying existing code instead of introducing new abstractions.
 - Controllers and built-in commands register via `init()` gated by build tags.
 - Templates use Go `text/template` + Sprig + custom functions in `pkg/converter/tmpl/`.
 
-## 4. Build & Test
+## 5. Build & Test
 
 Important Makefile targets:
 
@@ -138,6 +646,7 @@ Important Makefile targets:
 | `make controller-manager` | Build operator image |
 | `make generate` | Deepcopy, CRDs, RBAC, modules, goimports |
 | `make generate-manifests-kubekey` | Generate CRDs to `config/kubekey/crds/` |
+| `make verify` | Verify generated artifacts and modules are up to date |
 | `make test` | Run unit/integration tests with envtest |
 | `make lint` | Run golangci-lint |
 
@@ -146,40 +655,17 @@ Build tags:
 - `builtin` – includes embedded playbooks/roles and built-in CLI commands.
 - `clusterapi` – CAPKK controller-manager image build.
 
-## 5. Agent Workflow
+## 6. Debugging Tips
 
-Agents collaborate through files under `_output/agents/`. The directory is already ignored by Git and is meant for cross-session handoff only.
+- **Find where a built-in command is defined:** search `cmd/kk/app/builtin/*.go` for the command name.
+- **Find where a module is implemented:** search `pkg/modules/<name>/<name>.go` and confirm registration in `pkg/modules/module.go`.
+- **Trace variable values:** start at `pkg/variable/variable_get.go` and add logging in `GetFunc`.
+- **Trace task execution:** add logging in `pkg/executor/task_executor.go` before `FindModule`.
+- **Test a module locally:** look at existing `*_test.go` files; many use the fake connector from `pkg/modules/internal/test.go`.
+- **Regenerate CRDs:** `make generate-manifests-kubekey`.
+- **Build with built-ins:** `make kk` (sets `BUILDTAGS=builtin`).
 
-```text
-_output/agents/
-├── design.md       # Architect output
-├── dev-summary.md  # Developer output
-├── review.md       # Reviewer output
-├── pr.md           # Reviewer output
-├── commit.txt      # Reviewer output
-├── test-plan.md    # Tester output
-└── test-result.md  # Tester output
-```
-
-Pipeline:
-
-For end-to-end requests, start with the **Maintainer (as Orchestrator)**, which drives the following sequence:
-
-```text
-Maintainer → Architect → Developer → Reviewer → Tester
-```
-
-1. **Maintainer** receives the requirement, decides which phases are needed, and invokes the specialist Agents in order.
-2. **Architect** reads the requirement and writes `_output/agents/design.md`.
-3. **Developer** reads `design.md`, writes code + `_output/agents/dev-summary.md`, and updates README, CHANGELOG, docs and examples if user-facing behavior changes.
-4. **Reviewer** reads `design.md` and `dev-summary.md`, reviews the code and documentation, and writes `_output/agents/review.md`, `_output/agents/pr.md`, `_output/agents/commit.txt`.
-5. **Tester** reads `design.md` and `dev-summary.md`, writes `_output/agents/test-plan.md`, runs tests, and writes `_output/agents/test-result.md`.
-
-For narrow, single-phase requests, invoke only the relevant specialist Agent directly.
-
-Each role is defined in `.opencode/agents/<role>.md`. Agents must stay within their own responsibilities.
-
-## 6. Git Commit & PR Conventions
+## 7. Git Commit & PR Conventions
 
 ### Commit Message Format
 
@@ -214,15 +700,42 @@ A PR description should include:
 - **Testing** performed.
 - **Risks / breaking changes**.
 
-The Reviewer agent generates `pr.md` and `commit.txt` based on the developer summary and review findings.
+## 8. Appendix: File-to-Concern Map
 
-## 7. Related Docs
-
-- [README.md](README.md)
-- [docs/en/framework/README.md](docs/en/framework/README.md)
-- [.opencode/CODE_LOGIC.md](.opencode/CODE_LOGIC.md)
-- `.opencode/agents/maintainer.md`
-- `.opencode/agents/architect.md`
-- `.opencode/agents/developer.md`
-- `.opencode/agents/reviewer.md`
-- `.opencode/agents/tester.md`
+| Concern | File |
+|---------|------|
+| CLI root | `cmd/kk/app/root.go` |
+| CLI options base | `cmd/kk/app/options/option.go` |
+| Built-in commands | `cmd/kk/app/builtin/*.go` |
+| Controller options | `cmd/controller-manager/app/options/controller_manager.go` |
+| Playbook execution | `pkg/executor/playbook_executor.go` |
+| Role execution | `pkg/executor/role_executor.go` |
+| Block execution | `pkg/executor/block_executor.go` |
+| Task execution | `pkg/executor/task_executor.go` |
+| Project loading | `pkg/project/project.go` |
+| Git project | `pkg/project/git.go` |
+| Local project | `pkg/project/local.go` |
+| Builtin project | `pkg/project/builtin.go` |
+| Variable core | `pkg/variable/variable.go` |
+| Variable get | `pkg/variable/variable_get.go` |
+| Variable merge | `pkg/variable/variable_merge.go` |
+| Variable source | `pkg/variable/source/file_source.go` |
+| Connector factory | `pkg/connector/connector.go` |
+| SSH connector | `pkg/connector/ssh_connector.go` |
+| Local connector | `pkg/connector/local_connector.go` |
+| Kubernetes connector | `pkg/connector/kubernetes_connector.go` |
+| Prometheus connector | `pkg/connector/prometheus_connector.go` |
+| Module registry | `pkg/modules/module.go` |
+| Module internals | `pkg/modules/internal/options.go` |
+| Template functions | `pkg/converter/tmpl/functions.go` |
+| Template rendering | `pkg/converter/tmpl/template.go` |
+| Block↔Task converter | `pkg/converter/converter.go` |
+| Playbook CRD | `api/core/v1/playbook_types.go` |
+| Inventory CRD | `api/core/v1/inventory_types.go` |
+| Config CRD | `api/core/v1/config_types.go` |
+| Task CRD | `api/core/v1alpha1/task_types.go` |
+| Project YAML types | `api/project/v1/playbook.go`, `play.go`, `block.go`, `role.go`, `base.go`, `taggable.go`, `conditional.go` |
+| Playbook controller | `pkg/controllers/core/playbook_controller.go` |
+| Web services | `pkg/web/service.go` |
+| REST proxy | `pkg/proxy/transport.go` |
+| Constants/workdir | `pkg/const/common.go`, `pkg/const/workdir.go`, `pkg/const/scheme.go` |
