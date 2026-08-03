@@ -99,7 +99,11 @@ kubernetes:
       address: ""
       # Supported modes: ARP, BGP
       mode: ARP
-      image: 
+      # Whether kube-vip manages Service (type LoadBalancer) VIPs.
+      # Set to false when a separate Service VIP manager (e.g. MetalLB) is used,
+      # so kube-vip only manages the apiserver VIP.
+      svc_enable: true
+      image:
         registry: >-
           {{ .image_registry.dockerio_registry }}
         repository: plndr/kube-vip

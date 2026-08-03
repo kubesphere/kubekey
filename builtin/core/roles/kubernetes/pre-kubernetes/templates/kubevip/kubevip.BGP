@@ -24,7 +24,7 @@ spec:
     - name: vip_ddns
       value: "false"
     - name: svc_enable
-      value: "true"
+      value: "{{ .kubernetes.control_plane_endpoint.kube_vip.svc_enable }}"
     - name: bgp_enable
       value: "true"
     - name: bgp_routerid

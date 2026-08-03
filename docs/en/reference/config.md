@@ -574,6 +574,10 @@ kubernetes:
       address: ""
       # Supported modes: ARP, BGP
       mode: ARP
+      # Whether kube-vip manages Service (type LoadBalancer) VIPs.
+      # Set to false when a separate Service VIP manager (e.g. MetalLB) is used,
+      # so kube-vip only manages the apiserver VIP.
+      svc_enable: true
       image:
         # kube-vip image registry
         registry: >-
@@ -674,6 +678,7 @@ kubernetes:
 | `kubernetes.control_plane_endpoint.local.address` | When using `local` mode, an external load balancer address can be specified for resolution only. |
 | `kubernetes.control_plane_endpoint.kube_vip.address` | Network interface name or IP bound by kube-vip. |
 | `kubernetes.control_plane_endpoint.kube_vip.mode` | kube-vip working mode: `ARP` or `BGP`. |
+| `kubernetes.control_plane_endpoint.kube_vip.svc_enable` | Whether kube-vip manages Service (type LoadBalancer) VIPs. Set to `false` when using a separate Service VIP manager (e.g. MetalLB) alongside kube-vip. |
 | `kubernetes.control_plane_endpoint.kube_vip.image` | kube-vip container image configuration. |
 | `kubernetes.control_plane_endpoint.haproxy.address` | Address that HAProxy listens on the local loopback interface. |
 | `kubernetes.control_plane_endpoint.haproxy.health_port` | HAProxy health check port. |

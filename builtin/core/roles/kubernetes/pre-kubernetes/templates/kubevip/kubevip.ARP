@@ -24,7 +24,7 @@ spec:
     - name: vip_ddns
       value: "false"
     - name: svc_enable
-      value: "true"
+      value: "{{ .kubernetes.control_plane_endpoint.kube_vip.svc_enable }}"
     - name: vip_leaderelection
       value: "true"
     - name: vip_leaseduration
