@@ -1,7 +1,7 @@
 ---
 - name: Storage | Validate storage configuration
-  when: .storage | empty | not
-  loop: "{{ .storage | toJson }}"
+  when: .kubernetes.storage_disks | empty | not
+  loop: "{{ .kubernetes.storage_disks | toJson }}"
   assert:
     that:
       - or (.item.disk | empty | not) (.item.device | empty | not)

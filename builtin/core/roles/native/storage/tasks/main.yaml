@@ -1,13 +1,13 @@
 ---
 - name: Storage | Generate inventory disk formatting script
-  when: .storage | empty | not
+  when: .kubernetes.storage_disks | empty | not
   template:
     src: format-storage-inventory.sh
     dest: /etc/kubekey/scripts/format-storage-inventory.sh
     mode: 0755
 
 - name: Storage | Execute inventory disk formatting script
-  when: .storage | empty | not
+  when: .kubernetes.storage_disks | empty | not
   command: /etc/kubekey/scripts/format-storage-inventory.sh
 
 - name: Storage | Generate web installer disk formatting script

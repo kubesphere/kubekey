@@ -278,8 +278,7 @@ process_item() {
 }
 
 # Process inventory standard storage items.
-{{ if .storage }}
-{{ range .storage }}
+{{ range .kubernetes.storage_disks | default list }}
 DEVICES=()
 {{ $disk := index . "disk" | default "" }}{{ if $disk }}DEVICES+=("{{ $disk }}"){{ end }}
 {{ $device := index . "device" | default "" }}
@@ -309,5 +308,4 @@ if [ -z "$LV_NAME" ] && [ -n "$VG_NAME" ]; then
 fi
 
 process_item
-{{ end }}
 {{ end }}
