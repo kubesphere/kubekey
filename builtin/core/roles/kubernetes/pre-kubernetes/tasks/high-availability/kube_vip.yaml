@@ -22,13 +22,13 @@
             printf "\n]\n";
           }
         '
-      register: interface
+      register: kube_vip_interfaces
       register_type: json
     - name: Kubevip | Select network interface matching kube-vip address
-      set_fact: 
+      set_fact:
         kube_vip_interface: >-
           {{- $interface := "" }}
-          {{- range .interface.stdout | default list -}}
+          {{- range .kube_vip_interfaces.stdout | default list -}}
             {{- if .cidr | ipInCIDR | has $.kubernetes.control_plane_endpoint.kube_vip.address -}}
               {{- $interface = .interface -}}
             {{- end -}}
