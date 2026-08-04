@@ -39,6 +39,9 @@ func ModuleSetup(ctx context.Context, opts internal.ExecOptions) (string, string
 	// get connector
 	conn, err := opts.GetConnector(ctx)
 	if err != nil {
+		// Return nil error here: setup has no ignore_errors configuration.
+		// Returning a hard error would abort all subsequent tasks for this host,
+		// so we record the unreachable state via stdout/stderr instead.
 		return internal.StdoutFailed, internal.StderrGetConnector, nil
 	}
 	defer conn.Close(ctx)

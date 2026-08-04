@@ -801,6 +801,31 @@ a2:
 			variable: make(map[string]any),
 			excepted: "8",
 		},
+		// ======= splitList port extraction =======
+		{
+			name:  "extract port from host:port",
+			input: `{{ $hostPart := .foo | splitList "/" | first }}{{ $hostPart | splitList ":" | last }}`,
+			variable: map[string]any{
+				"foo": "dockerhub.kubekey.local:5000/project",
+			},
+			excepted: "5000",
+		},
+		{
+			name:  "extract port from host without port",
+			input: `{{ $hostPart := .foo | splitList "/" | first }}{{ $port := $hostPart | splitList ":" | last }}{{ if ne $port $hostPart }}{{ $port }}{{ else }}443{{ end }}`,
+			variable: map[string]any{
+				"foo": "dockerhub.kubekey.local/project",
+			},
+			excepted: "443",
+		},
+		{
+			name:  "strip port from host:port",
+			input: `{{ $hostPart := .foo | splitList "/" | first }}{{ $hostPart | splitList ":" | first }}`,
+			variable: map[string]any{
+				"foo": "dockerhub.kubekey.local:5000/project",
+			},
+			excepted: "dockerhub.kubekey.local",
+		},
 		// ======= subtractList =======
 		{
 			name:     "subtractList true-1",

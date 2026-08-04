@@ -83,6 +83,8 @@ spec:
 | `spec.groups.nfs` | Object | No | NFS node group |
 | `spec.groups.<group name>.hosts` | Array | Yes | Node name list for the corresponding group |
 
+For disk formatting and multipath settings, see [Storage and Multipath Configuration](../reference/storage.md).
+
 ## Define Key Configuration
 
 KubeKey uses the `Config` resource to define key cluster configuration.

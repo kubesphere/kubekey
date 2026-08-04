@@ -57,6 +57,7 @@ func newLocalConnector(workdir string, hostVars map[string]any) *localConnector 
 	}
 	cacheType, _ := variable.StringVar(nil, hostVars, _const.VariableGatherFactsCache)
 	connector := &localConnector{
+		workdir:  workdir,
 		User:     user,
 		Password: password,
 		Cmd:      exec.New(),
@@ -68,6 +69,7 @@ func newLocalConnector(workdir string, hostVars map[string]any) *localConnector 
 }
 
 type localConnector struct {
+	workdir  string
 	User     string
 	Password string
 	Cmd      exec.Interface
@@ -194,9 +196,23 @@ func (c *localConnector) getHostInfo(ctx context.Context) (map[string]any, error
 		}
 		procVars[_const.VariableProcessMemory] = convertBytesToMap(mem.Bytes(), ":")
 
+		// block devices
+		blockdevicesVars, blockErr := blockDevicesFromLsblk(ctx, c)
+		if blockErr != nil {
+			klog.V(4).ErrorS(blockErr, "skip block device gathering")
+		}
+
+		// gpu
+		gpuVars, gpuErr := gpuInfoFromLspci(ctx, c.workdir, c)
+		if gpuErr != nil {
+			klog.V(4).ErrorS(gpuErr, "skip gpu gathering")
+		}
+
 		return map[string]any{
-			_const.VariableOS:      osVars,
-			_const.VariableProcess: procVars,
+			_const.VariableOS:           osVars,
+			_const.VariableProcess:      procVars,
+			_const.VariableBlockDevices: blockdevicesVars,
+			_const.VariableGPU:          gpuVars,
 		}, nil
 	default:
 		klog.V(4).ErrorS(nil, "Unsupported platform", "platform", runtime.GOOS)

@@ -3,6 +3,8 @@ package handler
 import (
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 	"reflect"
 	"slices"
 	"strings"
@@ -32,14 +34,15 @@ import (
 
 // InventoryHandler handles HTTP requests for inventory resources.
 type InventoryHandler struct {
-	workdir    string            // Base directory for storing work files
-	restconfig *rest.Config      // Kubernetes REST client configuration
-	client     ctrlclient.Client // Kubernetes client for API operations
+	workdir           string            // Base directory for storing work files
+	hostCheckPlaybook string            // host-check playbook path relative to kk web cwd
+	restconfig        *rest.Config      // Kubernetes REST client configuration
+	client            ctrlclient.Client // Kubernetes client for API operations
 }
 
 // NewInventoryHandler creates a new InventoryHandler instance.
-func NewInventoryHandler(workdir string, restconfig *rest.Config, client ctrlclient.Client) *InventoryHandler {
-	return &InventoryHandler{workdir: workdir, restconfig: restconfig, client: client}
+func NewInventoryHandler(workdir, hostCheckPlaybook string, restconfig *rest.Config, client ctrlclient.Client) *InventoryHandler {
+	return &InventoryHandler{workdir: workdir, hostCheckPlaybook: hostCheckPlaybook, restconfig: restconfig, client: client}
 }
 
 // Post creates a new inventory resource.
@@ -162,6 +165,26 @@ func (h *InventoryHandler) Patch(request *restful.Request, response *restful.Res
 		return
 	}
 
+	// Delete the previous host-check playbook associated with this inventory if it exists.
+	if oldPlaybookName, ok := oldInventory.Annotations[kkcorev1.HostCheckPlaybookAnnotation]; ok && oldPlaybookName != "" {
+		oldPlaybook := &kkcorev1.Playbook{}
+		if err := h.client.Get(request.Request.Context(), ctrlclient.ObjectKey{Namespace: namespace, Name: oldPlaybookName}, oldPlaybook); err != nil {
+			if apierrors.IsNotFound(err) {
+				klog.Warningf("previous host-check playbook %s/%s not found, skipping deletion", namespace, oldPlaybookName)
+			} else {
+				api.HandleError(response, request, errors.Wrapf(err, "failed to get previous host-check playbook %s/%s", namespace, oldPlaybookName))
+				return
+			}
+		} else {
+			playbookManager.stopPlaybook(oldPlaybook)
+			if err := h.client.Delete(request.Request.Context(), oldPlaybook); err != nil && !apierrors.IsNotFound(err) {
+				api.HandleError(response, request, errors.Wrapf(err, "failed to delete previous host-check playbook %s/%s", namespace, oldPlaybookName))
+				return
+			}
+			_ = os.RemoveAll(filepath.Join(_const.GetWorkdirFromConfig(oldPlaybook.Spec.Config), _const.RuntimeDir, kkcorev1.SchemeGroupVersion.Group, kkcorev1.SchemeGroupVersion.Version, "playbooks", oldPlaybook.Namespace, oldPlaybook.Name))
+		}
+	}
+
 	// Create a host-check playbook and set the workdir
 	hostCheckPlaybook := &kkcorev1.Playbook{
 		ObjectMeta: metav1.ObjectMeta{
@@ -174,7 +197,7 @@ func (h *InventoryHandler) Patch(request *restful.Request, response *restful.Res
 				Namespace: namespace,
 				Name:      inventoryName,
 			},
-			Playbook: "web-installer/host_check.yaml",
+			Playbook: h.hostCheckPlaybook,
 		},
 		Status: kkcorev1.PlaybookStatus{
 			Phase: kkcorev1.PlaybookPhasePending,
@@ -396,11 +419,24 @@ func (h *InventoryHandler) ListHosts(request *restful.Request, response *restful
 			item.Status = api.ResultFailed
 		case kkcorev1.PlaybookPhaseSucceeded:
 			item.Status = api.ResultFailed
-			// Extract architecture info from playbook result.
 			results := variable.Extension2Variables(playbook.Status.Result)
-			if arch, ok := results[item.Name].(string); ok && arch != "" {
-				item.Arch = arch
-				item.Status = api.ResultSucceed
+			switch hostResult := results[item.Name].(type) {
+			case string:
+				if hostResult != "" {
+					item.Arch = hostResult
+					item.Status = api.ResultSucceed
+				}
+			case map[string]any:
+				if arch, ok := hostResult["arch"].(string); ok && arch != "" {
+					item.Arch = arch
+					item.Status = api.ResultSucceed
+				}
+				if blockdevices, ok := hostResult["blockdevices"]; ok {
+					item.BlockDevices = blockdevices
+				}
+				if gpu, ok := hostResult["gpu"]; ok {
+					item.GPU = gpu
+				}
 			}
 		}
 	}

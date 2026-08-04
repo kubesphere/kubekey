@@ -58,8 +58,15 @@
     mode: 0664
 
 - name: Keepalived | Synchronize healthcheck script to remote host
-  copy:
+  template:
     src: healthcheck.sh
     dest: >-
       /opt/keepalived/{{ .image_registry.keepalived_version }}/healthcheck.sh
     mode: 0700
+
+- name: Keepalived | Generate docker-compose file
+  copy:
+    src: >-
+      docker-compose/{{ .image_registry.keepalived_version }}.yaml
+    dest: >-
+      /opt/keepalived/{{ .image_registry.keepalived_version }}/docker-compose.yaml

@@ -69,7 +69,29 @@ func newFileStorage(rootDir string, resourcePrefix string, groupResource schema.
 		return nil, nil, err
 	}
 
+	// Remove stale deletion markers left behind by previous runs.
+	s.cleanupStaleMarkers()
+
 	return s, func() {}, nil
+}
+
+// cleanupStaleMarkers removes deletion marker files that were left behind
+// when no watcher was active at the time of deletion. This is safe to do
+// during storage initialization because no external watchers exist yet.
+func (s *fileStore) cleanupStaleMarkers() {
+	prefixDir := filepath.Join(s.rootDir, s.resourcePrefix)
+	_ = filepath.WalkDir(prefixDir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return nil
+		}
+		if strings.HasSuffix(path, dataFileSuffix+deleteTagSuffix) {
+			_ = os.Remove(path)
+		}
+		return nil
+	})
 }
 
 // ================================================

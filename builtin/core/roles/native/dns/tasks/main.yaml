@@ -37,7 +37,7 @@
       {{- end }}
     {{- end }}
     # kubekey image_registry control_plane_endpoint BEGIN
-    {{- $registryHost := .image_registry.auth.registry | splitList "/" | first }}
+    {{- $registryHost := .image_registry.auth.registry | splitList "/" | first | splitList ":" | first }}
     {{- if and ($registryHost | empty | not) ($registryHost | isIP | not) }}
       {{- if .image_registry.ha_vip | empty | not }}
     {{ .image_registry.ha_vip }} {{ $registryHost }}
@@ -65,31 +65,32 @@
     # kubekey hosts END
     EOF
 
-- name: DNS | Ensure image registry control plane endpoint DNS is current
-  loop: "{{ .native.localDNS | toJson }}"
-  command: |
-    # Remove any previous Kubekey-managed image registry control plane endpoint entries
-    sed -i '/# kubekey image_registry control_plane_endpoint BEGIN/,/# kubekey image_registry control_plane_endpoint END/d' {{ .item }}
-    # Write the latest Kubekey image registry control plane endpoint DNS configuration
-    cat >> {{ .item }} <<EOF
-    # kubekey image_registry control_plane_endpoint BEGIN
-    {{- $registryHost := .image_registry.auth.registry | splitList "/" | first }}
-    {{- if and ($registryHost | empty | not) ($registryHost | isIP | not) }}
-      {{- if .image_registry.ha_vip | empty | not }}
-    {{ .image_registry.ha_vip }} {{ $registryHost }}
-      {{- else if or (.image_registry.type | eq "harbor") (.image_registry.type | eq "docker-registry") }}
-        {{- if .groups.image_registry | empty | not }}
-          {{- if (index .hostvars (.groups.image_registry | first) "internal_ipv4") | empty | not }}
-    {{ index .hostvars (.groups.image_registry | first) "internal_ipv4" }} {{ $registryHost }}
-          {{- end }}
-          {{- if (index .hostvars (.groups.image_registry | first) "internal_ipv6") | empty | not }}
-    {{ index .hostvars (.groups.image_registry | first) "internal_ipv6" }} {{ $registryHost }}
-          {{- end }}
-        {{- end }}
-      {{- end }}
-    {{- end }}
-    # kubekey image_registry control_plane_endpoint END
-    EOF
+# - name: DNS | Ensure image registry control plane endpoint DNS is current
+#   loop: "{{ .native.localDNS | toJson }}"
+#   command: |
+#     # Remove any previous Kubekey-managed image registry control plane endpoint entries
+#     sed -i '/# kubekey image_registry control_plane_endpoint BEGIN/,/# kubekey image_registry control_plane_endpoint END/d' {{ .item }}
+#     # Write the latest Kubekey image registry control plane endpoint DNS configuration
+#     cat >> {{ .item }} <<EOF
+#     # kubekey image_registry control_plane_endpoint BEGIN
+#     {{- if .image_registry.type | empty | not }}
+#     {{- $registryHost := .image_registry.auth.registry | splitList "/" | first }}
+#     {{- if and ($registryHost | empty | not) ($registryHost | isIP | not) }}
+#       {{- if .image_registry.ha_vip | empty | not }}
+#     {{ .image_registry.ha_vip }} {{ $registryHost }}
+#       {{- else if or (.image_registry.type | eq "harbor") (.image_registry.type | eq "docker-registry") }}
+#         {{- if .groups.image_registry | empty | not }}
+#           {{- if (index .hostvars (.groups.image_registry | first) "internal_ipv4") | empty | not }}
+#     {{ index .hostvars (.groups.image_registry | first) "internal_ipv4" }} {{ $registryHost }}
+#           {{- end }}
+#           {{- if (index .hostvars (.groups.image_registry | first) "internal_ipv6") | empty | not }}
+#     {{ index .hostvars (.groups.image_registry | first) "internal_ipv6" }} {{ $registryHost }}
+#           {{- end }}
+#         {{- end }}
+#       {{- end }}
+#     {{- end }}
+#     # kubekey image_registry control_plane_endpoint END
+#     EOF
   
 
 # High Availability: Local DNS configuration for each .kubernetes.control_plane_endpoint.type

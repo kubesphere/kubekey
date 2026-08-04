@@ -144,7 +144,8 @@ func ConvertGroup(inv kkcorev1.Inventory) map[string][]string {
 	ungrouped := make([]string, len(all))
 	copy(ungrouped, all)
 
-	if !slices.Contains(all, _const.VariableLocalHost) { // set default localhost
+	// Inject the default localhost into the "all" group; many callers rely on its presence.
+	if !slices.Contains(all, _const.VariableLocalHost) {
 		all = append(all, _const.VariableLocalHost)
 	}
 

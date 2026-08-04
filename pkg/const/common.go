@@ -89,6 +89,10 @@ const ( // === From GatherFact ===
 	VariableProcessCPU = "cpuInfo"
 	// VariableProcessMemory the value is memory info of VariableProcess.
 	VariableProcessMemory = "memInfo"
+	// VariableBlockDevices the value is block device info gathered via lsblk.
+	VariableBlockDevices = "blockdevices"
+	// VariableGPU the value is GPU info gathered via lspci.
+	VariableGPU = "gpu"
 )
 
 const ( // === From runtime ===

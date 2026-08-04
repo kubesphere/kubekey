@@ -39,8 +39,12 @@ work_dir/
 |-- binary_dir/
 |   |-- artifact-path...
 |   |-- images
+
 |
 |-- scripts_dir/
+|
+|-- gather_facts/
+|   |-- gpu_vendors.yaml
 |
 |-- runtime/
 |-- | -- gather_facts_caches
@@ -103,6 +107,12 @@ const ProjectRolesFilesDir = "files"
 
 // ScriptsDir stores custom scripts. By default, its path is set to {{ .work_dir/scripts }}.
 const ScriptsDir = "scripts_dir"
+
+// GatherFactsDir stores configuration files used during fact gathering, such as GPU vendor classification rules.
+const GatherFactsDir = "gather_facts"
+
+// GPUVendorConfig is the relative path to GPU vendor config under workdir.
+const GPUVendorConfig = "gpu_vendors.yaml"
 
 // BinaryDir refers to a portable software package that can typically be bundled into an offline package. By default, its path is set to {{ .work_dir/kubekey }}.
 const BinaryDir = "binary_dir"
