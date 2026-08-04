@@ -36,13 +36,13 @@
             fail_msg: >-
               The kubelet service must be running and active when it is loaded.
         - name: Kubernetes | Ensure installed Kubernetes version matches expected version
-          when: .upgrade | default dict | empty
+          when: not (.upgrade.kubernetes | default false)
           assert:
             that: .kubernetes_install_version.stdout | default "" | trimPrefix "Kubernetes " | eq .kubernetes.kube_version
             fail_msg: >-
               The installed Kubernetes version ({{ .kubernetes_install_version.stdout | default "" | trimPrefix "Kubernetes " }}) does not match the expected version ({{ .kubernetes.kube_version }}).
         - name: Kubernetes | Validate Kubernetes upgrade path
-          when: .upgrade | default dict | empty | not
+          when: .upgrade.kubernetes | default false
           assert:
             that: .kubernetes_install_version.stdout | default "" | trimPrefix "Kubernetes " | semverCompare (printf "<%s" .kubernetes.kube_version)
             fail_msg: >-

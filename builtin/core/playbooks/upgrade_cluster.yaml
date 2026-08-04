@@ -67,7 +67,9 @@
   gather_facts: true
   roles:
     - role: kubernetes/upgrade-kubernetes
-      when: .kubernetes_install_ActiveState.stdout | eq "active"
+      when:
+        - .upgrade.kubernetes
+        - .kubernetes_install_ActiveState.stdout | eq "active"
 
 # Upgrade worker nodes using kubeadm upgrade node
 - hosts:
@@ -75,7 +77,9 @@
   gather_facts: true
   roles:
     - role: kubernetes/upgrade-kubernetes
-      when: .kubernetes_install_ActiveState.stdout | eq "active"
+      when:
+        - .upgrade.kubernetes
+        - .kubernetes_install_ActiveState.stdout | eq "active"
 
 # Upgrade network and storage components if their versions changed
 # Only when upgrade.cni / upgrade.storage_class is set

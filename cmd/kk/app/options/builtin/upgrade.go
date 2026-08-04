@@ -52,9 +52,13 @@ type UpgradeClusterOptions struct {
 	options.CommonOptions
 	// Kubernetes version which the cluster will upgrade to.
 	Kubernetes string
-	// UpgradeAllComponents indicates whether to upgrade all related components (etcd, cni, cri, helm, etc.)
-	// If false, only kubelet will be upgraded.
+	// UpgradeAllComponents indicates whether to upgrade all related components (etcd, cni, cri, storage_class).
+	// If false, only kubelet/kubeadm will be upgraded (unless individual components are enabled via --set).
 	UpgradeAllComponents bool
+	// OnlyComponent, when non-empty, restricts the upgrade to a single component
+	// (e.g. "etcd"). It is preset by the top-level `kk upgrade <component>` subcommands
+	// and must NOT be set together with a regular `kk upgrade cluster` invocation.
+	OnlyComponent string
 }
 
 // Flags returns the flag sets for UpgradeClusterOptions
@@ -110,20 +114,45 @@ func (o *UpgradeClusterOptions) completeConfig() error {
 		}
 	}
 
-	// Set upgrade.all flag in config
-	if err := unstructured.SetNestedField(o.Config.Value(), o.UpgradeAllComponents, "upgrade", "all"); err != nil {
-		return errors.Wrapf(err, "failed to set %q to config", "upgrade.all")
-	}
+	// Components that have a wired upgrade path in upgrade_cluster.yaml.
+	// dns / image_registry / nfs are intentionally excluded: their upgrade roles
+	// are not implemented yet, so exposing them would create dead switches.
+	upgradeComponents := []string{"etcd", "cri", "cni", "storage_class"}
 
-	// Set individual component upgrade flags.
-	// If --all is set, all components are marked for upgrade.
-	// If not set, components default to false (only kubelet/kubeadm will be upgraded).
-	// Users can still override individual components via --set (e.g., --set upgrade.cri=true).
-	upgradeComponents := []string{"etcd", "cri", "cni", "storage_class", "dns", "image_registry", "nfs"}
-	for _, comp := range upgradeComponents {
-		if _, ok, _ := unstructured.NestedFieldNoCopy(o.Config.Value(), "upgrade", comp); !ok {
-			if err := unstructured.SetNestedField(o.Config.Value(), o.UpgradeAllComponents, "upgrade", comp); err != nil {
-				return errors.Wrapf(err, "failed to set %q to config", "upgrade."+comp)
+	if o.OnlyComponent != "" {
+		// Standalone component upgrade (e.g. `kk upgrade etcd`): upgrade ONLY that
+		// component and leave the Kubernetes control plane/worker nodes untouched.
+		if err := unstructured.SetNestedField(o.Config.Value(), false, "upgrade", "kubernetes"); err != nil {
+			return errors.Wrapf(err, "failed to set %q to config", "upgrade.kubernetes")
+		}
+		if err := unstructured.SetNestedField(o.Config.Value(), true, "upgrade", o.OnlyComponent); err != nil {
+			return errors.Wrapf(err, "failed to set %q to config", "upgrade."+o.OnlyComponent)
+		}
+		// Other components keep their values (default false from the defaults role,
+		// or explicitly overridden via --set).
+	} else {
+		// `kk upgrade cluster` (optionally with --all / --set): Kubernetes is always
+		// the base of a cluster upgrade.
+		if err := unstructured.SetNestedField(o.Config.Value(), true, "upgrade", "kubernetes"); err != nil {
+			return errors.Wrapf(err, "failed to set %q to config", "upgrade.kubernetes")
+		}
+
+		if o.UpgradeAllComponents {
+			// --all: upgrade every wired component.
+			for _, comp := range upgradeComponents {
+				if err := unstructured.SetNestedField(o.Config.Value(), true, "upgrade", comp); err != nil {
+					return errors.Wrapf(err, "failed to set %q to config", "upgrade."+comp)
+				}
+			}
+		} else {
+			// Preserve values injected via --set (e.g. --set upgrade.etcd=true):
+			// only fill a default when the component key is absent from the config.
+			for _, comp := range upgradeComponents {
+				if _, ok, _ := unstructured.NestedFieldNoCopy(o.Config.Value(), "upgrade", comp); !ok {
+					if err := unstructured.SetNestedField(o.Config.Value(), false, "upgrade", comp); err != nil {
+						return errors.Wrapf(err, "failed to set %q to config", "upgrade."+comp)
+					}
+				}
 			}
 		}
 	}

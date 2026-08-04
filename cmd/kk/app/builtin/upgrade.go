@@ -20,19 +20,27 @@ limitations under the License.
 package builtin
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 
 	"github.com/kubesphere/kubekey/v4/cmd/kk/app/options/builtin"
 )
 
 // NewUpgradeCommand creates a new upgrade command that allows upgrading a cluster.
-// It provides subcommands for upgrading the cluster.
+// It provides subcommands for upgrading the cluster and individual components.
 func NewUpgradeCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "upgrade",
 		Short: "Upgrade a Kubernetes cluster",
 	}
 	cmd.AddCommand(newUpgradeClusterCommand())
+	// Standalone component upgrades: upgrade ONLY the named component, leaving the
+	// Kubernetes control plane and other components untouched.
+	cmd.AddCommand(newUpgradeComponentCommand("etcd", "etcd"))
+	cmd.AddCommand(newUpgradeComponentCommand("cri", "cri"))
+	cmd.AddCommand(newUpgradeComponentCommand("cni", "cni"))
+	cmd.AddCommand(newUpgradeComponentCommand("storageclass", "storage_class"))
 
 	return cmd
 }
@@ -65,6 +73,38 @@ func newUpgradeClusterCommand() *cobra.Command {
 	for _, f := range o.Flags().FlagSets {
 		flags.AddFlagSet(f)
 	}
+
+	return cmd
+}
+
+// newUpgradeComponentCommand creates a command that upgrades only a single component
+// (e.g. `kk upgrade etcd`), leaving the Kubernetes control plane and other components
+// untouched. It reuses the same upgrade_cluster.yaml playbook but presets OnlyComponent
+// so that completeConfig disables the Kubernetes base and enables just this component.
+func newUpgradeComponentCommand(name, compKey string) *cobra.Command {
+	o := builtin.NewUpgradeClusterOptions()
+	o.OnlyComponent = compKey
+
+	cmd := &cobra.Command{
+		Use:   name,
+		Short: fmt.Sprintf("Upgrade only the %s component", name),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			playbook, err := o.Complete(cmd, []string{"playbooks/upgrade_cluster.yaml"})
+			if err != nil {
+				return err
+			}
+			return o.Run(cmd.Context(), playbook)
+		},
+	}
+	flags := cmd.Flags()
+	for _, f := range o.Flags().FlagSets {
+		flags.AddFlagSet(f)
+	}
+	// Component-only upgrades never touch the Kubernetes control plane, so the
+	// cluster-level flags are meaningless (and --all would be silently ignored
+	// because OnlyComponent takes precedence). Hide them to avoid confusion.
+	_ = flags.MarkHidden("all")
+	_ = flags.MarkHidden("with-kubernetes")
 
 	return cmd
 }
