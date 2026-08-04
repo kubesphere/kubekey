@@ -22,13 +22,13 @@
             printf "\n]\n";
           }
         '
-      register: interface
+      register: keepalived_interfaces
       register_type: json
     - name: Keepalived | Select interface matching HA VIP
-      set_fact: 
+      set_fact:
         ha_vip_interface: >-
           {{- $interface := "" }}
-          {{- range .interface.stdout | default list -}}
+          {{- range .keepalived_interfaces.stdout | default list -}}
             {{- if .cidr | ipInCIDR | has $.image_registry.ha_vip -}}
               {{- $interface = .interface -}}
             {{- end -}}
