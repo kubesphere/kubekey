@@ -769,6 +769,9 @@ cri:
 
   # Docker configuration
   docker:
+    # Policy for updating the Docker daemon config and systemd service when the runtime is already installed.
+    # Empty (default): skip the update; "merge": merge with the existing config; "override": overwrite.
+    daemon_policy: ""
     # Docker daemon configuration
     daemon:
       # Docker data root directory
@@ -787,6 +790,9 @@ cri:
 
   # containerd configuration
   containerd:
+    # Policy for updating the containerd config file and systemd service when the runtime is already installed.
+    # Empty (default): skip the update; "merge": merge with the existing config (node-side keys take precedence); "override": overwrite.
+    config_policy: ""
     config:
       # containerd data root directory
       root: "{{ .cri.containerd.data_root | default \"/var/lib/containerd\" }}"
@@ -852,6 +858,8 @@ cri:
 | `cri.docker.daemon.live-restore` | Whether to enable Docker live-restore. |
 | `cri.docker.daemon.exec-opts` | Docker exec options list, e.g., cgroup driver. |
 | `cri.containerd.config` | containerd configuration, mapped to `/etc/containerd/config.toml`. |
+| `cri.containerd.config_policy` | Policy for updating the containerd config file (`/etc/containerd/config.toml`) and systemd service when the runtime is already installed: empty (default) skips the update; `merge` merges with the existing config (node-side existing keys take precedence); `override` overwrites. Binary installation and certificate sync are not affected by this policy. |
+| `cri.docker.daemon_policy` | Same as `cri.containerd.config_policy`, but applies to the Docker daemon (`/etc/docker/daemon.json`) and its systemd service. |
 | `cri.containerd.config.root` | containerd data persistence root directory. |
 | `cri.containerd.config.version` | containerd configuration file version. |
 | `cri.containerd.config.state` | containerd runtime state directory. |

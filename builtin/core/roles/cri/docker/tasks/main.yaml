@@ -71,7 +71,7 @@
 
 # install or update docker service
 - name: Docker | Configure Docker daemon
-  when: or .upgrade.cri (or (.docker_install_version.error | empty | not) (.docker_install_version.stdout | hasPrefix (printf "Docker version %s," .cri.docker_version) | not))
+  when: or (.docker_install_version.error | empty | not) (.docker_install_version.stdout | hasPrefix (printf "Docker version %s," .cri.docker_version) | not) (.cri.docker.daemon_policy | empty | not)
   block:
     - name: Docker | Read existing Docker daemon configuration
       when: .cri.docker.daemon_policy | eq "merge"
@@ -84,12 +84,12 @@
         src: daemon.json
         dest: /etc/docker/daemon.json
 - name: Docker | Deploy the Docker systemd service file
-  when: or .upgrade.cri (or (.docker_install_version.error | empty | not) (.docker_install_version.stdout | hasPrefix (printf "Docker version %s," .cri.docker_version) | not))
+  when: or (.docker_install_version.error | empty | not) (.docker_install_version.stdout | hasPrefix (printf "Docker version %s," .cri.docker_version) | not) (.cri.docker.daemon_policy | empty | not)
   copy:
     src: docker.service
     dest: /etc/systemd/system/docker.service
 - name: Containerd | Configure containerd
-  when: or .upgrade.cri (or (.docker_install_version.error | empty | not) (.docker_install_version.stdout | hasPrefix (printf "Docker version %s," .cri.docker_version) | not))
+  when: or (.docker_install_version.error | empty | not) (.docker_install_version.stdout | hasPrefix (printf "Docker version %s," .cri.docker_version) | not) (.cri.docker.daemon_policy | empty | not)
   block:
     - name: Containerd | Read existing containerd configuration
       when: .cri.containerd.config_policy | eq "merge"
@@ -101,12 +101,12 @@
         src: config.toml
         dest: /etc/containerd/config.toml
 - name: Docker | Deploy the containerd systemd service file
-  when: or .upgrade.cri (or (.docker_install_version.error | empty | not) (.docker_install_version.stdout | hasPrefix (printf "Docker version %s," .cri.docker_version) | not))
+  when: or (.docker_install_version.error | empty | not) (.docker_install_version.stdout | hasPrefix (printf "Docker version %s," .cri.docker_version) | not) (.cri.docker.daemon_policy | empty | not)
   copy:
     src: containerd.service
     dest: /etc/systemd/system/containerd.service
 - name: Docker | Start and enable Docker and containerd services
-  when: or .upgrade.cri (or (.docker_install_version.error | empty | not) (.docker_install_version.stdout | hasPrefix (printf "Docker version %s," .cri.docker_version) | not))
+  when: or (.docker_install_version.error | empty | not) (.docker_install_version.stdout | hasPrefix (printf "Docker version %s," .cri.docker_version) | not) (.cri.docker.daemon_policy | empty | not)
   command: |
     systemctl daemon-reload && systemctl restart containerd.service && systemctl enable containerd.service
     systemctl daemon-reload && systemctl restart docker.service && systemctl enable docker.service

@@ -767,6 +767,9 @@ cri:
 
   # Docker 配置
   docker:
+    # 已安装 Docker 时，更新 daemon 配置（/etc/docker/daemon.json）与 systemd 服务的策略。
+    # 空（默认）：跳过更新；"merge"：与现有配置合并；"override"：覆盖。
+    daemon_policy: ""
     # Docker daemon 配置
     daemon:
       # Docker 数据根目录
@@ -785,6 +788,9 @@ cri:
 
   # containerd 配置
   containerd:
+    # 已安装 containerd 时，更新配置文件（/etc/containerd/config.toml）与 systemd 服务的策略。
+    # 空（默认）：跳过更新；"merge"：与现有配置合并（节点侧已有键优先）；"override"：覆盖。
+    config_policy: ""
     config:
       # containerd 数据根目录
       root: "{{ .cri.containerd.data_root | default \"/var/lib/containerd\" }}"
@@ -850,6 +856,8 @@ cri:
 | `cri.docker.daemon.live-restore` | 是否启用 Docker live-restore。 |
 | `cri.docker.daemon.exec-opts` | Docker exec 选项列表，例如 cgroup 驱动。 |
 | `cri.containerd.config` | containerd 配置，映射为 `/etc/containerd/config.toml`。 |
+| `cri.containerd.config_policy` | 已安装 containerd 时，更新配置文件（/etc/containerd/config.toml）与 systemd 服务的策略：空（默认）跳过更新；`merge` 与现有配置合并（节点侧已有键优先）；`override` 覆盖。该策略不影响二进制安装与证书同步。 |
+| `cri.docker.daemon_policy` | 与 `cri.containerd.config_policy` 相同，但作用于 Docker daemon（/etc/docker/daemon.json）及其 systemd 服务。 |
 | `cri.containerd.config.root` | containerd 数据持久化根目录。 |
 | `cri.containerd.config.version` | containerd 配置文件版本。 |
 | `cri.containerd.config.state` | containerd 运行状态目录。 |
