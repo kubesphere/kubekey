@@ -57,7 +57,7 @@
           /etc/containerd/certs.d/{{ .image_registry.auth.registry | splitList "/" | first }}/client.key
 
 - name: Containerd | Configure containerd
-  when: or .upgrade.cri (or (.containerd_install_version.error | empty | not) (.containerd_install_version.stdout | contains (printf " %s " .cri.containerd_version) | not))
+  when: or (.containerd_install_version.error | empty | not) (.containerd_install_version.stdout | contains (printf " %s " .cri.containerd_version) | not) (.cri.containerd.config_policy | empty | not)
   block:
     - name: Containerd | Read existing containerd configuration
       when: .cri.containerd.config_policy | eq "merge"
@@ -69,11 +69,11 @@
         src: config.toml
         dest: /etc/containerd/config.toml
 - name: Containerd | Deploy the containerd systemd service file
-  when: or .upgrade.cri (or (.containerd_install_version.error | empty | not) (.containerd_install_version.stdout | contains (printf " %s " .cri.containerd_version) | not))
+  when: or (.containerd_install_version.error | empty | not) (.containerd_install_version.stdout | contains (printf " %s " .cri.containerd_version) | not) (.cri.containerd.config_policy | empty | not)
   copy:
     src: containerd.service
     dest: /etc/systemd/system/containerd.service
 - name: Containerd | Start and enable the containerd service
-  when: or .upgrade.cri (or (.containerd_install_version.error | empty | not) (.containerd_install_version.stdout | contains (printf " %s " .cri.containerd_version) | not))
+  when: or (.containerd_install_version.error | empty | not) (.containerd_install_version.stdout | contains (printf " %s " .cri.containerd_version) | not) (.cri.containerd.config_policy | empty | not)
   command: |
     systemctl daemon-reload && systemctl restart containerd.service && systemctl enable containerd.service

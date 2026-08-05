@@ -55,9 +55,5 @@ delete:
 # This is typically used with --with-data flag or delete.data: true
   data: false
 
-upgrade:
-  # Whether to modify CRI configuration file
-  cri: false
-
 # image_manifests: List of container images to be synchronized to the private registry
 image_manifests: []
