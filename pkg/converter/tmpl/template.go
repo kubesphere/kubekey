@@ -18,6 +18,8 @@ package tmpl
 
 import (
 	"bytes"
+	"os"
+	"path"
 	"text/template"
 
 	"github.com/cockroachdb/errors"
@@ -42,15 +44,17 @@ func ParseFunc[C ~map[string]any, Output any](ctx C, input string, f func([]byte
 		return f([]byte(input)), nil
 	}
 
-	funcMap := funcMap()
-	includedNames := make(map[string]int)
 	tl := template.New("kubekey")
-	// Add the template-rendering functions here so we can close over t.
-	funcMap["include"] = includeFun(tl, includedNames)
-	funcMap["tpl"] = tplFun(tl, includedNames, false)
+	setupTemplateEngine(tl)
+
+	if err := loadBuiltinIncludeTemplates(tl); err != nil {
+		return f(nil), errors.Wrapf(err, "failed to parse builtin template %q", "tpls/*.tpl")
+	}
+	if err := loadIncludeTemplates(tl, ctx); err != nil {
+		return f(nil), err
+	}
 	// Parse the template string
-	_, err := tl.Funcs(funcMap).Parse(input)
-	if err != nil {
+	if _, err := tl.Parse(input); err != nil {
 		return f(nil), errors.Wrapf(err, "failed to parse template '%s'", input)
 	}
 	// Execute template with provided context
@@ -88,4 +92,37 @@ func ParseBool(ctx map[string]any, inputs ...string) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func setupTemplateEngine(tl *template.Template) {
+	funcMap := funcMap()
+	includedNames := make(map[string]int)
+	// Add the template-rendering functions here so we can close over t.
+	funcMap["include"] = includeFun(tl, includedNames)
+	funcMap["tpl"] = tplFun(tl, includedNames, false)
+	_ = tl.Funcs(funcMap)
+}
+
+func loadIncludeTemplates(tl *template.Template, ctx map[string]any) error {
+	includesDir, ok := ctx["include_tpls"]
+	if !ok {
+		return nil
+	}
+	includesDirStr, ok := includesDir.(string)
+	if !ok || includesDirStr == "" {
+		return nil
+	}
+	fileInfo, err := os.Stat(includesDirStr)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get include_tpls fileinfo %q", includesDir)
+	}
+	if fileInfo.IsDir() {
+		_, err = tl.ParseGlob(path.Join(includesDirStr, "*.tpl"))
+	} else {
+		_, err = tl.ParseFiles(includesDirStr)
+	}
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse include template %q", includesDirStr)
+	}
+	return nil
 }
