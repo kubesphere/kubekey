@@ -277,35 +277,24 @@ process_item() {
   fi
 }
 
-# Process inventory standard storage items.
-{{ range .kubernetes.storage_disks | default list }}
-DEVICES=()
-{{ $disk := index . "disk" | default "" }}{{ if $disk }}DEVICES+=("{{ $disk }}"){{ end }}
-{{ $device := index . "device" | default "" }}
-{{ if kindIs "string" $device }}{{ if $device }}DEVICES+=("{{ $device }}"){{ end }}{{ else }}{{ range $device }}DEVICES+=("{{ . }}"){{ end }}{{ end }}
-for i in "${!DEVICES[@]}"; do
-  d="${DEVICES[$i]}"
-  d="${d#/dev/}"
-  DEVICES[$i]="/dev/$d"
-done
+# Process storage disks (format + mount, optionally via LVM).
+{{ if .kubernetes.storage_disks }}
+{{ range .kubernetes.storage_disks }}
+DEVICE="{{ index . "device" }}"
+[ -n "$DEVICE" ] || { echo "device is required" >&2; exit 1; }
+DEVICE="${DEVICE#/dev/}"
+DEVICE="/dev/$DEVICE"
+DEVICES=("$DEVICE")
 
-FILESYSTEM="{{ index . "filesystem" }}"
+FILESYSTEM="{{ index . "filesystem" | default "xfs" }}"
 PARTITION={{ index . "partition" | default false }}
-OVERWRITE={{ index . "overwrite" | default false }}
-MOUNT_POINT="{{ index . "mount_point" | default "" }}"
-MOUNT_OPTIONS="{{ index . "mount_options" | default "defaults" }}"
-VG_NAME="{{ with index . "lvm" }}{{ index . "vg_name" | default "" }}{{ end }}"
-LV_NAME="{{ with index . "lvm" }}{{ index . "lv_name" | default "" }}{{ end }}"
-LV_SIZE="{{ with index . "lvm" }}{{ index . "lv_size" | default "100%FREE" }}{{ end }}"
-
-[ -n "$MOUNT_OPTIONS" ] || MOUNT_OPTIONS="defaults"
-if [ -z "$LV_NAME" ] && [ -n "$VG_NAME" ]; then
-  name="${MOUNT_POINT#/}"
-  name="${name:-${DEVICES[0]#/dev/}}"
-  name="${name//\//_}"
-  name="${name//-/_}"
-  LV_NAME="lv_${name:-data}"
-fi
+OVERWRITE={{ index . "overwrite" | default true }}
+MOUNT_POINT="{{ index . "mountpoint" | default "" }}"
+MOUNT_OPTIONS="{{ index . "mount_option" | default "defaults" }}"
+VG_NAME="{{ index . "vg_name" | default "" }}"
+LV_NAME="{{ index . "lv_name" | default "lv_data" }}"
+LV_SIZE="100%FREE"
 
 process_item
+{{ end }}
 {{ end }}
