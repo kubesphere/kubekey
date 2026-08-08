@@ -11,6 +11,19 @@
   when: printf "%s/manifests.yaml" .binary_dir | fileExists
   include_vars: "{{ .binary_dir }}/manifests.yaml"
 
+- name: Artifact | Include actual host architectures in the download list
+  tags: ["always"]
+  set_fact:
+    download:
+      arch: >-
+        {{- $archs := .download.arch -}}
+        {{- range $.hostvars }}
+          {{- if .binary_type }}
+            {{- $archs = append $archs .binary_type }}
+          {{- end }}
+        {{- end }}
+        {{- $archs | uniq | toJson }}
+
 - name: Artifact | Download required binaries and images
   when: .download.fetch
   block:
