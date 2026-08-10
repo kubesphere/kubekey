@@ -298,6 +298,20 @@ func (c *sshConnector) FetchFile(_ context.Context, src string, dst io.Writer) e
 	return nil
 }
 
+// buildSudoCommand wraps cmd so it executes via sudo as the given user/shell.
+//
+// The script is passed to the shell as a "-c" argument built through a quoted
+// command substitution ("$(cat <<'EOF' ... EOF)") rather than piped to sudo's
+// own stdin via a heredoc. sudo reads the interactive password prompt from its
+// stdin when one is required (i.e. NOPASSWD is not configured); piping the
+// script itself into that same stdin means sudo consumes lines of the script
+// as bogus password attempts and the real password, written to the SSH
+// session's stdin by ExecuteCommand, never reaches it. Passing the script via
+// "-c" leaves stdin free for that password write.
+func buildSudoCommand(user, shell, cmd string) string {
+	return fmt.Sprintf("TERM=dumb; export LANG=C.UTF-8; SUDO_USER=%s; sudo -E %s -c \"$(cat << 'KUBEKEY_EOF'\n%s\nKUBEKEY_EOF\n)\"", user, shell, cmd)
+}
+
 // ExecuteCommand exec cmd with sudo
 func (c *sshConnector) ExecuteCommand(_ context.Context, cmd string) ([]byte, []byte, error) {
 	session, err := c.session()
@@ -306,7 +320,7 @@ func (c *sshConnector) ExecuteCommand(_ context.Context, cmd string) ([]byte, []
 	}
 	defer session.Close()
 
-	cmd = fmt.Sprintf("TERM=dumb; export LANG=C.UTF-8; SUDO_USER=%s; sudo -E %s << 'KUBEKEY_EOF'\n%s\nKUBEKEY_EOF", c.User, c.shell, cmd)
+	cmd = buildSudoCommand(c.User, c.shell, cmd)
 	klog.V(5).InfoS("exec ssh command", "cmd", cmd)
 
 	in, err := session.StdinPipe()
