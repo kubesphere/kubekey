@@ -10,6 +10,8 @@ Related implementation:
 
 When a host defines `storage` or `kubernetes.storage_disks`, the `native` role formats disks before other initialization steps. The `precheck` role validates the configuration first.
 
+When a cluster or node is deleted with `delete.data` enabled (`--with-data`), the `uninstall/storage` role unmounts the configured mount points and removes the storage: for LVM it tears down the logical volumes and volume groups and wipes the physical volumes, while for direct disks it wipes the underlying block devices. This destroys the data, so only enable it when you intend to.
+
 ---
 
 ## Configuration Entry Points
@@ -123,7 +125,7 @@ spec:
 | `mount_options` | String | No | `defaults` | Mount options written to `/etc/fstab`; `defaults,` is prepended if `defaults` is missing |
 | `lvm` | Object | No | - | Enable LVM management; allows multiple `device` entries |
 | `lvm.vg_name` | String | Required when LVM is enabled | - | Volume group name; must match `[a-zA-Z0-9._+-]` |
-| `lvm.lv_name` | String | No | Auto-derived | Logical volume name; defaults from `mount_point`, e.g. `/data` → `lv_data` |
+| `lvm.lv_name` | String | No | Auto-derived | Logical volume name; auto-derived as `lv_<device>_<mount_point_basename>` when `vg_name` is set and `lv_name` is empty, e.g. device `/dev/vdb` with mount point `/longhorn-data` → `lv_vdb_longhorn-data` |
 | `lvm.lv_size` | String | No | `100%FREE` | Logical volume size, e.g. `10G`, `50%FREE`, `100%FREE` |
 
 ### Precheck Rules

@@ -89,6 +89,10 @@
         - .delete.cri
         - .groups.image_registry | default list | has .inventory_hostname | not
         - .delete_nodes | default list | has .inventory_hostname
+    - role: uninstall/storage
+      when:
+        - .delete.data | default false
+        - .delete_nodes | default list | has .inventory_hostname
   post_tasks:
     - name: DeleteNode | Clean up local DNS configuration files
       ignore_errors: true
