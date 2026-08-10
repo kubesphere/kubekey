@@ -19,6 +19,9 @@
       when: 
         - .delete.cri
         - .groups.image_registry | default list | has .inventory_hostname | not
+    - role: uninstall/storage
+      when:
+        - .delete.data | default false
   post_tasks:
     - name: DeleteCluster | Clean up local DNS configuration files
       ignore_errors: true

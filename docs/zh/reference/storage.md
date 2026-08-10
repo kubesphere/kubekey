@@ -10,6 +10,8 @@
 
 当主机配置了 `storage` 或 `kubernetes.storage_disks` 时，`native` 角色会在其他初始化步骤之前执行磁盘格式化；`precheck` 阶段会校验配置合法性。
 
+当删除集群或节点时若启用了 `delete.data`（即 `--with-data`），`uninstall/storage` 角色会卸载已配置的挂载点并清理存储：LVM 模式下会拆除逻辑卷与卷组并擦除物理卷，直挂模式下会擦除底层块设备。该操作会销毁数据，请仅在确有需要时使用。
+
 ---
 
 ## 配置入口
@@ -123,7 +125,7 @@ spec:
 | `mount_options` | String | 否 | `defaults` | 写入 `/etc/fstab` 的挂载选项；未含 `defaults` 时会自动前缀 `defaults,` |
 | `lvm` | Object | 否 | - | 启用 LVM 管理；配置后允许多个 `device` |
 | `lvm.vg_name` | String | 启用 LVM 时必填 | - | 卷组名，仅允许 `[a-zA-Z0-9._+-]` |
-| `lvm.lv_name` | String | 否 | 自动推导 | 逻辑卷名；默认根据 `mount_point` 生成，如 `/data` → `lv_data` |
+| `lvm.lv_name` | String | 否 | 自动推导 | 逻辑卷名；当 `vg_name` 已设置且 `lv_name` 为空时自动推导为 `lv_<设备>_<挂载点末级路径>`，如设备 `/dev/vdb`、挂载点 `/longhorn-data` → `lv_vdb_longhorn-data` |
 | `lvm.lv_size` | String | 否 | `100%FREE` | 逻辑卷大小，如 `10G`、`50%FREE`、`100%FREE` |
 
 ### 校验规则（precheck）

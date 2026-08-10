@@ -1,0 +1,14 @@
+- name: Storage | Generate storage cleanup script
+  when:
+    - .kubernetes.storage_disks | empty | not
+    - .delete.data | default false
+  template:
+    src: uninstall-storage.sh
+    dest: /etc/kubekey/scripts/uninstall-storage.sh
+    mode: 0755
+
+- name: Storage | Remove storage disks and data
+  when:
+    - .kubernetes.storage_disks | empty | not
+    - .delete.data | default false
+  command: /etc/kubekey/scripts/uninstall-storage.sh
