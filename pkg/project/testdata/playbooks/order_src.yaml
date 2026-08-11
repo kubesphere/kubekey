@@ -1,0 +1,8 @@
+---
+- import_playbook: order_pre.yaml
+- name: a
+  hosts:
+    - node1
+- name: b
+  hosts:
+    - node1
