@@ -55,3 +55,41 @@
 - **多个 play**：按定义顺序执行；`import_playbook` 会先展开为对应 play。
 - **同一 play 内**：`pre_tasks` → `roles` → `tasks` → `post_tasks`。
 - 任一 task 失败（且未 `ignore_errors`）则 play 失败。
+
+## 注入自定义 Playbook（Inject Playbooks）
+
+除在 playbook 文件内写死 `import_playbook` 外，还可以通过 playbook 的 config spec 声明
+`playbooks` 列表，把**自定义 playbook 注入到顶层（第一个）源 playbook 的任意位置**。
+这样无需改动内置 playbook 与 role 代码，就能在默认参数加载完成后覆盖 / 修改参数。
+
+### 配置
+
+```yaml
+spec:
+  playbooks:
+    - order: 1.5                        # 插在第 1、2 个原始 play 之间
+      path: hook/inject_playbooks.yaml # 要注入的 playbook（相对项目根，支持模板渲染）
+    - order: 0                          # 0 表示插在最前面（第 1 个 play 之前）
+      path: hook/pre_custom.yaml
+```
+
+### 规则
+
+- **原始 play 自动获得权重 `1, 2, 3, ...`**（按文档顺序，1-based）。
+- **注入项给显式 `order`**（float，可小数、可负数），用于定位插入位置；例如
+  `order: 1.5` 表示插在第 1 个与第 2 个原始 play 之间，`order: 0` 表示插在最前。
+- **排序比较器（确定性裁决，order 相同不报错）**：
+  1. `order` 升序；
+  2. `playbooks` 配置项优先于文件内 play；
+  3. 同来源内按定义顺序（配置列表顺序 / 文件内顺序）。
+- **`path` 走模板渲染**：
+  - 渲染为空串 / 未设置变量 → 该项被**跳过**（不报错）；
+  - 设置了路径但文件不存在 → 按原逻辑**报错**，便于发现路径拼写错误。
+- 该机制**仅作用于顶层（第一个）源 playbook.yaml**；被导入的子 playbook 不再二次注入。
+
+### 示例
+
+内置包已提供一个示例 playbook `hook/inject_playbooks.yaml`（随内置包发布，可直接用
+`path: hook/inject_playbooks.yaml` 引用）。它默认是空操作，取消注释即可覆盖变量。
+完整示例与字段说明见参考页：[注入 Playbook（inject_playbooks.yaml）](../reference/playbooks/inject_playbooks.md)。
+

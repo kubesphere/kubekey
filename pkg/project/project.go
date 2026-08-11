@@ -23,6 +23,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/cockroachdb/errors"
@@ -30,6 +31,7 @@ import (
 	kkcorev1alpha1 "github.com/kubesphere/kubekey/api/core/v1alpha1"
 	kkprojectv1 "github.com/kubesphere/kubekey/api/project/v1"
 	"gopkg.in/yaml.v3"
+	"k8s.io/klog/v2"
 
 	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/converter/tmpl"
@@ -134,6 +136,15 @@ func (f *project) loadPlaybook(fromPlayBook, basePlaybook string) error {
 		return errors.Wrapf(err, "failed to unmarshal playbook %q", basePlaybook)
 	}
 
+	// Inject configured playbooks at their orders for the top-level playbook
+	// only. Imported playbooks keep their own content.
+	if fromPlayBook == "" {
+		plays, err = f.injectPlaybooks(plays)
+		if err != nil {
+			return err
+		}
+	}
+
 	for _, p := range plays {
 		if err := f.dealImportPlaybook(p, basePlaybook); err != nil {
 			return err
@@ -166,6 +177,13 @@ func (f *project) loadPlaybook(fromPlayBook, basePlaybook string) error {
 			}
 		}
 
+		// A play that is purely an import_playbook directive carries no
+		// standalone content; skip appending it so it does not show up as an
+		// empty play in the final playbook. Its imported plays are already
+		// loaded by dealImportPlaybook above.
+		if p.ImportPlaybook != "" {
+			continue
+		}
 		f.Play = append(f.Play, p)
 	}
 
@@ -175,7 +193,22 @@ func (f *project) loadPlaybook(fromPlayBook, basePlaybook string) error {
 // dealImportPlaybook handles the "import_playbook" argument in a play
 func (f *project) dealImportPlaybook(p kkprojectv1.Play, basePlaybook string) error {
 	if p.ImportPlaybook != "" {
-		importPlaybook, _ := f.getPath(GetImportPlaybookRelPath(basePlaybook, p.ImportPlaybook))
+		// Render the import path with template syntax so that it can be
+		// customized via variables and the `playbooks` order injection.
+		importPlaybookPath, err := tmpl.ParseFunc(f.config, p.ImportPlaybook, tmpl.StringFunc)
+		if err != nil {
+			return errors.Wrapf(err, "failed to parse import_playbook %q", p.ImportPlaybook)
+		}
+		// An import_playbook that renders to an empty string is treated as a
+		// no-op and skipped silently. This makes variable-driven imports
+		// opt-in: reference them as `{{ .var | default "" }}`, leave the
+		// variable unset (or set it to "") to disable the import, and point it
+		// at a path to enable it.
+		if strings.TrimSpace(importPlaybookPath) == "" {
+			klog.V(5).InfoS("skip empty import_playbook", "import_playbook", p.ImportPlaybook, "base", basePlaybook)
+			return nil
+		}
+		importPlaybook, _ := f.getPath(GetImportPlaybookRelPath(basePlaybook, importPlaybookPath))
 		if importPlaybook == "" {
 			return errors.Errorf("failed to find import_playbook %q base on %q. it's should be:\n %s", p.ImportPlaybook, basePlaybook, PathFormatImportPlaybook)
 		}
@@ -189,6 +222,88 @@ func (f *project) dealImportPlaybook(p kkprojectv1.Play, basePlaybook string) er
 	}
 
 	return nil
+}
+
+// playbookInjection defines a playbook to inject into the top-level playbook at
+// a specific position. Order is a sort weight: original (file) plays get
+// 1,2,3,... by their document order (1-based), while injected (config) plays
+// keep their explicit order.
+type playbookInjection struct {
+	Order float64 `yaml:"order" json:"order"`
+	Path  string  `yaml:"path" json:"path"`
+}
+
+// injectPlaybooks merges configured playbook injections into the play list and
+// returns the combined list sorted by order. The sort contract is:
+//   - original (file) plays get orders 1,2,3,... by document order (1-based);
+//   - injected (config) plays keep their explicit order (float, may be negative
+//     or fractional);
+//   - on a tie, config plays win over file plays, then definition order
+//     (config list order / file document order).
+//
+// The injected paths are rendered as templates; an empty rendered path is
+// skipped. Only the top-level playbook is injected (see loadPlaybook).
+func (f *project) injectPlaybooks(plays []kkprojectv1.Play) ([]kkprojectv1.Play, error) {
+	raw, ok := f.config["playbooks"]
+	if !ok || raw == nil {
+		return plays, nil
+	}
+	// Round-trip through YAML so we don't depend on the exact map types
+	// produced by the config JSON decoder.
+	buf, err := yaml.Marshal(raw)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to marshal playbooks injection config")
+	}
+	var injections []playbookInjection
+	if err := yaml.Unmarshal(buf, &injections); err != nil {
+		return nil, errors.Wrap(err, "failed to unmarshal playbooks injection config")
+	}
+
+	type entry struct {
+		order   float64
+		fromCfg bool
+		seq     int
+		play    kkprojectv1.Play
+	}
+	entries := make([]entry, 0, len(plays)+len(injections))
+	for i, p := range plays {
+		// Original plays are ordered 1,2,3,... (1-based), so that order: 0 is a
+		// natural "insert at the very front" sentinel.
+		entries = append(entries, entry{order: float64(i + 1), fromCfg: false, seq: i, play: p})
+	}
+	for i, inj := range injections {
+		path, err := tmpl.ParseFunc(f.config, inj.Path, tmpl.StringFunc)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to parse injected playbook path %q", inj.Path)
+		}
+		if strings.TrimSpace(path) == "" {
+			klog.V(5).InfoS("skip empty injected playbook", "order", inj.Order, "path", inj.Path)
+			continue
+		}
+		entries = append(entries, entry{
+			order:   inj.Order,
+			fromCfg: true,
+			seq:     i,
+			play:    kkprojectv1.Play{ImportPlaybook: path},
+		})
+	}
+
+	sort.SliceStable(entries, func(a, b int) bool {
+		if entries[a].order != entries[b].order {
+			return entries[a].order < entries[b].order
+		}
+		// Config injections win over file plays on a tie.
+		if entries[a].fromCfg != entries[b].fromCfg {
+			return entries[a].fromCfg
+		}
+		return entries[a].seq < entries[b].seq
+	})
+
+	out := make([]kkprojectv1.Play, len(entries))
+	for i, e := range entries {
+		out[i] = e.play
+	}
+	return out, nil
 }
 
 // dealVarsFiles handles the "vars_files" argument in a play

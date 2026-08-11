@@ -1,0 +1,4 @@
+---
+- name: pre
+  hosts:
+    - node1

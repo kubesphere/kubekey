@@ -55,3 +55,44 @@ A playbook file can execute multiple plays in the defined order; each play speci
 - **Multiple plays**: Execute in defined order; `import_playbook` expands to the corresponding play first.
 - **Within the same play**: `pre_tasks` → `roles` → `tasks` → `post_tasks`.
 - Any task failure (without `ignore_errors`) results in play failure.
+
+## Inject Playbooks
+
+Besides hardcoding `import_playbook` inside a playbook file, you can declare a `playbooks`
+list in the playbook's config spec to inject a **custom playbook at any position of the
+top-level (first) source playbook**. This lets you override/modify parameters after the
+default parameters are loaded, without touching builtin playbooks or role code.
+
+### Configuration
+
+```yaml
+spec:
+  playbooks:
+    - order: 1.5                        # insert between the 1st and 2nd original plays
+      path: hook/inject_playbooks.yaml # playbook to inject (relative to project root, templated)
+    - order: 0                          # 0 means insert at the very front (before the 1st play)
+      path: hook/pre_custom.yaml
+```
+
+### Rules
+
+- **Original plays get weights `1, 2, 3, ...` automatically** (by document order, 1-based).
+- **Injected items use an explicit `order`** (float, can be fractional or negative) to
+  position the insertion; e.g. `order: 1.5` inserts between the 1st and 2nd original plays,
+  `order: 0` inserts at the very front.
+- **Sort comparator (deterministic; duplicate `order` does not error)**:
+  1. `order` ascending;
+  2. `playbooks` config items take precedence over file plays;
+  3. within the same source, by definition order (config list order / file order).
+- **`path` is rendered through templates**:
+  - rendered to empty / unset variable → that item is **skipped** (no error);
+  - path set but file not found → **errors** (as usual), to catch typos.
+- This mechanism applies **only to the top-level (first) source playbook.yaml**; imported
+  sub-playbooks are not injected again.
+
+### Example
+
+The builtin package ships an example playbook `hook/inject_playbooks.yaml` (bundled, directly
+referenced via `path: hook/inject_playbooks.yaml`). It is a no-op by default; uncomment to
+override variables. For the full example and field reference, see
+[Inject Playbook (inject_playbooks.yaml)](../reference/playbooks/inject_playbooks.md).

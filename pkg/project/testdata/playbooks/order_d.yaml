@@ -1,0 +1,4 @@
+---
+- name: d
+  hosts:
+    - node1

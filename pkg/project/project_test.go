@@ -1,6 +1,7 @@
 package project
 
 import (
+	"encoding/json"
 	"testing"
 
 	kkcorev1 "github.com/kubesphere/kubekey/api/core/v1"
@@ -606,4 +607,122 @@ func TestMarshalPlaybook(t *testing.T) {
 			assert.Equal(t, tc.except, actual)
 		})
 	}
+}
+
+func TestInjectPlaybooksOrder(t *testing.T) {
+	// Source order_base.yaml has plays a(1), b(2), c(3) (1-based document order).
+	// Configured injections: d(-1), e(-1.1), f(-1), g(1).
+	// Sort contract:
+	//   e(-1.1) < d/f(-1, config seq d<f) < g(1, config) < a(1, file) < b(2) < c(3)
+	// => e, d, f, g, a, b, c
+	playbook := kkcorev1.Playbook{
+		Spec: kkcorev1.PlaybookSpec{
+			Playbook: "testdata/playbooks/order_base.yaml",
+			Config: mustConfig(t, map[string]any{
+				"playbooks": []any{
+					map[string]any{"order": -1.0, "path": "order_d.yaml"},
+					map[string]any{"order": -1.1, "path": "order_e.yaml"},
+					map[string]any{"order": -1.0, "path": "order_f.yaml"},
+					map[string]any{"order": 1.0, "path": "order_g.yaml"},
+				},
+			}),
+		},
+	}
+	project, err := newLocalProject(playbook)
+	if err != nil {
+		t.Fatal(err)
+	}
+	actual, err := project.MarshalPlaybook()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, p := range actual.Play {
+		got = append(got, p.Name)
+	}
+	assert.Equal(t, []string{"e", "d", "f", "g", "a", "b", "c"}, got)
+}
+
+func TestInjectPlaybooksOrderWithImportDirective(t *testing.T) {
+	// Source order_src.yaml:
+	//   [0] import_playbook: order_pre.yaml  (pure import directive -> weight 1)
+	//   [1] play a                          (weight 2)
+	//   [2] play b                          (weight 3)
+	// order_pre.yaml loads a single play "pre".
+	// Inject x at order 1 (same weight as the directive; config wins) =>
+	// final = [x, pre, a, b]. This proves that a pure import_playbook directive
+	// still occupies an order position, so config injections can be positioned
+	// relative to it.
+	playbook := kkcorev1.Playbook{
+		Spec: kkcorev1.PlaybookSpec{
+			Playbook: "testdata/playbooks/order_src.yaml",
+			Config: mustConfig(t, map[string]any{
+				"playbooks": []any{
+					map[string]any{"order": 1.0, "path": "order_x.yaml"},
+				},
+			}),
+		},
+	}
+	project, err := newLocalProject(playbook)
+	if err != nil {
+		t.Fatal(err)
+	}
+	actual, err := project.MarshalPlaybook()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, p := range actual.Play {
+		got = append(got, p.Name)
+	}
+	assert.Equal(t, []string{"x", "pre", "a", "b"}, got)
+}
+
+func TestInjectPlaybooksOrderEmptyPath(t *testing.T) {
+	// Source order_base.yaml: a(1), b(2), c(3).
+	// An injection whose path renders to empty must be skipped silently; a
+	// configured path keeps its position. Here:
+	//   order 1.5 -> empty path  -> skipped
+	//   order 2.5 -> order_d.yaml -> inserted between b and c
+	// => a, b, d, c
+	playbook := kkcorev1.Playbook{
+		Spec: kkcorev1.PlaybookSpec{
+			Playbook: "testdata/playbooks/order_base.yaml",
+			Config: mustConfig(t, map[string]any{
+				"playbooks": []any{
+					map[string]any{"order": 1.5, "path": "{{ .not_set | default \"\" }}"},
+					map[string]any{"order": 2.5, "path": "order_d.yaml"},
+				},
+			}),
+		},
+	}
+	project, err := newLocalProject(playbook)
+	if err != nil {
+		t.Fatal(err)
+	}
+	actual, err := project.MarshalPlaybook()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, p := range actual.Play {
+		got = append(got, p.Name)
+	}
+	assert.Equal(t, []string{"a", "b", "d", "c"}, got)
+}
+
+// mustConfig builds a Config from a map by going through JSON unmarshalling so
+// that Spec.Object (used by Value()) is populated. The map is wrapped under
+// "spec" to match the Config.Spec (runtime.RawExtension) JSON shape.
+func mustConfig(t *testing.T, v map[string]any) kkcorev1.Config {
+	t.Helper()
+	raw, err := json.Marshal(map[string]any{"spec": v})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var cfg kkcorev1.Config
+	if err := json.Unmarshal(raw, &cfg); err != nil {
+		t.Fatal(err)
+	}
+	return cfg
 }

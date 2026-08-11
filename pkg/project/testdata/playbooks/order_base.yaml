@@ -1,0 +1,10 @@
+---
+- name: a
+  hosts:
+    - node1
+- name: b
+  hosts:
+    - node1
+- name: c
+  hosts:
+    - node1
