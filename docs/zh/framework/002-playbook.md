@@ -89,7 +89,7 @@ spec:
 
 ### 示例
 
-内置包已提供一个示例 playbook `hook/inject_playbooks.yaml`（随内置包发布，可直接用
-`path: hook/inject_playbooks.yaml` 引用）。它默认是空操作，取消注释即可覆盖变量。
-完整示例与字段说明见参考页：[注入 Playbook（inject_playbooks.yaml）](../reference/playbooks/inject_playbooks.md)。
+典型的用法是「默认参数加载完后覆盖变量」。请在自己的项目中创建注入 playbook
+（例如 `hook/inject_playbooks.yaml`，默认是空操作），再用 `path` 引用它。
+完整的可复制示例与字段说明见参考页：[注入 Playbook（inject_playbooks.yaml）](../reference/playbooks/hook/inject_playbooks.md)。
 

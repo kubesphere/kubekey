@@ -92,7 +92,8 @@ spec:
 
 ### Example
 
-The builtin package ships an example playbook `hook/inject_playbooks.yaml` (bundled, directly
-referenced via `path: hook/inject_playbooks.yaml`). It is a no-op by default; uncomment to
-override variables. For the full example and field reference, see
-[Inject Playbook (inject_playbooks.yaml)](../reference/playbooks/inject_playbooks.md).
+A typical use case is overriding variables after the default parameters are loaded.
+Create your own injection playbook in your project (e.g. `hook/inject_playbooks.yaml`,
+a no-op by default), then reference it via `path`. For the full copyable example and
+field reference, see
+[Inject Playbook (inject_playbooks.yaml)](../reference/playbooks/hook/inject_playbooks.md).

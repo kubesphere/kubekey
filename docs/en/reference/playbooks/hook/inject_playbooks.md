@@ -1,20 +1,20 @@
 # Inject Playbook (inject_playbooks.yaml)
 
-![architecture](../../images/architecture.png)
+![architecture](../../../images/architecture.png)
 
-`inject_playbooks.yaml` is a builtin **example playbook for injection**. It is a no-op by
+`inject_playbooks.yaml` is an **example playbook (template) for injection**. It is a no-op by
 default, used to override/modify parameters after the default parameters are loaded, without
-changing builtin playbooks or role code.
+changing builtin playbooks or role code. KubeKey does not bundle this file; create it in your
+own project (or local playbook directory).
 
-The file is bundled with the builtin package at `builtin/core/playbooks/hook/inject_playbooks.yaml`.
-Reference it directly via the
-[`playbooks` injection mechanism](../framework/002-playbook.md#inject-playbooks):
+After creating it, reference it via the
+[`playbooks` injection mechanism](../../framework/002-playbook.md#inject-playbooks):
 
 ```yaml
 spec:
   playbooks:
     - order: 1.5                        # insert between the 1st and 2nd original plays
-      path: hook/inject_playbooks.yaml # this file, bundled with the builtin package
+      path: hook/inject_playbooks.yaml # the injection playbook created in your local project
 ```
 
 ## What you can do
@@ -65,8 +65,7 @@ The file content is commented out by default; uncomment the relevant block to en
   declaring it in the config spec.
 - Only enable the example when you truly need "recompute / conditional override after the
   default parameters are loaded".
-- **Builtin playbooks** can reference the bundled `hook/inject_playbooks.yaml` directly;
-  **local projects** (non-builtin playbooks) should create this file under their own project
-  directory and reference it by relative path.
+- Create this file in your own project (or local playbook directory) and reference it by a
+  relative path; the KubeKey builtin package no longer ships it.
 - For `order` positioning, sorting rules, empty-path skipping, etc., see
-  [Inject Playbooks](../framework/002-playbook.md#inject-playbooks).
+  [Inject Playbooks](../../framework/002-playbook.md#inject-playbooks).
