@@ -47,6 +47,10 @@ echo 'fs.aio-max-nr = 262144' >> /etc/sysctl.conf
 echo 'kernel.pid_max = 4194304' >> /etc/sysctl.conf
 echo 'kernel.watchdog_thresh = 5' >> /etc/sysctl.conf
 echo 'kernel.hung_task_timeout_secs = 5' >> /etc/sysctl.conf
+{{- if .security_enhancement }}
+echo 'kernel.panic = 10' >> /etc/sysctl.conf
+echo 'kernel.panic_on_oops = 1' >> /etc/sysctl.conf
+{{- end }}
 {{- if .internal_ipv4 | empty | not }}
 # add for ipv4
 echo 'net.bridge.bridge-nf-call-iptables = 1' >> /etc/sysctl.conf
@@ -100,6 +104,10 @@ sed -r -i "s@#{0,}?fs.aio-max-nr ?= ?([0-9]{1,})@fs.aio-max-nr = 262144@g" /etc/
 sed -r -i "s@#{0,}?kernel.pid_max ?= ?([0-9]{1,})@kernel.pid_max = 4194304@g" /etc/sysctl.conf
 sed -r -i "s@#{0,}?kernel.watchdog_thresh ?= ?([0-9]{1,})@kernel.watchdog_thresh = 5@g" /etc/sysctl.conf
 sed -r -i "s@#{0,}?kernel.hung_task_timeout_secs ?= ?([0-9]{1,})@kernel.hung_task_timeout_secs = 5@g" /etc/sysctl.conf
+{{- if .security_enhancement }}
+sed -r -i "s@#{0,}?kernel.panic ?= ?([0-9]{1,})@kernel.panic = 10@g" /etc/sysctl.conf
+sed -r -i "s@#{0,}?kernel.panic_on_oops ?= ?(0|1)@kernel.panic_on_oops = 1@g" /etc/sysctl.conf
+{{- end }}
 {{- if .internal_ipv4 | empty | not }}
 sed -r -i "s@#{0,}?net.bridge.bridge-nf-call-iptables ?= ?(0|1)@net.bridge.bridge-nf-call-iptables = 1@g" /etc/sysctl.conf
 sed -r -i "s@#{0,}?net.ipv4.tcp_tw_recycle ?= ?(0|1|2)@net.ipv4.tcp_tw_recycle = 0@g" /etc/sysctl.conf

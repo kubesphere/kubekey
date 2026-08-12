@@ -36,6 +36,9 @@ transform_architectures:
 zone: ""
 
 # 启用增强安全特性，以满足更严格的集群安全要求
+# 启用后将在节点初始化阶段额外设置以下内核参数：
+#   kernel.panic = 10           内核 panic 后 10 秒自动重启，避免节点卡死
+#   kernel.panic_on_oops = 1    内核 oops 视为 panic 触发重启，防止节点在异常状态继续运行
 security_enhancement: false
 
 # 启用 Kubernetes 审计日志
@@ -80,7 +83,7 @@ image_manifests: []
 | `tmp_dir` | 安装过程中存放临时文件的目录。 |
 | `transform_architectures` | 机器架构名称标准化映射，用于统一 `amd64`/`x86_64`、`arm64`/`aarch64` 等。 |
 | `zone` | 区域设置，设置为 `"cn"` 时可优先使用国内下载加速源。 |
-| `security_enhancement` | 是否启用集群增强安全特性。 |
+| `security_enhancement` | 是否启用集群增强安全特性。启用后在节点初始化阶段额外设置 `kernel.panic = 10`、`kernel.panic_on_oops = 1`，使节点在内核 panic/oops 后自动重启，避免卡死。 |
 | `audit` | 是否启用 Kubernetes 审计日志功能。 |
 | `delete` | 节点删除时的各项资源清理开关。包含 `cri`、`etcd`、`dns`、`image_registry`、`data`。 |
 | `image_manifests` | 用于向私有镜像仓库同步的自定义容器镜像列表。 |

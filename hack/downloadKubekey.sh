@@ -17,6 +17,10 @@
 LATEST_VERSION=
 LATEST_WEB_INSTALLER_VERSION=
 
+# Support custom artifact directory name (default: artifact)
+# Usage: ARTIFACT_DIR=kubernetes bash downloadKubekey.sh
+ARTIFACT_DIR="${ARTIFACT_DIR:-artifact}"
+
 # Fetch latest version if VERSION not set
 if [ "x${VERSION}" = "x" ]; then
   VERSION="${LATEST_VERSION}"
@@ -115,18 +119,18 @@ if [ ! -f "\$CONFIG_FILE" ]; then
 fi
 
 echo "Exporting artifact with kk..."
-./kk artifact export -c "\$CONFIG_FILE" --workdir prepare --set download.tools.kubekey=$DOWNLOAD_PREFIX/releases/download/$VERSION/kubekey-$VERSION-linux-"{{ \"{{ .arch }}\" }}".tar.gz
+./kk artifact export -c "\$CONFIG_FILE" --workdir prepare --set download.tools.kubekey=$DOWNLOAD_PREFIX/releases/download/$VERSION/kubekey-$VERSION-linux-"{{ \"{{ .arch }}\" }}".tar.gz --set artifact_dir=prepare/${ARTIFACT_DIR}
 if [ $? -ne 0 ]; then
   echo "Failed to export artifact with kk. Please check the command output above."
   exit 1
 fi
 
 if [ -f "web-installer.tgz" ]; then
-  echo "Extracting web-installer.tgz to artifacts/web-installer/ ..."
-  tar -xzf web-installer.tgz -C prepare/artifact --no-same-owner
+  echo "Extracting web-installer.tgz to ${ARTIFACT_DIR}/web-installer/ ..."
+  tar -xzf web-installer.tgz -C prepare/${ARTIFACT_DIR} --no-same-owner
 fi
 
-cd prepare/ && tar -czf ../artifact.tgz artifact
+cd prepare/ && tar -czf ../artifact.tgz ${ARTIFACT_DIR}
 
 echo "Offline package artifact.tgz has been created successfully."
 EOF
