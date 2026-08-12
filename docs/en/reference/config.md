@@ -38,6 +38,9 @@ transform_architectures:
 zone: ""
 
 # Enable enhanced security features to meet stricter cluster security requirements
+# When enabled, the following kernel parameters are additionally applied during node initialization:
+#   kernel.panic = 10           reboot 10 seconds after a kernel panic to avoid a stuck node
+#   kernel.panic_on_oops = 1    treat kernel oops as panic and trigger a reboot to prevent running in a broken state
 security_enhancement: false
 
 # Enable Kubernetes audit logs
@@ -82,7 +85,7 @@ image_manifests: []
 | `tmp_dir` | Directory for temporary files during installation. |
 | `transform_architectures` | Machine architecture name standardization mapping, used to unify `amd64`/`x86_64`, `arm64`/`aarch64`, etc. |
 | `zone` | Region setting. Set to `"cn"` to prioritize domestic download acceleration sources. |
-| `security_enhancement` | Whether to enable cluster enhanced security features. |
+| `security_enhancement` | Whether to enable cluster enhanced security features. When enabled, `kernel.panic = 10` and `kernel.panic_on_oops = 1` are applied during node initialization so that nodes automatically reboot after a kernel panic/oops instead of hanging. |
 | `audit` | Whether to enable Kubernetes audit logging. |
 | `delete` | Resource cleanup switches when removing nodes. Includes `cri`, `etcd`, `dns`, `image_registry`, `data`. |
 | `image_manifests` | Custom container image list for synchronizing to a private image registry. |
