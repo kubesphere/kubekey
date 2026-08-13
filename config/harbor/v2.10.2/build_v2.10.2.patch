@@ -76,7 +76,7 @@ index 609c4004f..356e03b84 100644
  update_prepare_version:
  	@echo "substitute the prepare version tag in prepare file..."
 -	@$(SEDCMDI) -e 's/goharbor\/prepare:.*[[:space:]]\+/goharbor\/prepare:$(VERSIONTAG) prepare /' $(MAKEPATH)/prepare ;
-+	@$(SEDCMDI) -e 's/goharbor\/prepare:.*[[:space:]]\+/$(subst /,\/,$(IMAGENAMESPACE))\/prepare:$(VERSIONTAG) prepare /' $(MAKEPATH)/prepare ;
++	@$(SEDCMDI) -e 's/goharbor\/prepare:.*[[:space:]]\+/$(subst /,\/,$(SAVEIMAGENAMESPACE))\/prepare:$(VERSIONTAG) prepare /' $(MAKEPATH)/prepare ;
  
  gen_tls:
  	@$(DOCKERCMD) run --rm -v /:/hostfs:z $(IMAGENAMESPACE)/prepare:$(VERSIONTAG) gencert -p /etc/harbor/tls/internal
@@ -435,7 +435,7 @@ index c0ef48262..528d321d9 100755
                      -v /:/hostfs \
                      --privileged \
 -                    goharbor/prepare:dev prepare $@
-+                    hub.kubesphere.com.cn/harbor/prepare:v2.10.2 prepare $@
++                    goharbor/prepare:v2.10.2 prepare $@
  
  echo "Clean up the input dir"
  # Clean up input dir
