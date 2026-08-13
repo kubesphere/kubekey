@@ -1,0 +1,26 @@
+---
+# NetworkManager manipulates the routing table for interfaces in the default
+# network namespace where Calico veth pairs are anchored, which can interfere
+# with the Calico agent's ability to route correctly. Configure it to ignore
+# Calico-managed interfaces.
+# https://docs.tigera.io/calico/latest/operations/troubleshoot/troubleshooting#configure-networkmanager
+- name: Network | Get NetworkManager.service LoadState
+  command: systemctl show NetworkManager.service -p LoadState --value
+  register: networkmanager_LoadState
+- name: Network | Get NetworkManager.service ActiveState
+  command: systemctl show NetworkManager.service -p ActiveState --value
+  register: networkmanager_ActiveState
+
+- name: Network | Configure NetworkManager to ignore Calico-managed interfaces
+  when: .networkmanager_LoadState.stdout | eq "loaded"
+  copy:
+    content: |
+      [keyfile]
+      unmanaged-devices=interface-name:cali*;interface-name:tunl*;interface-name:vxlan.calico;interface-name:vxlan-v6.calico;interface-name:wireguard.cali;interface-name:wg-v6.cali
+    dest: /etc/NetworkManager/conf.d/calico.conf
+
+# NetworkManager does not re-read conf.d snippets at runtime automatically.
+# Reload it (SIGHUP, keeps active connections) so the config takes effect now.
+- name: Network | Reload NetworkManager to apply the configuration
+  when: .networkmanager_ActiveState.stdout | eq "active"
+  command: systemctl reload NetworkManager

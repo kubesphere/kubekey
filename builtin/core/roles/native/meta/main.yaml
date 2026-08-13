@@ -15,6 +15,9 @@ dependencies:
   - role: native/ntp
     when:
       - or (.groups.k8s_cluster | default list | has .inventory_hostname) (.groups.image_registry | default list | has .inventory_hostname)
+  # Configure network per CNI type on k8s nodes
+  - role: native/network
+    when: .groups.k8s_cluster | default list | has .inventory_hostname
   - role: native/init
   - role: native/dns
 

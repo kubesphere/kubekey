@@ -1,0 +1,3 @@
+---
+- include_tasks: calico.yaml
+  when: .cni.type | eq "calico"
