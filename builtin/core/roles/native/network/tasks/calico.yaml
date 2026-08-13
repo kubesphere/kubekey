@@ -24,3 +24,31 @@
 - name: Network | Reload NetworkManager to apply the configuration
   when: .networkmanager_ActiveState.stdout | eq "active"
   command: systemctl reload NetworkManager
+
+# systemd-networkd can take over Calico-managed interfaces and manage their
+# routes depending on the host's .network matching rules, which can interfere
+# with Calico's routing in the same way NetworkManager does. Mark them
+# unmanaged so networkd never touches them.
+- name: Network | Get systemd-networkd.service LoadState
+  command: systemctl show systemd-networkd.service -p LoadState --value
+  register: systemd_networkd_LoadState
+- name: Network | Get systemd-networkd.service ActiveState
+  command: systemctl show systemd-networkd.service -p ActiveState --value
+  register: systemd_networkd_ActiveState
+
+- name: Network | Configure systemd-networkd to ignore Calico-managed interfaces
+  when: .systemd_networkd_LoadState.stdout | eq "loaded"
+  copy:
+    content: |
+      [Match]
+      Name=cali* tunl0 vxlan.calico vxlan-v6.calico wireguard.cali wg-v6.cali
+
+      [Link]
+      Unmanaged=yes
+    dest: /etc/systemd/network/20-calico.network
+
+# systemd-networkd does not re-read .network files at runtime automatically.
+# Reload it so the config takes effect now.
+- name: Network | Reload systemd-networkd to apply the configuration
+  when: .systemd_networkd_ActiveState.stdout | eq "active"
+  command: systemctl reload systemd-networkd
