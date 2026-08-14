@@ -5,6 +5,15 @@ on:
     tags:
       - 'iso-latest'
   workflow_dispatch:
+    inputs:
+      upload_iso:
+        description: 'Build and upload ISO packages'
+        type: boolean
+        default: true
+      upload_harbor:
+        description: 'Build and upload Harbor offline packages'
+        type: boolean
+        default: true
 
 jobs:
   update-tag:
@@ -34,7 +43,7 @@ jobs:
   build-iso:
     runs-on: ubuntu-latest
     needs: update-tag
-    if: github.repository == 'kubesphere/kubekey'
+    if: github.repository == 'kubesphere/kubekey' && (github.event_name == 'push' || github.event.inputs.upload_iso == 'true')
     strategy:
       fail-fast: false
       matrix:
@@ -125,28 +134,20 @@ jobs:
   build-harbor:
     runs-on: ubuntu-latest
     needs: update-tag
-    if: github.repository == 'kubesphere/kubekey'
+    if: github.repository == 'kubesphere/kubekey' && (github.event_name == 'push' || github.event.inputs.upload_harbor == 'true')
     steps:
       - name: Checkout
         uses: actions/checkout@v7
         with:
           ref: iso-latest
           fetch-depth: 0
-      - shell: bash
-        name: build arm harbor
+
+      - name: Build harbor offline installer
+        shell: bash
         run: |
-          rm -rf qsctl_v2.4.3_linux_amd64.tar.gz
-          wget https://attack-on-titan.gd2.qingstor.com/qsctl/v2.4.3/qsctl_v2.4.3_linux_amd64.tar.gz
-          tar -zxvf qsctl_v2.4.3_linux_amd64.tar.gz
-          rm -rf qsctl_v2.4.3_linux_amd64.tar.gz
-          mv qsctl_v2.4.3_linux_amd64 /usr/local/bin/qsctl
-          echo "access_key_id: ${{secrets.KS_QSCTL_ACCESS_KEY_ID}}" > /usr/local/bin/qsctl-config.yaml
-          echo "secret_access_key: ${{ secrets.KS_QSCTL_SECRET_ACCESS_KEY }}" >> /usr/local/bin/qsctl-config.yaml
-          
           for d in $(ls config/harbor); do
             if [ -d "config/harbor/$d" ]; then
               cd "config/harbor/$d" && make build
-              qsctl -c /usr/local/bin/qsctl-config.yaml cp harbor-offline-installer-"$d".tgz qs://kubekey/github.com/kubesphere/kubekey/releases/download/iso-latest/harbor-offline-installer-"$d".tgz
             fi
           done
 
@@ -159,3 +160,22 @@ jobs:
           name: iso-latest
           files: config/harbor/*/*harbor-offline-installer*.tgz
           overwrite: true
+
+      - name: Synchronize harbor packages to OSS
+        shell: bash
+        run: |
+          rm -rf qsctl_v2.4.3_linux_amd64.tar.gz
+          wget https://attack-on-titan.gd2.qingstor.com/qsctl/v2.4.3/qsctl_v2.4.3_linux_amd64.tar.gz
+          tar -zxvf qsctl_v2.4.3_linux_amd64.tar.gz
+          rm -rf qsctl_v2.4.3_linux_amd64.tar.gz
+          mv qsctl_v2.4.3_linux_amd64 /usr/local/bin/qsctl
+          echo "access_key_id: ${{secrets.KS_QSCTL_ACCESS_KEY_ID}}" > /usr/local/bin/qsctl-config.yaml
+          echo "secret_access_key: ${{ secrets.KS_QSCTL_SECRET_ACCESS_KEY }}" >> /usr/local/bin/qsctl-config.yaml
+
+          for d in $(ls config/harbor); do
+            if [ -d "config/harbor/$d" ]; then
+              qsctl -c /usr/local/bin/qsctl-config.yaml cp config/harbor/$d/harbor-offline-installer-"$d".tgz qs://kubekey/github.com/kubesphere/kubekey/releases/download/iso-latest/harbor-offline-installer-"$d".tgz
+            fi
+          done
+
+          rm -rf /usr/local/bin/qsctl-config.yaml

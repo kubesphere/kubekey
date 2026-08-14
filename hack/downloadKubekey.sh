@@ -92,12 +92,6 @@ if [ "${SKIP_WEB_INSTALLER}" != "true" ] && [ -n "${LATEST_WEB_INSTALLER_VERSION
   echo "Downloading kubekey web_installer ${LATEST_WEB_INSTALLER_VERSION} from ${WEB_DOWNLOAD_URL} ..."
 
   curl -fsLO "$WEB_DOWNLOAD_URL"
-  if tar -xzf "web-installer.tgz" --no-same-owner 2>/dev/null; then
-    :
-  else
-    echo "tar not found. Please unpack web-installer.tgz manually."
-    exit 1
-  fi
 fi
 
 if [ "${SKIP_PACKAGE}" != "true" ] && ! echo "$VERSION" | grep -E '^v3\.[0-9]+\.[0-9]+$' >/dev/null; then
@@ -120,10 +114,6 @@ fi
 
 echo "Exporting artifact with kk..."
 ./kk artifact export -c "\$CONFIG_FILE" --workdir prepare --set download.tools.kubekey=$DOWNLOAD_PREFIX/releases/download/$VERSION/kubekey-$VERSION-linux-"{{ \"{{ .arch }}\" }}".tar.gz --set artifact_dir=prepare/${ARTIFACT_DIR}
-if [ $? -ne 0 ]; then
-  echo "Failed to export artifact with kk. Please check the command output above."
-  exit 1
-fi
 
 if [ -f "web-installer.tgz" ]; then
   echo "Extracting web-installer.tgz to ${ARTIFACT_DIR}/web-installer/ ..."
