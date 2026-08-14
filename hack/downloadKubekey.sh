@@ -101,6 +101,10 @@ cat > package.sh << EOF
 
 set -e
 
+# Support custom artifact directory name (default: artifact)
+# Usage: ARTIFACT_DIR=kubernetes bash package.sh
+ARTIFACT_DIR="\${ARTIFACT_DIR:-artifact}"
+
 # Get the configuration file path from the first argument, default to config.yaml if not provided
 if [ -n "\$1" ]; then
   CONFIG_FILE="\$1"
@@ -113,18 +117,18 @@ if [ ! -f "\$CONFIG_FILE" ]; then
 fi
 
 echo "Exporting artifact with kk..."
-./kk artifact export -c "\$CONFIG_FILE" --workdir prepare --set download.tools.kubekey=$DOWNLOAD_PREFIX/releases/download/$VERSION/kubekey-$VERSION-linux-"{{ \"{{ .arch }}\" }}".tar.gz --set artifact_dir=prepare/${ARTIFACT_DIR}
+./kk artifact export -c "\$CONFIG_FILE" --workdir prepare --set download.tools.kubekey=$DOWNLOAD_PREFIX/releases/download/$VERSION/kubekey-$VERSION-linux-"{{ \"{{ .arch }}\" }}".tar.gz --set artifact_dir=prepare/\${ARTIFACT_DIR}
 if [ \$? -ne 0 ]; then
   echo "Failed to export artifact with kk. Please check the command output above."
   exit 1
 fi
 
 if [ -f "web-installer.tgz" ]; then
-  echo "Extracting web-installer.tgz to ${ARTIFACT_DIR}/web-installer/ ..."
-  tar -xzf web-installer.tgz -C prepare/${ARTIFACT_DIR} --no-same-owner
+  echo "Extracting web-installer.tgz to \${ARTIFACT_DIR}/web-installer/ ..."
+  tar -xzf web-installer.tgz -C prepare/\${ARTIFACT_DIR} --no-same-owner
 fi
 
-cd prepare/ && tar -czf ../artifact.tgz ${ARTIFACT_DIR}
+cd prepare/ && tar -czf ../artifact.tgz \${ARTIFACT_DIR}
 
 echo "Offline package artifact.tgz has been created successfully."
 EOF
