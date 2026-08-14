@@ -19,4 +19,4 @@
 - name: Package | Export artifact
   command: |
     # package binary directory
-    cd {{ .artifact_dir }}/kubekey && tar -czvf {{ .artifact_dir }}/kubekey-artifact.tgz . && rm -rf {{ .artifact_dir }}/kubekey
+    tar -czvf {{ .artifact_dir }}/kubekey-artifact.tgz -C {{ .artifact_dir }}/kubekey . && rm -rf {{ .artifact_dir }}/kubekey

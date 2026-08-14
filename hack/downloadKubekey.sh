@@ -114,6 +114,10 @@ fi
 
 echo "Exporting artifact with kk..."
 ./kk artifact export -c "\$CONFIG_FILE" --workdir prepare --set download.tools.kubekey=$DOWNLOAD_PREFIX/releases/download/$VERSION/kubekey-$VERSION-linux-"{{ \"{{ .arch }}\" }}".tar.gz --set artifact_dir=prepare/${ARTIFACT_DIR}
+if [ \$? -ne 0 ]; then
+  echo "Failed to export artifact with kk. Please check the command output above."
+  exit 1
+fi
 
 if [ -f "web-installer.tgz" ]; then
   echo "Extracting web-installer.tgz to ${ARTIFACT_DIR}/web-installer/ ..."
