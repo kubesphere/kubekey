@@ -67,7 +67,7 @@ func (o *UpgradeClusterOptions) Flags() cliflag.NamedFlagSets {
 	kfs := fss.FlagSet("config")
 	// Add a flag for specifying the target Kubernetes version
 	kfs.StringVar(&o.Kubernetes, "with-kubernetes", o.Kubernetes, "Specify the target version of kubernetes to upgrade to. If not set, the version from config will be used.")
-	kfs.BoolVar(&o.UpgradeAllComponents, "all", o.UpgradeAllComponents, "Upgrade all related components, including etcd, cni, cri, helm, etc. If not set, only kubelet will be upgraded.")
+	kfs.BoolVar(&o.UpgradeAllComponents, "all", o.UpgradeAllComponents, "Upgrade all related components, including etcd, cni, cri and storage_class. If not set, only kubelet/kubeadm will be upgraded (unless individual components are enabled via --set).")
 
 	return fss
 }

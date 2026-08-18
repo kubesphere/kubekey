@@ -37,15 +37,21 @@
   serial: 1
   gather_facts: true
   roles:
+    # etcd/prepare MUST run before etcd/backup: it sets the runtime hostvar
+    # `.installed_etcd` (via add_hostvars), which etcd/backup's
+    # `delegate_to: "{{ .installed_etcd }}"` depends on. Running backup first
+    # left `.installed_etcd` empty, so the delegate resolved to an empty host
+    # and connector.NewConnector("") failed with "no authentication method
+    # available". This ordering matches create_cluster.yaml / add_nodes.yaml.
+    - role: etcd/prepare
+      when:
+        - .etcd.deployment_type | eq "external"
+        - .upgrade.etcd
     - role: etcd/backup
       when:
         - .etcd.deployment_type | eq "external"
         - .upgrade.etcd
         - .etcd.etcd_version | semverCompare (printf ">v%s" (index .etcd_install_version "stdout" "etcd Version"))
-    - role: etcd/prepare
-      when:
-        - .etcd.deployment_type | eq "external"
-        - .upgrade.etcd
     - role: etcd/upgrade
       when:
         - .etcd.deployment_type | eq "external"

@@ -17,7 +17,6 @@
         cp /usr/local/bin/ctr "${BACKUP_DIR}/" 2>/dev/null || true
         echo "✅ Docker backup saved to ${BACKUP_DIR}"
 
----
 # sync docker binary
 - name: Docker | Sync Docker binaries
   block:

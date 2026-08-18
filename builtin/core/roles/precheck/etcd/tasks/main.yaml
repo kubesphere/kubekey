@@ -34,7 +34,13 @@
       run_once: true
       set_fact:
         upgrade_etcd_version: >-
-          {{- if .upgrade.etcd -}} {{ .etcd.etcd_version }} {{- else -}} {{ index .etcd_install_version "stdout" "etcd Version" | default "" }} {{- end -}}
+          {{- if .upgrade.etcd -}}
+            {{ .etcd.etcd_version }}
+          {{- else if (index (.etcd_install_LoadState | default dict) "stdout" | default "" | trim | eq "loaded") -}}
+            {{ index .etcd_install_version "stdout" "etcd Version" | default "" }}
+          {{- else -}}
+            {{ .etcd.etcd_version | default "" }}
+          {{- end -}}
     - name: ETCD | Verify etcd minimum version for exact Kubernetes release
       when: 
         - .upgrade_etcd_version | empty | not 

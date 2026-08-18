@@ -34,6 +34,20 @@
     src: values.yaml
     dest: /etc/kubernetes/cni/calico-default-values.yaml
 
+# Helm only installs CRDs from a chart's crds/ directory on the *install* path.
+# When upgrading an existing release (e.g. v3.25.2 -> v3.31.3), the upgrade path
+# skips crds/, so newly introduced CRDs (Goldmane/Whisker in operator.tigera.io/v1)
+# are never registered and `helm upgrade` fails with "no matches for kind ...".
+# Apply the chart's CRDs explicitly (matching Calico's documented upgrade flow)
+# before the operator upgrade so the new kinds exist when Helm applies them.
+- name: Calico | Apply Calico CRDs before Helm upgrade (Helm skips new CRDs on upgrade)
+  ignore_errors: true
+  command: |
+    rm -rf /tmp/calico-crds-{{ .cni.calico_version }}
+    mkdir -p /tmp/calico-crds-{{ .cni.calico_version }}
+    tar xzf /etc/kubernetes/cni/tigera-operator-{{ .cni.calico_version }}.tgz -C /tmp/calico-crds-{{ .cni.calico_version }}
+    kubectl apply -f /tmp/calico-crds-{{ .cni.calico_version }}/tigera-operator/crds/
+
 - name: Calico | Deploy Calico using Helm
   command: |
     helm upgrade --install --create-namespace --namespace tigera-operator calico /etc/kubernetes/cni/tigera-operator-{{ .cni.calico_version }}.tgz -f /etc/kubernetes/cni/calico-default-values.yaml {{ if .cni.calico.values | empty | not }}-f /etc/kubernetes/cni/calico-custom-values.yaml{{ end }} 

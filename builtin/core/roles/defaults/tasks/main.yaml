@@ -43,6 +43,56 @@
       ignore_errors: true
       command: kubelet --version
       register: kubernetes_install_version
+    - name: Defaults | Get running Kubernetes version from the cluster
+      # During an upgrade the on-disk kube binaries may already have been bumped
+      # ahead of the actually-running cluster (e.g. after a previously failed step
+      # re-ran pre-kubernetes). The upgrade-path validation must therefore compare
+      # against the *running* cluster version, not the on-disk binary version.
+      # kubectl is invoked with an explicit --kubeconfig and full binary path because
+      # KubeKey runs privileged tasks as root via sudo with a stripped environment, so
+      # kubectl's default kubeconfig discovery (which relies on $HOME) would otherwise
+      # fail silently and leave the variable empty. The fallback chain prefers the
+      # root-readable admin.conf, then /root/.kube/config, then $HOME/.kube/config so
+      # the command works whether the task executes as root or as the SSH user.
+      #
+      # Robustness notes (learned the hard way during real upgrades):
+      #  - We query ALL nodes via {.items[*]...} and take the first non-empty version
+      #    instead of {.items[0]...}; a single node whose status.nodeInfo is momentarily
+      #    unpopulated would otherwise yield an empty string that the `2>/dev/null || true`
+      #    swallows, leaving the variable empty and failing the upgrade-path validation.
+      #  - kubectl can flakily fail inside KubeKey's executor even when the cluster is
+      #    healthy (env/DNS differences vs. a manual shell). To avoid a spurious
+      #    "Cannot determine the running Kubernetes version", we fall back to the locally
+      #    readable kube-apiserver static-pod manifest image tag (which always reflects
+      #    the running control-plane version, no network needed), and finally to the
+      #    on-disk kubelet binary version.
+      when: .upgrade.kubernetes | default false
+      run_once: true
+      ignore_errors: true
+      command: >-
+        VER="";
+        KC=/etc/kubernetes/admin.conf;
+        [ -r "$KC" ] || KC=/root/.kube/config;
+        [ -r "$KC" ] || KC="$HOME/.kube/config";
+        if [ -r "$KC" ]; then
+        VER=$(/usr/local/bin/kubectl --kubeconfig="$KC" get nodes -o jsonpath='{.items[*].status.nodeInfo.kubeletVersion}' 2>/dev/null | tr ' ' '\n' | grep -m1 '^v');
+        fi;
+        if [ -z "$VER" ]; then
+        VER=$(sudo grep -m1 'image:' /etc/kubernetes/manifests/kube-apiserver.yaml 2>/dev/null | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -1);
+        fi;
+        if [ -z "$VER" ]; then
+        VER=$(kubelet --version 2>/dev/null | awk '{print $2}');
+        fi;
+        echo "$VER"
+      register: kubernetes_running_version
+    - name: Defaults | Share running Kubernetes version across the cluster
+      when: .upgrade.kubernetes | default false
+      run_once: true
+      add_hostvars:
+        hosts: k8s_cluster
+        vars:
+          kubernetes_running_version: >-
+            {{ .kubernetes_running_version.stdout | default "" }}
     - name: Defaults | Get installed containerd version
       ignore_errors: true
       command: |

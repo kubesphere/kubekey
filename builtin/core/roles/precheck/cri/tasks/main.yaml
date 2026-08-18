@@ -26,7 +26,6 @@
     - .groups.k8s_cluster | default list | has .inventory_hostname
     - .cri.container_manager | eq "containerd"
     - .upgrade.cri | not
-    - .upgrade | default dict | empty | not
     - .containerd_current_version.stdout | empty | not
   assert:
     that: .containerd_current_version.stdout | semverCompare (printf ">=%s" .cluster_require.containerd_min_version_required)
@@ -38,7 +37,6 @@
     - .groups.k8s_cluster | default list | has .inventory_hostname
     - .cri.container_manager | eq "docker"
     - .upgrade.cri
-    - .upgrade | default dict | empty | not
   block:
     - name: CRI | Detect live-restore in Docker daemon.json
       ignore_errors: true
