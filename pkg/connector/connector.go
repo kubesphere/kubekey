@@ -142,7 +142,13 @@ func isLocalIP(ipAddr string) bool {
 
 func PutData(ctx context.Context, data []byte, dest string, mode fs.FileMode, conn Connector) error {
 	dest = filepath.ToSlash(dest)
-	tmpDest := path.Join("/tmp", ".kk."+rand.String(10))
+	// Use a relative temp name so that PutFile (which may prepend the
+	// connector's homedir to the destination) and the subsequent `mv` command
+	// (run with the connector's working directory as cwd) agree on where the
+	// temp file lives. An absolute "/tmp/..." prefix here is relocated by the
+	// kubernetes connector's PutFile but not by the mv command, causing the mv
+	// to fail with a missing source on kubekey v4.x.
+	tmpDest := ".kk." + rand.String(10)
 
 	if err := conn.PutFile(ctx, data, tmpDest, mode); err != nil {
 		return err
