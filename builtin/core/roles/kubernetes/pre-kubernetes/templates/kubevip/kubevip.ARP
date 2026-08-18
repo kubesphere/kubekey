@@ -12,31 +12,31 @@ spec:
     - name: vip_arp
       value: "true"
     - name: port
-      value: "6443"
+      value: "{{ .kubernetes.control_plane_endpoint.kube_vip.env.port }}"
     - name: vip_interface
       value: {{ .kube_vip_interface }}
     - name: vip_cidr
-      value: "32"
+      value: "{{ .kubernetes.control_plane_endpoint.kube_vip.env.vip_cidr }}"
     - name: cp_enable
-      value: "true"
+      value: "{{ .kubernetes.control_plane_endpoint.kube_vip.env.cp_enable }}"
     - name: cp_namespace
-      value: kube-system
+      value: {{ .kubernetes.control_plane_endpoint.kube_vip.env.cp_namespace }}
     - name: vip_ddns
-      value: "false"
+      value: "{{ .kubernetes.control_plane_endpoint.kube_vip.env.vip_ddns }}"
     - name: svc_enable
-      value: "{{ .kubernetes.control_plane_endpoint.kube_vip.svc_enable }}"
+      value: "{{ .kubernetes.control_plane_endpoint.kube_vip.env.svc_enable }}"
     - name: vip_leaderelection
-      value: "true"
+      value: "{{ .kubernetes.control_plane_endpoint.kube_vip.env.vip_leaderelection }}"
     - name: vip_leaseduration
-      value: "5"
+      value: "{{ .kubernetes.control_plane_endpoint.kube_vip.env.vip_leaseduration }}"
     - name: vip_renewdeadline
-      value: "3"
+      value: "{{ .kubernetes.control_plane_endpoint.kube_vip.env.vip_renewdeadline }}"
     - name: vip_retryperiod
-      value: "1"
+      value: "{{ .kubernetes.control_plane_endpoint.kube_vip.env.vip_retryperiod }}"
     - name: lb_enable
-      value: "true"
+      value: "{{ .kubernetes.control_plane_endpoint.kube_vip.env.lb_enable }}"
     - name: lb_port
-      value: "6443"
+      value: "{{ .kubernetes.control_plane_endpoint.kube_vip.env.lb_port }}"
     - name: address
       value: {{ .kubernetes.control_plane_endpoint.kube_vip.address }}
     image: {{ .kubernetes.control_plane_endpoint.kube_vip.image.registry }}/{{ .kubernetes.control_plane_endpoint.kube_vip.image.repository }}:{{ .kubernetes.control_plane_endpoint.kube_vip.image.tag }}

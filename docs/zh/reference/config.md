@@ -572,10 +572,31 @@ kubernetes:
       address: ""
       # 支持的模式：ARP, BGP
       mode: ARP
-      # kube-vip 是否管理 Service（LoadBalancer 类型）VIP。
-      # 当同时使用独立的 Service VIP 管理组件（例如 MetalLB）时，设为 false，
-      # 使 kube-vip 仅负责 apiserver VIP。
-      svc_enable: true
+      # kube-vip 容器的环境变量
+      env:
+        port: "6443"
+        vip_cidr: "32"
+        cp_enable: "true"
+        cp_namespace: kube-system
+        vip_ddns: "false"
+        # kube-vip 是否管理 Service（LoadBalancer 类型）VIP。
+        # 当同时使用独立的 Service VIP 管理组件（例如 MetalLB）时，设为 "false"，
+        # 使 kube-vip 仅负责 apiserver VIP。
+        svc_enable: "true"
+        vip_leaderelection: "true"
+        vip_leaseduration: "5"
+        vip_renewdeadline: "3"
+        vip_retryperiod: "1"
+        lb_enable: "true"
+        lb_port: "6443"
+        # 仅 BGP 模式使用
+        bgp_enable: "true"
+        bgp_as: "65000"
+        bgp_peeraddress: ""
+        bgp_peerpass: ""
+        bgp_peeras: "65000"
+        lb_fwdmethod: local
+        prometheus_server: ":2112"
       image:
         # kube-vip 镜像仓库
         registry: >-
@@ -676,7 +697,8 @@ kubernetes:
 | `kubernetes.control_plane_endpoint.local.address` | 使用 `local` 模式时，可指定外部负载均衡器地址仅用于解析。 |
 | `kubernetes.control_plane_endpoint.kube_vip.address` | kube-vip 绑定的网卡名称或 IP。 |
 | `kubernetes.control_plane_endpoint.kube_vip.mode` | kube-vip 的工作模式：`ARP` 或 `BGP`。 |
-| `kubernetes.control_plane_endpoint.kube_vip.svc_enable` | kube-vip 是否管理 Service（LoadBalancer 类型）VIP。当同时使用独立的 Service VIP 管理组件（例如 MetalLB）时设为 `false`。 |
+| `kubernetes.control_plane_endpoint.kube_vip.env` | 传递给 kube-vip 容器的环境变量。 |
+| `kubernetes.control_plane_endpoint.kube_vip.env.svc_enable` | kube-vip 是否管理 Service（LoadBalancer 类型）VIP。当同时使用独立的 Service VIP 管理组件（例如 MetalLB）时设为 `"false"`。 |
 | `kubernetes.control_plane_endpoint.kube_vip.image` | kube-vip 容器镜像配置。 |
 | `kubernetes.control_plane_endpoint.haproxy.address` | HAProxy 在本机回环接口上监听的地址。 |
 | `kubernetes.control_plane_endpoint.haproxy.health_port` | HAProxy 健康检查端口。 |

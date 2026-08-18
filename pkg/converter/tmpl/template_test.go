@@ -17,10 +17,130 @@ limitations under the License.
 package tmpl
 
 import (
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"sigs.k8s.io/yaml"
 )
+
+// kubeVipVariable returns a variable map shaped like the real defaults for
+// kubernetes.control_plane_endpoint.kube_vip, plus the extra host/group
+// context the kubevip.ARP/BGP templates read directly (kube_vip_interface,
+// groups, hostvars).
+func kubeVipVariable() map[string]any {
+	return map[string]any{
+		"kube_vip_interface": "eth0",
+		"groups": map[string]any{
+			"kube_control_plane": []any{"node1"},
+		},
+		"hostvars": map[string]any{
+			"node1": map[string]any{
+				"internal_ipv4": "10.0.0.1",
+			},
+		},
+		"kubernetes": map[string]any{
+			"control_plane_endpoint": map[string]any{
+				"kube_vip": map[string]any{
+					"address": "192.168.0.1",
+					"mode":    "ARP",
+					"env": map[string]any{
+						"port":               "6443",
+						"vip_cidr":           "32",
+						"cp_enable":          "true",
+						"cp_namespace":       "kube-system",
+						"vip_ddns":           "false",
+						"svc_enable":         "true",
+						"vip_leaderelection": "true",
+						"vip_leaseduration":  "5",
+						"vip_renewdeadline":  "3",
+						"vip_retryperiod":    "1",
+						"lb_enable":          "true",
+						"lb_port":            "6443",
+						"bgp_enable":         "true",
+						"bgp_as":             "65000",
+						"bgp_peeraddress":    "",
+						"bgp_peerpass":       "",
+						"bgp_peeras":         "65000",
+						"lb_fwdmethod":       "local",
+						"prometheus_server":  ":2112",
+					},
+					"image": map[string]any{
+						"registry":   "docker.io",
+						"repository": "plndr/kube-vip",
+						"tag":        "v0.7.2",
+					},
+				},
+			},
+		},
+	}
+}
+
+func envValue(t *testing.T, pod map[string]any, name string) any {
+	t.Helper()
+	spec, ok := pod["spec"].(map[string]any)
+	assert.True(t, ok)
+	containers, ok := spec["containers"].([]any)
+	assert.True(t, ok)
+	container, ok := containers[0].(map[string]any)
+	assert.True(t, ok)
+	envs, ok := container["env"].([]any)
+	assert.True(t, ok)
+
+	for _, e := range envs {
+		entry, ok := e.(map[string]any)
+		assert.True(t, ok)
+		if entry["name"] == name {
+			return entry["value"]
+		}
+	}
+	t.Fatalf("env %q not found", name)
+
+	return nil
+}
+
+func renderKubeVipTemplate(t *testing.T, path string, variable map[string]any) map[string]any {
+	t.Helper()
+	raw, err := os.ReadFile(path)
+	assert.NoError(t, err)
+
+	rendered, err := Parse(variable, string(raw))
+	assert.NoError(t, err)
+
+	var pod map[string]any
+	assert.NoError(t, yaml.Unmarshal(rendered, &pod))
+
+	return pod
+}
+
+func TestKubeVipTemplatesRenderDefaults(t *testing.T) {
+	testcases := []struct {
+		name     string
+		path     string
+		wantArp  string
+		wantMode string
+	}{
+		{name: "ARP", path: "../../../builtin/core/roles/kubernetes/pre-kubernetes/templates/kubevip/kubevip.ARP"},
+		{name: "BGP", path: "../../../builtin/core/roles/kubernetes/pre-kubernetes/templates/kubevip/kubevip.BGP"},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			for _, svcEnable := range []string{"true", "false"} {
+				variable := kubeVipVariable()
+				variable["kubernetes"].(map[string]any)["control_plane_endpoint"].(map[string]any)["kube_vip"].(map[string]any)["env"].(map[string]any)["svc_enable"] = svcEnable
+
+				pod := renderKubeVipTemplate(t, tc.path, variable)
+
+				assert.Equal(t, svcEnable, envValue(t, pod, "svc_enable"))
+				assert.Equal(t, "6443", envValue(t, pod, "port"))
+				assert.Equal(t, "32", envValue(t, pod, "vip_cidr"))
+				assert.Equal(t, "kube-system", envValue(t, pod, "cp_namespace"))
+				assert.Equal(t, "192.168.0.1", envValue(t, pod, "address"))
+			}
+		})
+	}
+}
 
 func TestParseBool(t *testing.T) {
 	testcases := []struct {
