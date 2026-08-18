@@ -99,7 +99,8 @@ kubernetes:
       address: ""
       # Supported modes: ARP, BGP
       mode: ARP
-      # Environment variables for the kube-vip container.
+      # Environment variables for the kube-vip container, common to both ARP and BGP modes.
+      # Mode-specific env vars (e.g. bgp_* in BGP mode) are kept in their respective template.
       env:
         port: "6443"
         vip_cidr: "32"
@@ -110,20 +111,8 @@ kubernetes:
         # Set to "false" when a separate Service VIP manager (e.g. MetalLB) is used,
         # so kube-vip only manages the apiserver VIP.
         svc_enable: "true"
-        vip_leaderelection: "true"
-        vip_leaseduration: "5"
-        vip_renewdeadline: "3"
-        vip_retryperiod: "1"
         lb_enable: "true"
         lb_port: "6443"
-        # BGP mode only
-        bgp_enable: "true"
-        bgp_as: "65000"
-        bgp_peeraddress: ""
-        bgp_peerpass: ""
-        bgp_peeras: "65000"
-        lb_fwdmethod: local
-        prometheus_server: ":2112"
       image:
         registry: >-
           {{ .image_registry.dockerio_registry }}

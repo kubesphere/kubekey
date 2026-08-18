@@ -574,7 +574,8 @@ kubernetes:
       address: ""
       # Supported modes: ARP, BGP
       mode: ARP
-      # Environment variables for the kube-vip container
+      # Environment variables for the kube-vip container, common to both ARP and BGP modes.
+      # Mode-specific env vars (e.g. bgp_* in BGP mode) are fixed in their respective manifest template.
       env:
         port: "6443"
         vip_cidr: "32"
@@ -585,20 +586,8 @@ kubernetes:
         # Set to "false" when a separate Service VIP manager (e.g. MetalLB) is used,
         # so kube-vip only manages the apiserver VIP.
         svc_enable: "true"
-        vip_leaderelection: "true"
-        vip_leaseduration: "5"
-        vip_renewdeadline: "3"
-        vip_retryperiod: "1"
         lb_enable: "true"
         lb_port: "6443"
-        # BGP mode only
-        bgp_enable: "true"
-        bgp_as: "65000"
-        bgp_peeraddress: ""
-        bgp_peerpass: ""
-        bgp_peeras: "65000"
-        lb_fwdmethod: local
-        prometheus_server: ":2112"
       image:
         # kube-vip image registry
         registry: >-
@@ -699,7 +688,7 @@ kubernetes:
 | `kubernetes.control_plane_endpoint.local.address` | When using `local` mode, an external load balancer address can be specified for resolution only. |
 | `kubernetes.control_plane_endpoint.kube_vip.address` | Network interface name or IP bound by kube-vip. |
 | `kubernetes.control_plane_endpoint.kube_vip.mode` | kube-vip working mode: `ARP` or `BGP`. |
-| `kubernetes.control_plane_endpoint.kube_vip.env` | Environment variables passed to the kube-vip container. |
+| `kubernetes.control_plane_endpoint.kube_vip.env` | Environment variables passed to the kube-vip container, common to both ARP and BGP modes. |
 | `kubernetes.control_plane_endpoint.kube_vip.env.svc_enable` | Whether kube-vip manages Service (type LoadBalancer) VIPs. Set to `"false"` when using a separate Service VIP manager (e.g. MetalLB) alongside kube-vip. |
 | `kubernetes.control_plane_endpoint.kube_vip.image` | kube-vip container image configuration. |
 | `kubernetes.control_plane_endpoint.haproxy.address` | Address that HAProxy listens on the local loopback interface. |

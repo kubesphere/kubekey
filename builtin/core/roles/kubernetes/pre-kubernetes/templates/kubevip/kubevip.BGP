@@ -11,22 +11,14 @@ spec:
     env:
     - name: vip_arp
       value: "false"
-    - name: port
-      value: "{{ .kubernetes.control_plane_endpoint.kube_vip.env.port }}"
     - name: vip_interface
       value: {{ .kube_vip_interface }}
-    - name: vip_cidr
-      value: "{{ .kubernetes.control_plane_endpoint.kube_vip.env.vip_cidr }}"
-    - name: cp_enable
-      value: "{{ .kubernetes.control_plane_endpoint.kube_vip.env.cp_enable }}"
-    - name: cp_namespace
-      value: {{ .kubernetes.control_plane_endpoint.kube_vip.env.cp_namespace }}
-    - name: vip_ddns
-      value: "{{ .kubernetes.control_plane_endpoint.kube_vip.env.vip_ddns }}"
-    - name: svc_enable
-      value: "{{ .kubernetes.control_plane_endpoint.kube_vip.env.svc_enable }}"
+{{- range $k, $v := .kubernetes.control_plane_endpoint.kube_vip.env }}
+    - name: {{ $k }}
+      value: "{{ $v }}"
+{{- end }}
     - name: bgp_enable
-      value: "{{ .kubernetes.control_plane_endpoint.kube_vip.env.bgp_enable }}"
+      value: "true"
     - name: bgp_routerid
       value: |
         {{- $ips := list }}
@@ -35,13 +27,13 @@ spec:
         {{- end }}
         {{ $ips | join "," }}
     - name: bgp_as
-      value: "{{ .kubernetes.control_plane_endpoint.kube_vip.env.bgp_as }}"
+      value: "65000"
     - name: bgp_peeraddress
-      value: "{{ .kubernetes.control_plane_endpoint.kube_vip.env.bgp_peeraddress }}"
+      value: ""
     - name: bgp_peerpass
-      value: "{{ .kubernetes.control_plane_endpoint.kube_vip.env.bgp_peerpass }}"
+      value: ""
     - name: bgp_peeras
-      value: "{{ .kubernetes.control_plane_endpoint.kube_vip.env.bgp_peeras }}"
+      value: "65000"
     - name: bgp_peers
       value: |
         {{- $ips := list }}
@@ -49,16 +41,12 @@ spec:
             {{- $ips = append $ips (printf "%s:65000::false" (index $.hostvars . "internal_ipv4")) }}
         {{- end }}
         {{ $ips | join "," }}
-    - name: lb_enable
-      value: "{{ .kubernetes.control_plane_endpoint.kube_vip.env.lb_enable }}"
-    - name: lb_port
-      value: "{{ .kubernetes.control_plane_endpoint.kube_vip.env.lb_port }}"
     - name: lb_fwdmethod
-      value: {{ .kubernetes.control_plane_endpoint.kube_vip.env.lb_fwdmethod }}
+      value: local
     - name: address
       value: {{ .kubernetes.control_plane_endpoint.kube_vip.address }}
     - name: prometheus_server
-      value: "{{ .kubernetes.control_plane_endpoint.kube_vip.env.prometheus_server }}"
+      value: :2112
     image: {{ .kubernetes.control_plane_endpoint.kube_vip.image.registry }}/{{ .kubernetes.control_plane_endpoint.kube_vip.image.repository }}:{{ .kubernetes.control_plane_endpoint.kube_vip.image.tag }}
     imagePullPolicy: IfNotPresent
     name: kube-vip

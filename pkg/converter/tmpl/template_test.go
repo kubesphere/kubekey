@@ -45,25 +45,14 @@ func kubeVipVariable() map[string]any {
 					"address": "192.168.0.1",
 					"mode":    "ARP",
 					"env": map[string]any{
-						"port":               "6443",
-						"vip_cidr":           "32",
-						"cp_enable":          "true",
-						"cp_namespace":       "kube-system",
-						"vip_ddns":           "false",
-						"svc_enable":         "true",
-						"vip_leaderelection": "true",
-						"vip_leaseduration":  "5",
-						"vip_renewdeadline":  "3",
-						"vip_retryperiod":    "1",
-						"lb_enable":          "true",
-						"lb_port":            "6443",
-						"bgp_enable":         "true",
-						"bgp_as":             "65000",
-						"bgp_peeraddress":    "",
-						"bgp_peerpass":       "",
-						"bgp_peeras":         "65000",
-						"lb_fwdmethod":       "local",
-						"prometheus_server":  ":2112",
+						"port":         "6443",
+						"vip_cidr":     "32",
+						"cp_enable":    "true",
+						"cp_namespace": "kube-system",
+						"vip_ddns":     "false",
+						"svc_enable":   "true",
+						"lb_enable":    "true",
+						"lb_port":      "6443",
 					},
 					"image": map[string]any{
 						"registry":   "docker.io",
@@ -115,10 +104,8 @@ func renderKubeVipTemplate(t *testing.T, path string, variable map[string]any) m
 
 func TestKubeVipTemplatesRenderDefaults(t *testing.T) {
 	testcases := []struct {
-		name     string
-		path     string
-		wantArp  string
-		wantMode string
+		name string
+		path string
 	}{
 		{name: "ARP", path: "../../../builtin/core/roles/kubernetes/pre-kubernetes/templates/kubevip/kubevip.ARP"},
 		{name: "BGP", path: "../../../builtin/core/roles/kubernetes/pre-kubernetes/templates/kubevip/kubevip.BGP"},
@@ -132,6 +119,7 @@ func TestKubeVipTemplatesRenderDefaults(t *testing.T) {
 
 				pod := renderKubeVipTemplate(t, tc.path, variable)
 
+				// common env, sourced from the configurable env map
 				assert.Equal(t, svcEnable, envValue(t, pod, "svc_enable"))
 				assert.Equal(t, "6443", envValue(t, pod, "port"))
 				assert.Equal(t, "32", envValue(t, pod, "vip_cidr"))
@@ -140,6 +128,22 @@ func TestKubeVipTemplatesRenderDefaults(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("ARP mode-specific env is fixed in the template", func(t *testing.T) {
+		pod := renderKubeVipTemplate(t, "../../../builtin/core/roles/kubernetes/pre-kubernetes/templates/kubevip/kubevip.ARP", kubeVipVariable())
+
+		assert.Equal(t, "true", envValue(t, pod, "vip_leaderelection"))
+		assert.Equal(t, "5", envValue(t, pod, "vip_leaseduration"))
+	})
+
+	t.Run("BGP mode-specific env is fixed in the template", func(t *testing.T) {
+		pod := renderKubeVipTemplate(t, "../../../builtin/core/roles/kubernetes/pre-kubernetes/templates/kubevip/kubevip.BGP", kubeVipVariable())
+
+		assert.Equal(t, "true", envValue(t, pod, "bgp_enable"))
+		assert.Equal(t, "65000", envValue(t, pod, "bgp_as"))
+		assert.Equal(t, "local", envValue(t, pod, "lb_fwdmethod"))
+		assert.Equal(t, ":2112", envValue(t, pod, "prometheus_server"))
+	})
 }
 
 func TestParseBool(t *testing.T) {
