@@ -32,18 +32,12 @@
 
 - name: Binary | Check if kubectl is installed
   ignore_errors: true
-  command: |
-    {{- if .kubernetes.kube_version | semverCompare ">=v1.28.0" -}}
-    kubectl version --client
-    {{- else -}}
-    kubectl version --client --short
-    {{- end -}}
+  command: kubectl version --client -o yaml
   register: kubectl_install_version
   register_type: yaml
 
 - name: Binary | Install kubectl if not present or version mismatch
-  when: |
-    or (.kubectl_install_version.error | empty | not) ((get .kubectl_install_version.stdout "Client Version") | ne  .kubernetes.kube_version)
+  when: or (.kubectl_install_version.error | empty | not) ((index .kubectl_install_version.stdout "clientVersion" "gitVersion") | ne .kubernetes.kube_version)
   copy:
     src: >-
       {{ .binary_dir }}/kube/{{ .kubernetes.kube_version }}/{{ .binary_type }}/kubectl
