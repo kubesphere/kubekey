@@ -17,7 +17,11 @@ limitations under the License.
 package connector
 
 import (
+	"bufio"
 	"context"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -248,5 +252,142 @@ func TestSSHConnector_InitValidation(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// TestExecuteCommand_SudoPasswordPromptDeliversPassword reproduces the bug
+// reported in https://github.com/kubesphere/kubekey/issues/2412 : when sudo
+// on the remote host requires a password (NOPASSWD is not configured), the
+// interactive password prompt must be read from sudo's own stdin, and the
+// password written by ExecuteCommand's read/write loop must reach it.
+//
+// Before the buildSudoCommand fix, the script was piped into sudo's stdin via
+// a heredoc ("sudo -E <shell> << 'EOF' ... EOF"), so sudo consumed lines of
+// the script itself as bogus password attempts and always failed, exactly
+// matching the "Sorry, try again" / "3 incorrect password attempts" output in
+// the issue -- regardless of whether the real password was correct.
+//
+// This test drives the exact command built by buildSudoCommand through a
+// local subprocess (no real SSH/sudo involved) using a fake "sudo" on PATH
+// that mimics the real prompt/read behavior, and reuses the same byte-by-byte
+// prompt-detection loop ExecuteCommand uses over the SSH session's stdio.
+func TestExecuteCommand_SudoPasswordPromptDeliversPassword(t *testing.T) {
+	if _, err := exec.LookPath("bash"); err != nil {
+		t.Skip("bash not available")
+	}
+
+	const (
+		user     = "testuser"
+		password = "s3cret"
+	)
+
+	binDir := t.TempDir()
+	fakeSudo := filepath.Join(binDir, "sudo")
+	fakeSudoScript := `#!/bin/bash
+shift # drop -E
+attempts=0
+while [ $attempts -lt 3 ]; do
+  printf '[sudo] password for ` + user + `: '
+  IFS= read -r pass
+  if [ "$pass" = "` + password + `" ]; then
+    exec "$@"
+  fi
+  echo ""
+  echo "Sorry, try again."
+  attempts=$((attempts+1))
+done
+echo "sudo: 3 incorrect password attempts" >&2
+exit 1
+`
+	if err := os.WriteFile(fakeSudo, []byte(fakeSudoScript), 0o755); err != nil { //nolint:gosec // test fixture, needs to be executable
+		t.Fatalf("write fake sudo: %v", err)
+	}
+
+	script := "echo IT_WORKED"
+	cmd := buildSudoCommand(user, "bash", script)
+
+	c := exec.Command("bash", "-c", cmd)
+	c.Env = append(os.Environ(), "PATH="+binDir+":"+os.Getenv("PATH"))
+
+	in, err := c.StdinPipe()
+	if err != nil {
+		t.Fatalf("stdin pipe: %v", err)
+	}
+	out, err := c.StdoutPipe()
+	if err != nil {
+		t.Fatalf("stdout pipe: %v", err)
+	}
+	if err := c.Start(); err != nil {
+		t.Fatalf("start: %v", err)
+	}
+
+	// Same byte-by-byte prompt-detection loop as sshConnector.ExecuteCommand.
+	var output []byte
+	line := ""
+	r := bufio.NewReader(out)
+	for {
+		b, err := r.ReadByte()
+		if err != nil {
+			break
+		}
+		output = append(output, b)
+		if b == '\n' {
+			line = ""
+			continue
+		}
+		line += string(b)
+		if (strings.HasPrefix(line, "[sudo] password for ") || strings.HasPrefix(line, "Password")) && strings.HasSuffix(line, ": ") {
+			if _, err := in.Write([]byte(password + "\n")); err != nil {
+				break
+			}
+		}
+	}
+
+	waitErr := c.Wait()
+	outStr := string(output)
+
+	if waitErr != nil {
+		t.Fatalf("expected sudo to accept the password and run the script, got error: %v\noutput:\n%s", waitErr, outStr)
+	}
+	if !strings.Contains(outStr, "IT_WORKED") {
+		t.Fatalf("expected script output %q in output, got:\n%s", "IT_WORKED", outStr)
+	}
+	if strings.Contains(outStr, "incorrect password") {
+		t.Fatalf("sudo reported incorrect password attempts, the write to stdin did not reach it:\n%s", outStr)
+	}
+}
+
+// TestBuildSudoCommand_PreservesSpecialCharacters ensures the quoting used to
+// pass the script via "sudo ... -c \"$(cat <<'EOF' ... EOF)\"" round-trips
+// shell metacharacters (quotes, backticks, "$(...)") in the script literally,
+// without the outer command line re-interpreting or executing them.
+func TestBuildSudoCommand_PreservesSpecialCharacters(t *testing.T) {
+	if _, err := exec.LookPath("bash"); err != nil {
+		t.Skip("bash not available")
+	}
+
+	script := "echo \"hello \\\"world\\\"\"\n" +
+		"echo 'literal: $(id) and `whoami`'"
+
+	cmd := buildSudoCommand("root", "bash", script)
+	// Use the real "sudo" -> here none is needed since target user matches
+	// (bypass by aliasing sudo to a passthrough), so this test only exercises
+	// quoting, not the password prompt path.
+	binDir := t.TempDir()
+	passthroughSudo := filepath.Join(binDir, "sudo")
+	if err := os.WriteFile(passthroughSudo, []byte("#!/bin/bash\nshift\nexec \"$@\"\n"), 0o755); err != nil { //nolint:gosec // test fixture, needs to be executable
+		t.Fatalf("write passthrough sudo: %v", err)
+	}
+
+	c := exec.Command("bash", "-c", cmd)
+	c.Env = append(os.Environ(), "PATH="+binDir+":"+os.Getenv("PATH"))
+	output, err := c.CombinedOutput()
+	if err != nil {
+		t.Fatalf("run: %v\noutput:\n%s", err, output)
+	}
+
+	want := "hello \"world\"\nliteral: $(id) and `whoami`\n"
+	if string(output) != want {
+		t.Fatalf("output mismatch:\ngot:  %q\nwant: %q", output, want)
 	}
 }
