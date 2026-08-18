@@ -260,3 +260,54 @@ func TestSetFactModule(t *testing.T) {
 		})
 	}
 }
+
+// TestSetFactDownloadArchFromHostvars reproduces the download role's
+// "Include actual host architectures in the download list" task: download.arch
+// defaults to ["amd64"], so on an arm64-only cluster the required binaries are
+// never fetched unless the actual host architectures (gathered via .hostvars)
+// are folded in.
+func TestSetFactDownloadArchFromHostvars(t *testing.T) {
+	ctx := context.Background()
+	hosts := []string{"localhost", "node-amd64", "node-arm64"}
+	testVar := NewTestVariable(hosts, map[string]any{
+		"download": map[string]any{"arch": []any{"amd64"}},
+	})
+
+	for host, arch := range map[string]string{"node-amd64": "amd64", "node-arm64": "arm64"} {
+		_, _, err := ModuleSetFact(ctx, internal.ExecOptions{
+			Host:     host,
+			Variable: testVar,
+			Args:     createRawArgs(map[string]any{"binary_type": arch}),
+		})
+		require.NoError(t, err)
+	}
+
+	args := createRawArgs(map[string]any{
+		"download": map[string]any{
+			"arch": "{{- $archs := .download.arch -}}\n" +
+				"{{- range $.hostvars }}\n" +
+				"  {{- if .binary_type }}\n" +
+				"    {{- $archs = append $archs .binary_type }}\n" +
+				"  {{- end }}\n" +
+				"{{- end }}\n" +
+				"{{- $archs | uniq | toJson }}",
+		},
+	})
+
+	stdout, stderr, err := ModuleSetFact(ctx, internal.ExecOptions{
+		Host:     "localhost",
+		Variable: testVar,
+		Args:     args,
+	})
+	require.NoError(t, err)
+	require.Equal(t, internal.StdoutSuccess, stdout)
+	require.Empty(t, stderr)
+
+	result, err := testVar.Get(variable.GetAllVariable("localhost"))
+	require.NoError(t, err)
+	hostVars, ok := result.(map[string]any)
+	require.True(t, ok)
+	download, ok := hostVars["download"].(map[string]any)
+	require.True(t, ok)
+	require.ElementsMatch(t, []any{"amd64", "arm64"}, download["arch"])
+}
