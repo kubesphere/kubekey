@@ -26,29 +26,11 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/klog/v2"
 
-	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/modules/internal"
+	testutil "github.com/kubesphere/kubekey/v4/pkg/modules/testutil"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
-	"github.com/kubesphere/kubekey/v4/pkg/variable/source"
 )
-
-// NewTestVariable creates a new variable.Variable for testing purposes.
-func NewTestVariable(hosts []string, vars map[string]any) variable.Variable {
-	client, playbook, err := _const.NewTestPlaybook(hosts)
-	if err != nil {
-		klog.ErrorS(err, "failed to create test playbook")
-	}
-	v, err := variable.New(context.TODO(), client, *playbook, source.MemorySource)
-	if err != nil {
-		klog.ErrorS(err, "failed to create variable")
-	}
-	if err := v.Merge(variable.MergeRemoteVariable(vars, hosts...)); err != nil {
-		klog.ErrorS(err, "failed to merge variable")
-	}
-	return v
-}
 
 // createRawArgs creates a runtime.RawExtension from a map
 func createRawArgs(data map[string]any) runtime.RawExtension {
@@ -69,7 +51,7 @@ func TestImageArgsModule(t *testing.T) {
 			name: "valid args with pull section",
 			opt: internal.ExecOptions{
 				Host:     "node1",
-				Variable: NewTestVariable([]string{"node1"}, nil),
+				Variable: testutil.NewTestVariable([]string{"node1"}, nil),
 				Args: createRawArgs(map[string]any{
 					"pull": map[string]any{
 						"manifests": []string{"image1", "image2"},

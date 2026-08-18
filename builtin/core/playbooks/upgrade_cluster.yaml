@@ -57,13 +57,24 @@
         - .etcd.deployment_type | eq "external"
         - .upgrade.etcd
 
-# Upgrade Kubernetes binaries and container runtime on all cluster nodes
-# cri sub-roles control their own behavior via upgrade.cri internally
+# Upgrade Kubernetes binaries and container runtime on all cluster nodes.
+# The `cri` role only runs when upgrade.cri is set (--all / --set upgrade.cri=true /
+# kk upgrade cri). It is left untouched on a Kubernetes-only upgrade so neither the
+# Docker daemon nor containerd is ever reconfigured or restarted during a plain K8s bump.
+# cri-dockerd (required only for docker + Kubernetes >= v1.24.0, dockershim removal) is a
+# standalone role: it is pulled in as a dependency of `cri` for create/upgrade-cri, and
+# referenced directly below for Kubernetes-only upgrades so the daemon never gets touched.
 - hosts:
     - k8s_cluster
   gather_facts: true
   roles:
-    - cri
+    - role: cri
+      when: .upgrade.cri
+    - role: cri/cridockerd
+      when:
+        - .cri.container_manager | eq "docker"
+        - .kubernetes.kube_version | semverCompare ">=v1.24.0"
+        - .upgrade.cri | not
     - kubernetes/pre-kubernetes
 
 # Upgrade control plane nodes one by one using kubeadm upgrade

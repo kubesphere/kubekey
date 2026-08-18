@@ -129,8 +129,7 @@
     systemctl daemon-reload && systemctl restart containerd.service && systemctl enable containerd.service
     systemctl daemon-reload && systemctl restart docker.service && systemctl enable docker.service
 
-# Docker | Install cri-dockerd if required for Kubernetes >= v1.24.0
-- include_tasks: cridockerd.yaml
-  when:
-    - .cri.container_manager | eq "docker"
-    - .kubernetes.kube_version | semverCompare ">=v1.24.0"
+# cri-dockerd is handled by the dedicated `cri/cridockerd` role (referenced both as a
+# dependency of the `cri` role for create/upgrade-cri, and directly in upgrade_cluster.yaml
+# for Kubernetes-only upgrades on docker + Kubernetes >= v1.24.0). It is intentionally NOT
+# included here so that a Kubernetes-only upgrade never touches the Docker daemon.

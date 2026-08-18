@@ -25,6 +25,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/kubesphere/kubekey/v4/pkg/modules/internal"
+	testutil "github.com/kubesphere/kubekey/v4/pkg/modules/testutil"
+
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
@@ -41,7 +43,7 @@ func TestAddHostvarsArgsModule(t *testing.T) {
 			name: "missing hosts",
 			opt: internal.ExecOptions{
 				Host:     "node1",
-				Variable: internal.NewTestVariable([]string{"node1"}, nil),
+				Variable: testutil.NewTestVariable([]string{"node1"}, nil),
 				Args: runtime.RawExtension{
 					Raw: []byte(`
 vars:
@@ -57,7 +59,7 @@ vars:
 			name: "missing vars",
 			opt: internal.ExecOptions{
 				Host:     "node1",
-				Variable: internal.NewTestVariable([]string{"node1"}, nil),
+				Variable: testutil.NewTestVariable([]string{"node1"}, nil),
 				Args: runtime.RawExtension{
 					Raw: []byte(`
 hosts: node1
@@ -72,7 +74,7 @@ hosts: node1
 			name: "invalid hosts type",
 			opt: internal.ExecOptions{
 				Host:     "node1",
-				Variable: internal.NewTestVariable([]string{"node1"}, nil),
+				Variable: testutil.NewTestVariable([]string{"node1"}, nil),
 				Args: runtime.RawExtension{
 					Raw: []byte(`
 hosts:
@@ -90,7 +92,7 @@ vars:
 			name: "string hosts",
 			opt: internal.ExecOptions{
 				Host:     "node1",
-				Variable: internal.NewTestVariable([]string{"node1"}, nil),
+				Variable: testutil.NewTestVariable([]string{"node1"}, nil),
 				Args: runtime.RawExtension{
 					Raw: []byte(`
 hosts: node1
@@ -107,7 +109,7 @@ vars:
 			name: "array hosts",
 			opt: internal.ExecOptions{
 				Host:     "node1",
-				Variable: internal.NewTestVariable([]string{"node1", "node2"}, nil),
+				Variable: testutil.NewTestVariable([]string{"node1", "node2"}, nil),
 				Args: runtime.RawExtension{
 					Raw: []byte(`
 hosts:
@@ -126,7 +128,7 @@ vars:
 			name: "template in hosts",
 			opt: internal.ExecOptions{
 				Host:     "node1",
-				Variable: internal.NewTestVariable([]string{"node1", "node2"}, map[string]any{"target_host": "node1"}),
+				Variable: testutil.NewTestVariable([]string{"node1", "node2"}, map[string]any{"target_host": "node1"}),
 				Args: runtime.RawExtension{
 					Raw: []byte(`
 hosts: "{{ .target_host }}"
@@ -143,7 +145,7 @@ vars:
 			name: "template in vars",
 			opt: internal.ExecOptions{
 				Host:     "node1",
-				Variable: internal.NewTestVariable([]string{"node1"}, map[string]any{"base_dir": "/opt"}),
+				Variable: testutil.NewTestVariable([]string{"node1"}, map[string]any{"base_dir": "/opt"}),
 				Args: runtime.RawExtension{
 					Raw: []byte(`
 hosts: node1
@@ -160,7 +162,7 @@ vars:
 			name: "complex template in vars",
 			opt: internal.ExecOptions{
 				Host:     "node1",
-				Variable: internal.NewTestVariable([]string{"node1"}, map[string]any{"env": "prod", "region": "us-east"}),
+				Variable: testutil.NewTestVariable([]string{"node1"}, map[string]any{"env": "prod", "region": "us-east"}),
 				Args: runtime.RawExtension{
 					Raw: []byte(`
 hosts: node1
@@ -310,7 +312,7 @@ vars:
 			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 			defer cancel()
 
-			testVar := internal.NewTestVariable(tc.hosts, tc.initialVars)
+			testVar := testutil.NewTestVariable(tc.hosts, tc.initialVars)
 
 			opt := internal.ExecOptions{
 				Host:     tc.hosts[0],
@@ -481,7 +483,7 @@ vars:
 			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 			defer cancel()
 
-			testVar := internal.NewTestVariable(tc.hosts, tc.initialVars)
+			testVar := testutil.NewTestVariable(tc.hosts, tc.initialVars)
 
 			opt := internal.ExecOptions{
 				Host:     tc.targetHost,
@@ -510,7 +512,7 @@ vars:
 		defer cancel()
 
 		hosts := []string{"node1", "node2", "node3"}
-		testVar := internal.NewTestVariable(hosts, nil)
+		testVar := testutil.NewTestVariable(hosts, nil)
 
 		opt := internal.ExecOptions{
 			Host:     "node1",
