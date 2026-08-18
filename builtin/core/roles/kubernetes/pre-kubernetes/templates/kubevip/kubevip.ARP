@@ -11,20 +11,12 @@ spec:
     env:
     - name: vip_arp
       value: "true"
-    - name: port
-      value: "6443"
     - name: vip_interface
       value: {{ .kube_vip_interface }}
-    - name: vip_cidr
-      value: "32"
-    - name: cp_enable
-      value: "true"
-    - name: cp_namespace
-      value: kube-system
-    - name: vip_ddns
-      value: "false"
-    - name: svc_enable
-      value: "true"
+{{- range $k, $v := .kubernetes.control_plane_endpoint.kube_vip.env }}
+    - name: {{ $k }}
+      value: "{{ $v }}"
+{{- end }}
     - name: vip_leaderelection
       value: "true"
     - name: vip_leaseduration
@@ -33,10 +25,6 @@ spec:
       value: "3"
     - name: vip_retryperiod
       value: "1"
-    - name: lb_enable
-      value: "true"
-    - name: lb_port
-      value: "6443"
     - name: address
       value: {{ .kubernetes.control_plane_endpoint.kube_vip.address }}
     image: {{ .kubernetes.control_plane_endpoint.kube_vip.image.registry }}/{{ .kubernetes.control_plane_endpoint.kube_vip.image.repository }}:{{ .kubernetes.control_plane_endpoint.kube_vip.image.tag }}

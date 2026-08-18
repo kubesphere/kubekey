@@ -11,20 +11,12 @@ spec:
     env:
     - name: vip_arp
       value: "false"
-    - name: port
-      value: "6443"
     - name: vip_interface
       value: {{ .kube_vip_interface }}
-    - name: vip_cidr
-      value: "32"
-    - name: cp_enable
-      value: "true"
-    - name: cp_namespace
-      value: kube-system
-    - name: vip_ddns
-      value: "false"
-    - name: svc_enable
-      value: "true"
+{{- range $k, $v := .kubernetes.control_plane_endpoint.kube_vip.env }}
+    - name: {{ $k }}
+      value: "{{ $v }}"
+{{- end }}
     - name: bgp_enable
       value: "true"
     - name: bgp_routerid
@@ -37,7 +29,9 @@ spec:
     - name: bgp_as
       value: "65000"
     - name: bgp_peeraddress
+      value: ""
     - name: bgp_peerpass
+      value: ""
     - name: bgp_peeras
       value: "65000"
     - name: bgp_peers
@@ -47,10 +41,6 @@ spec:
             {{- $ips = append $ips (printf "%s:65000::false" (index $.hostvars . "internal_ipv4")) }}
         {{- end }}
         {{ $ips | join "," }}
-    - name: lb_enable
-      value: "true"
-    - name: lb_port
-      value: "6443"
     - name: lb_fwdmethod
       value: local
     - name: address
