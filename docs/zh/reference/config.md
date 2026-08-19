@@ -335,15 +335,15 @@ image_registry:
       {{- .image_registry.type | empty -}}
     ca_file: >-
       {{- if .groups.image_registry | default list | empty | not -}}
-      {{ .binary_dir }}/pki/root.crt
+      {{ .work_dir }}/pki/root.crt
       {{- end -}}
     cert_file: >-
       {{- if .groups.image_registry | default list | empty | not -}}
-      {{ .binary_dir }}/pki/image-registry-client.crt
+      {{ .work_dir }}/pki/image-registry-client.crt
       {{- end -}}
     key_file: >-
       {{- if .groups.image_registry | default list | empty | not -}}
-      {{ .binary_dir }}/pki/image-registry-client.key
+      {{ .work_dir }}/pki/image-registry-client.key
       {{- end -}}
 
   # 镜像仓库端口，默认会根据 image_registry.auth.registry 和 plain_http 自动派生。
@@ -612,7 +612,7 @@ kubernetes:
   certs:
     # 提供 Kubernetes CA 文件有三种方式：
     # 1. kubeadm：将 ca_cert 和 ca_key 留空，kubeadm 会自动生成。有效期 10 年，不可更改。
-    # 2. kubekey：将 ca_cert 设置为 {{ .binary_dir }}/pki/ca.cert，ca_key 设置为 {{ .binary_dir }}/pki/ca.key。
+    # 2. kubekey：将 ca_cert 设置为 {{ .work_dir }}/pki/ca.cert，ca_key 设置为 {{ .work_dir }}/pki/ca.key。
     #    这些证书由 kubekey 生成，有效期 10 年，可通过 cert.ca_date 更新。
     # 3. 自定义：手动指定 ca_cert 和 ca_key 的绝对路径以使用您自己的 CA 文件。
     #
@@ -957,19 +957,19 @@ etcd:
   traffic_priority: false
   # CA 证书路径
   ca_file: >-
-    {{ .binary_dir }}/pki/root.crt
+    {{ .work_dir }}/pki/root.crt
   # 服务端证书路径
   server_cert_file: >-
-    {{ .binary_dir }}/pki/etcd-{{ "{{ . }}" }}.crt
+    {{ .work_dir }}/pki/etcd-{{ "{{ . }}" }}.crt
   # 服务端私钥路径
   server_key_file: >-
-    {{ .binary_dir }}/pki/etcd-{{ "{{ . }}" }}.key
+    {{ .work_dir }}/pki/etcd-{{ "{{ . }}" }}.key
   # 客户端证书路径
   client_cert_file: >-
-    {{ .binary_dir }}/pki/etcd-client.crt
+    {{ .work_dir }}/pki/etcd-client.crt
   # 客户端私钥路径
   client_key_file: >-
-    {{ .binary_dir }}/pki/etcd-client.key
+    {{ .work_dir }}/pki/etcd-client.key
 ```
 
 ### 参数说明

@@ -46,6 +46,17 @@ work_dir/
 |-- gather_facts/
 |   |-- gpu_vendors.yaml
 |
+|-- pki/                        # cluster-specific certificates (per work_dir, NOT shared with binary_dir)
+|   |-- root.key / root.crt
+|   |-- kubernetes.key / kubernetes.crt
+|   |-- front-proxy.key / front-proxy.crt
+|   |-- etcd-<node>.key / etcd-<node>.crt
+|   |-- etcd-client.key / etcd-client.crt
+|   |-- image_registry.key / image_registry.crt
+|   |-- image-registry-client.key / image-registry-client.crt
+|
+|-- kubeconfig                  # cluster-specific admin kubeconfig (per work_dir)
+|
 |-- runtime/
 |-- | -- gather_facts_caches
 |-- | -- | -- inventory

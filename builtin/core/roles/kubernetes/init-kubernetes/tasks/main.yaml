@@ -37,7 +37,7 @@
       fetch:
         src: /etc/kubernetes/admin.conf
         dest: >-
-          {{ .binary_dir }}/kubeconfig
+          {{ .work_dir }}/kubeconfig
     - name: InitKubernetes | Generate certificate key using kubeadm
       command: |
         /usr/local/bin/kubeadm init phase upload-certs --upload-certs --config=/etc/kubernetes/kubeadm-config.yaml 2>&1 \

@@ -40,12 +40,12 @@
   fetch:
     src: /etc/kubernetes/admin.conf
     dest: >-
-      {{ .binary_dir }}/kubeconfig
+      {{ .work_dir }}/kubeconfig
 
 - name: Kubernetes | Distribute kubeconfig to remote host of root user
   copy:
     src: >-
-      {{ .binary_dir }}/kubeconfig
+      {{ .work_dir }}/kubeconfig
     dest: /root/.kube/config
 
 - name: Kubernetes | Set kubeconfig permissions

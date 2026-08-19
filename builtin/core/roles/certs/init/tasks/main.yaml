@@ -6,49 +6,49 @@
     date: "{{ .certs.ca.date }}"
     policy: "{{ .certs.ca.gen_cert_policy }}"
     out_key: >-
-      {{ .binary_dir }}/pki/root.key
+      {{ .work_dir }}/pki/root.key
     out_cert: >-
-      {{ .binary_dir }}/pki/root.crt
+      {{ .work_dir }}/pki/root.crt
 
 - name: Cert | Generate Kubernetes CA certificates
   block:
     - name: Cert | Generate the Kubernetes CA certificate file
       gen_cert:
         root_key: >-
-          {{ .binary_dir }}/pki/root.key
+          {{ .work_dir }}/pki/root.key
         root_cert: >-
-          {{ .binary_dir }}/pki/root.crt
+          {{ .work_dir }}/pki/root.crt
         cn: kubernetes-ca
         is_ca: true
         date: "{{ .certs.kubernetes_ca.date }}"
         policy: "{{ .certs.kubernetes_ca.gen_cert_policy }}"
         out_key: >-
-          {{ .binary_dir }}/pki/kubernetes.key
+          {{ .work_dir }}/pki/kubernetes.key
         out_cert: >-
-          {{ .binary_dir }}/pki/kubernetes.crt
+          {{ .work_dir }}/pki/kubernetes.crt
     - name: Cert | Generate the front-proxy CA certificate for Kubernetes
       gen_cert:
         root_key: >-
-          {{ .binary_dir }}/pki/root.key
+          {{ .work_dir }}/pki/root.key
         root_cert: >-
-          {{ .binary_dir }}/pki/root.crt
+          {{ .work_dir }}/pki/root.crt
         cn: front-proxy-ca
         is_ca: true
         date: "{{ .certs.front_proxy_ca.date }}"
         policy: "{{ .certs.front_proxy_ca.gen_cert_policy }}"
         out_key: >-
-          {{ .binary_dir }}/pki/front-proxy.key
+          {{ .work_dir }}/pki/front-proxy.key
         out_cert: >-
-          {{ .binary_dir }}/pki/front-proxy.crt
+          {{ .work_dir }}/pki/front-proxy.crt
 
 - name: Cert | Generate the etcd certificate file
   loop: "{{ .groups.etcd | toJson }}"  
   when: .item | empty | not
   gen_cert:
     root_key: >-
-      {{ .binary_dir }}/pki/root.key
+      {{ .work_dir }}/pki/root.key
     root_cert: >-
-      {{ .binary_dir }}/pki/root.crt
+      {{ .work_dir }}/pki/root.crt
     cn: etcd
     sans: >-
       {{- $ips := list -}}
@@ -71,32 +71,32 @@
     date: "{{ .certs.etcd.date }}"
     policy: "{{ .certs.etcd.gen_cert_policy }}"
     out_key: >-
-      {{ .binary_dir }}/pki/etcd-{{ .item }}.key
+      {{ .work_dir }}/pki/etcd-{{ .item }}.key
     out_cert: >-
-      {{ .binary_dir }}/pki/etcd-{{ .item }}.crt
+      {{ .work_dir }}/pki/etcd-{{ .item }}.crt
 
 - name: Cert | Generate the etcd client certificate file
   when: .groups.etcd | default list | empty | not
   gen_cert:
     root_key: >-
-      {{ .binary_dir }}/pki/root.key
+      {{ .work_dir }}/pki/root.key
     root_cert: >-
-      {{ .binary_dir }}/pki/root.crt
+      {{ .work_dir }}/pki/root.crt
     cn: etcd
     date: "{{ .certs.etcd.date }}"
     policy: "{{ .certs.etcd.gen_cert_policy }}"
     out_key: >-
-      {{ .binary_dir }}/pki/etcd-client.key
+      {{ .work_dir }}/pki/etcd-client.key
     out_cert: >-
-      {{ .binary_dir }}/pki/etcd-client.crt
+      {{ .work_dir }}/pki/etcd-client.crt
 
 - name: Cert | Generate the image registry certificate file
   tags: ["image_registry"]
   gen_cert:
     root_key: >-
-      {{ .binary_dir }}/pki/root.key
+      {{ .work_dir }}/pki/root.key
     root_cert: >-
-      {{ .binary_dir }}/pki/root.crt
+      {{ .work_dir }}/pki/root.crt
     cn: image_registry
     sans: >-
       {{- $ips := list -}}
@@ -120,9 +120,9 @@
     date: "{{ .certs.image_registry.date }}"
     policy: "{{ .certs.image_registry.gen_cert_policy }}"
     out_key: >-
-      {{ .binary_dir }}/pki/image_registry.key
+      {{ .work_dir }}/pki/image_registry.key
     out_cert: >-
-      {{ .binary_dir }}/pki/image_registry.crt
+      {{ .work_dir }}/pki/image_registry.crt
   when: .groups.image_registry | default list | empty | not
 
 - name: Cert | Generate the image registry client certificate file
@@ -130,20 +130,20 @@
   when: .groups.image_registry | default list | empty | not
   gen_cert:
     root_key: >-
-      {{ .binary_dir }}/pki/root.key
+      {{ .work_dir }}/pki/root.key
     root_cert: >-
-      {{ .binary_dir }}/pki/root.crt
+      {{ .work_dir }}/pki/root.crt
     cn: image-registry-client
     date: "{{ .certs.image_registry.date }}"
     policy: "{{ .certs.image_registry.gen_cert_policy }}"
     out_key: >-
-      {{ .binary_dir }}/pki/image-registry-client.key
+      {{ .work_dir }}/pki/image-registry-client.key
     out_cert: >-
-      {{ .binary_dir }}/pki/image-registry-client.crt
+      {{ .work_dir }}/pki/image-registry-client.crt
 
 - name: Cert | Set ownership of the PKI directory to the sudo user
   block:
     - name: Cert | Change ownership of the PKI directory to the sudo user
       ignore_errors: true
       command: |
-        chown -R ${SUDO_UID}:${SUDO_GID} {{ .binary_dir }}/pki
+        chown -R ${SUDO_UID}:${SUDO_GID} {{ .work_dir }}/pki

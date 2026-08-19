@@ -41,15 +41,15 @@ image_registry:
       {{- .image_registry.type | empty -}}
     ca_file: >-
       {{- if .groups.image_registry | default list | empty | not -}}
-      {{ .binary_dir }}/pki/root.crt
+      {{ .work_dir }}/pki/root.crt
       {{- end -}}
     cert_file: >-
       {{- if .groups.image_registry | default list | empty | not -}}
-      {{ .binary_dir }}/pki/image-registry-client.crt
+      {{ .work_dir }}/pki/image-registry-client.crt
       {{- end -}}
     key_file: >-
       {{- if .groups.image_registry | default list | empty | not -}}
-      {{ .binary_dir }}/pki/image-registry-client.key
+      {{ .work_dir }}/pki/image-registry-client.key
       {{- end -}}
 
   # Registry endpoint ports derived from image_registry.auth.registry and plain_http.
