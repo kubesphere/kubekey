@@ -60,10 +60,29 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.ADMIN_GH_TOKEN }}
 
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
+          retention-days: 5
+
+  sync-oss:
+    runs-on: ubuntu-latest
+    needs: goreleaser
+    if: github.repository == 'kubesphere/kubekey'
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: .
+
       - name: Synchronize artifacts to OSS
         run: |
+          VERSION=${GITHUB_REF#refs/tags/}
           # Check if the current Git reference is a valid semantic version tag (e.g., v1.2.3)
-          if [[ ! ${GITHUB_REF#refs/*/} =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          if [[ ! "${VERSION}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
               echo "Skipping artifact synchronization: not a release tag."
               return 0
           fi
@@ -76,6 +95,6 @@ jobs:
           echo "secret_access_key: ${{ secrets.KS_QSCTL_SECRET_ACCESS_KEY }}" >> qsctl-config.yaml
 
           mkdir -p dist-output && mv dist/*.tar.gz dist-output/
-          qsctl -c qsctl-config.yaml cp -r dist-output/ qs://kubekey/github.com/kubesphere/kubekey/releases/download/${{ steps.prepare.outputs.version }}/
+          qsctl -c qsctl-config.yaml cp -r dist-output/ qs://kubekey/github.com/kubesphere/kubekey/releases/download/${VERSION}/
 
           rm -rf qsctl-config.yaml dist-output/

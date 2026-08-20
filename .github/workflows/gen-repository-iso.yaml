@@ -113,9 +113,45 @@ jobs:
             ${{ matrix.name }}-arm64.iso
           overwrite: true
 
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: iso-${{ matrix.name }}
+          path: |
+            ${{ matrix.name }}.iso.sha256sum.txt
+            ${{ matrix.name }}-amd64.iso
+            ${{ matrix.name }}-arm64.iso
+          retention-days: 5
+
+  sync-iso-oss:
+    runs-on: ubuntu-latest
+    needs: build-iso
+    if: github.repository == 'kubesphere/kubekey' && (github.event_name == 'push' || github.event.inputs.upload_iso == 'true')
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: almalinux-9.0-rpms
+          - name: centos-8-rpms
+          - name: debian-10-debs
+          - name: debian-11-debs
+          - name: kylin-v10SP3-2403-rpms
+          - name: kylin-v10SP3-rpms
+          - name: kylin-v10SP2-rpms
+          - name: kylin-v10SP1-rpms
+          - name: ubuntu-18.04-debs
+          - name: ubuntu-20.04-debs
+          - name: ubuntu-22.04-debs
+          - name: ubuntu-24.04-debs
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: iso-${{ matrix.name }}
+          path: .
+
       - name: Synchronize artifacts to OSS
         run: |
-          
           rm -rf qsctl_v2.4.3_linux_amd64.tar.gz
           wget https://attack-on-titan.gd2.qingstor.com/qsctl/v2.4.3/qsctl_v2.4.3_linux_amd64.tar.gz
           tar -zxvf qsctl_v2.4.3_linux_amd64.tar.gz
@@ -123,13 +159,12 @@ jobs:
           mv qsctl_v2.4.3_linux_amd64 /usr/local/bin/qsctl
           echo "access_key_id: ${{secrets.KS_QSCTL_ACCESS_KEY_ID}}" > qsctl-config.yaml
           echo "secret_access_key: ${{ secrets.KS_QSCTL_SECRET_ACCESS_KEY }}" >> qsctl-config.yaml
-          
+
           qsctl -c qsctl-config.yaml cp ${{ matrix.name }}.iso.sha256sum.txt qs://kubekey/github.com/kubesphere/kubekey/releases/download/iso-latest/${{ matrix.name }}.iso.sha256sum.txt
           qsctl -c qsctl-config.yaml cp ${{ matrix.name }}-amd64.iso qs://kubekey/github.com/kubesphere/kubekey/releases/download/iso-latest/${{ matrix.name }}-amd64.iso
           qsctl -c qsctl-config.yaml cp ${{ matrix.name }}-arm64.iso qs://kubekey/github.com/kubesphere/kubekey/releases/download/iso-latest/${{ matrix.name }}-arm64.iso
 
           rm -rf qsctl-config.yaml
-
 
   build-harbor:
     runs-on: ubuntu-latest
@@ -160,6 +195,24 @@ jobs:
           name: iso-latest
           files: config/harbor/*/*harbor-offline-installer*.tgz
           overwrite: true
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: harbor
+          path: config/harbor
+          retention-days: 5
+
+  sync-harbor-oss:
+    runs-on: ubuntu-latest
+    needs: build-harbor
+    if: github.repository == 'kubesphere/kubekey' && (github.event_name == 'push' || github.event.inputs.upload_harbor == 'true')
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: harbor
+          path: .
 
       - name: Synchronize harbor packages to OSS
         shell: bash
