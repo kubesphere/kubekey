@@ -67,7 +67,7 @@ func newCreateConfigCommand() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "config",
-		Short: "Create a Kubernetes or KubeSphere cluster",
+		Short: "Create a cluster configuration file",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return o.Run()
 		},
