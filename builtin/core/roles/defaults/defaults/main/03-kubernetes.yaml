@@ -65,6 +65,8 @@ kubernetes:
     container_log_max_size: 5Mi
     container_log_max_files: 3
 #    extra_args:
+#    extra_config:   # Extra fields merged into KubeletConfiguration (e.g. maxOpenFiles, eventRecordQPS)
+#      maxOpenFiles: 1000000
 
   # Specify a stable IP address or DNS name for the control plane endpoint.
   # For high availability, it is recommended to set control_plane_endpoint to a DNS name.

@@ -263,3 +263,6 @@ featureGates:
 cgroupDriver: {{ .cri.cgroup_driver }}
 containerLogMaxSize: {{ .kubernetes.kubelet.container_log_max_size }}
 containerLogMaxFiles: {{ .kubernetes.kubelet.container_log_max_files }}
+{{- if .kubernetes.kubelet.extra_config | empty | not }}
+{{ .kubernetes.kubelet.extra_config | toYaml }}
+{{- end }}
