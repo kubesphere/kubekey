@@ -97,7 +97,7 @@ authentication:
     spire:
       # Settings to control the SPIRE installation and configuration
       install:
-        {{- .cni.cilium_version | semverCompare ">=1.15.0" }}
+        {{- if .cni.cilium_version | semverCompare ">=1.15.0" }}
         # -- init container image of SPIRE agent and server
         initImage:
           repository: "{{ .image_registry.dockerio_registry }}/library/busybox"
