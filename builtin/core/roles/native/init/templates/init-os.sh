@@ -149,6 +149,15 @@ mv $tmpfile /etc/sysctl.conf
 # ------------------------ 4. Security Limit ------------------------------------
 
 # ulimit
+# NOTE: the settings below are written to /etc/security/limits.d/99-kube.conf,
+# which is a PAM mechanism. They ONLY take effect for login sessions (SSH,
+# console, su, cron) and processes started from such sessions.
+# systemd-managed services (containerd, kubelet, kube-proxy, ...) IGNORE these
+# values; they are governed by the LimitNOFILE=/LimitNPROC= directives in their
+# own unit files (or the systemd default). Therefore these limits do NOT
+# propagate into containers, and changing them will NOT affect in-container
+# processes such as compute-server. To adjust the file-descriptor limit that
+# containers inherit, modify the container runtime's systemd unit instead.
 cat << 'EOF' | tee /etc/security/limits.d/99-kube.conf
 * soft nofile 1048576
 * hard nofile 1048576

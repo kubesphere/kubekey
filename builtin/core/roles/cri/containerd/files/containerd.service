@@ -16,7 +16,13 @@ RestartSec=5
 # in the kernel. We recommend using cgroups to do container-local accounting.
 LimitNPROC=infinity
 LimitCORE=infinity
-LimitNOFILE=1048576
+# LimitNOFILE is intentionally commented out: a high value is inherited by every
+# container spawned by containerd, forcing in-container subprocesses that close
+# inherited FDs (e.g. Python 2 subprocess.Popen with close_fds=True) to scan up
+# to that many file descriptors on every spawn, which is very slow. Let it fall
+# back to the systemd default (1024:524288) so high-FD workloads can still raise
+# their own limit via ulimit/setrlimit in the container entrypoint.
+# LimitNOFILE=1048576
 # Comment TasksMax if your systemd version does not supports it.
 # Only systemd 226 and above support this version.
 TasksMax=infinity
