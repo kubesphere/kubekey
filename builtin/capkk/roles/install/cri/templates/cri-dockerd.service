@@ -22,7 +22,13 @@ StartLimitInterval=60s
 
 # Having non-zero Limit*s causes performance problems due to accounting overhead
 # in the kernel. We recommend using cgroups to do container-local accounting.
-LimitNOFILE=infinity
+# LimitNOFILE is intentionally commented out: a high value is inherited by every
+# container spawned by docker/containerd, forcing in-container subprocesses that
+# close inherited FDs (e.g. Python 2 subprocess.Popen with close_fds=True) to
+# scan up to that many file descriptors on every spawn, which is very slow.
+# Let it fall back to the systemd default (1024:524288) so high-FD workloads can
+# still raise their own limit via ulimit/setrlimit in the container entrypoint.
+# LimitNOFILE=infinity
 LimitNPROC=infinity
 LimitCORE=infinity
 

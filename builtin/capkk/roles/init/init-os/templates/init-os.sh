@@ -138,6 +138,12 @@ mv $tmpfile /etc/sysctl.conf
 # ------------------------ 4. Security Limit ------------------------------------
 
 # ulimit
+# NOTE: written to /etc/security/limits.conf, which is a PAM mechanism. These
+# limits apply ONLY to login sessions (SSH/console/su/cron), NOT to
+# systemd-managed services such as containerd/kubelet, and therefore do NOT
+# affect containers or in-container processes. Changing them does not change the
+# limits containers inherit; for that, adjust the container runtime's systemd
+# unit LimitNOFILE instead.
 echo "* soft nofile 1048576" >> /etc/security/limits.conf
 echo "* hard nofile 1048576" >> /etc/security/limits.conf
 echo "* soft nproc 65536" >> /etc/security/limits.conf
