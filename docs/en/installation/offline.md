@@ -1,41 +1,72 @@
-# Offline Installation of Kubernetes and KubeSphere
+# Offline Installation of Kubernetes
 
-This section describes how to deploy Kubernetes and KubeSphere using offline packages in an environment without Internet access.
+This section describes how to deploy Kubernetes using offline packages in an environment that cannot access the Internet.
 
-> **Prerequisite**: The installation process depends on the `tar` utility for compression and decompression. Please ensure it is pre-installed in your system environment. If `charts` is configured in `config.yaml`, make sure Helm is pre-installed on the packaging node.
+The installation process uses the open-source tool KubeKey v4.x. For more information about KubeKey, visit the [GitHub KubeKey repository](https://github.com/kubesphere/kubekey).
 
----
+> **Note**: The installation process depends on the `tar` utility for compression and decompression of software packages. Make sure it is pre-installed in your system environment. If `charts` is configured in `config.yaml`, make sure Helm is pre-installed on the packaging node.
 
-## Preparation
+## Overview
 
-Prepare Linux hosts according to the following minimum configuration requirements.
+Offline installation requires you to first package the required components and images as an offline package on a machine that can access the Internet, and then transfer it to the target environment for installation. The overall flow is as follows:
 
-| Role | Host Count | Minimum Requirements (per node) | Network |
-|------|-----------|--------------------------------|---------|
-| Packaging node | 1 | CPU: 1 core, Memory: 1 GB, Disk: 150 GB | |
-| Deployment node (runs Web Installer) | 1 | CPU: 1 core, Memory: 1 GB, Disk: 150 GB | Network connected to Kubernetes nodes |
-| Private image registry node | 1 | CPU: 8 cores, Memory: 16 GB, Disk: 100 GB | Network connected to Kubernetes nodes |
-| Kubernetes node | ≥ 1 | CPU: 2 cores, Memory: 4 GB, Disk: 40 GB | Inter-node network connected |
+1. **Build the offline package** (on a networked machine): Download components and images and package them as `artifact.tgz`.
+2. **Transfer the offline package**: Copy `artifact.tgz` to the target environment (for example, via a storage medium or an intranet transfer).
+3. **Install the cluster** (in the target environment): Extract the offline package, push images to the private image registry (if installing the private image registry separately, i.e., Option 1, image pushing is completed automatically by the installation flow when KubeKey installs the image registry together with the cluster), and then install Kubernetes.
 
-> **Notes**
->
-> - A single host can simultaneously assume multiple roles, e.g. both a deployment node and a private image registry node, or both a deployment node and a Kubernetes node.
-> - **The private image registry node and Kubernetes nodes cannot be the same host.**
+## Role Descriptions
 
-**Role descriptions:**
+Offline installation involves the following three roles:
 
-- **Packaging node**: Prepare at least 1 Linux server as the packaging node. This node will download required software packages and images from the Internet, so it must be able to access: `github.com`, `docker.io`, `quay.io`.
-- **Deployment node** (runs Web Installer services): During installation, `kk` commands need to be executed on this node to run the installation service. This node must maintain network connectivity with the private image registry nodes and Kubernetes nodes.
-- **Private image registry node**: If no private image registry has been deployed, prepare at least 1 Linux server. This node must maintain network connectivity with all Kubernetes nodes.
-- **Kubernetes nodes**: Prepare at least 1 Linux server as a cluster node (no need to pre-install Kubernetes).
+| Role | Responsibility | Minimum Configuration (per node) | Network Requirements |
+|---|---|---|---|
+| Packaging node | Downloads required software packages and images from the Internet and builds the offline package | CPU: 1 core, Memory: 1 GB, Disk: 150 GB | Must have Internet access |
+| Private image registry node | Stores the container images required by the cluster | CPU: 8 cores, Memory: 16 GB, Disk: 100 GB | Network connected to Kubernetes nodes |
+| Kubernetes node | Runs cluster workloads (no need to pre-install Kubernetes) | CPU: 2 cores, Memory: 4 GB, Disk: 40 GB | Inter-node network connected |
 
----
+> **Note**:
+> - A single host can simultaneously assume multiple roles, for example both a packaging node and a private image registry node, or both a packaging node and a Kubernetes node.
+> - If the packaging node does not assume a cluster role, you need to prepare another host as a Kubernetes node.
+
+## Prerequisites
+
+> **Note**: The following are the prerequisites that Kubernetes nodes must satisfy.
+
+- You need to prepare at least 1 Linux server as a cluster node. In production environments, to ensure high availability, it is recommended to prepare at least 5 Linux servers, 3 of which act as control plane nodes and another 2 as worker nodes. If you install Kubernetes on multiple Linux servers, make sure all servers belong to the same subnet.
+- The operating system and version of the cluster nodes must be Ubuntu 18.04, Ubuntu 20.04, Ubuntu 22.04, Ubuntu 24.04, Debian 10, Debian 11, CentOS 8, AlmaLinux 9.0, or Kylin v10. The operating systems of multiple servers can be different. For support of other operating systems and versions, consult the official solution experts or delivery service experts of QingCloud.
+- In production environments, to ensure the cluster has sufficient compute and storage resources, it is recommended that each cluster node be configured with at least 8 CPU cores, 16 GB of memory, and 200 GB of disk space. In addition, it is recommended to mount at least another 200 GB of disk space under `/var/lib/docker` (for Docker) or `/var/lib/containerd` (for containerd) on each cluster node to store container runtime data.
+- Make sure the DNS server addresses configured in the `/etc/resolv.conf` file are available on all cluster nodes. Otherwise, the cluster may experience domain name resolution issues.
+- Make sure the `sudo`, `tar`, `curl`, and `openssl` commands are available on all cluster nodes.
+- Make sure the clocks of all cluster nodes are synchronized.
+
+## Configure Firewall Rules
+
+Kubernetes requires specific ports and protocols for communication between services. If firewall is enabled in your infrastructure environment, you need to allow the required ports and protocols in the firewall settings. If firewall is not enabled in your infrastructure environment, you can skip this step.
+
+The following table lists the ports and protocols that need to be allowed in the firewall.
+
+| Service | Protocol | Action | Start Port | End Port | Remarks |
+|---|---|---|---|---|---|
+| ssh | TCP | allow | 22 | N/A | — |
+| etcd | TCP | allow | 2379 | 2380 | — |
+| apiserver | TCP | allow | 6443 | N/A | — |
+| calico | TCP | allow | 9099 | 9100 | — |
+| bgp | TCP | allow | 179 | N/A | — |
+| nodeport | TCP | allow | 30000 | 32767 | — |
+| master | TCP | allow | 10250 | 10258 | — |
+| worker | TCP | allow | 10250 | N/A | — |
+| dns | TCP | allow | 53 | N/A | — |
+| dns | UDP | allow | 53 | N/A | — |
+| local-registry | TCP | allow | 5000 | N/A | Required in offline environments |
+| local-apt | TCP | allow | 5080 | N/A | Required in offline environments |
+| rpcbind | TCP | allow | 111 | N/A | Required when using NFS as persistent storage |
+| ipip | IPENCAP / IPIP | allow | N/A | N/A | Required when using Calico |
 
 ## Build Offline Package
 
 ### Create Configuration File
 
-> You can generate it via the https://get-images.kubesphere.io page.
+**Tip**: You can visually select the required components and automatically generate `config.yaml` on the [https://get-images.kubesphere.io](https://get-images.kubesphere.io) page, or create it manually by referring to the following example.
 
 Log in to the packaging node and create a `config.yaml` file on the packaging node:
 
@@ -53,18 +84,8 @@ spec:
       registry: hub.kubesphere.com.cn
     kubernetes:
       kube_version:
-        - v1.23.17
-        - v1.24.17
-        - v1.25.16
-        - v1.26.15
-        - v1.27.16
-        - v1.28.15
-        - v1.29.15
-        - v1.30.14
-        - v1.31.12
-        - v1.32.11
-        - v1.33.7
         - v1.34.3
+        # Other versions from v1.23~v1.34 can also be listed
     cni:
       type:
         - calico
@@ -72,9 +93,8 @@ spec:
         - flannel
         - kubeovn
         - hybridnet
-      multi_cni:
-        - multus
-        - spiderpool
+      # multi_cni:          # Optional, multi-CNI management component, e.g. multus
+      #   - multus
     cri:
       container_manager:
         - containerd
@@ -89,76 +109,70 @@ spec:
         - harbor
         - docker-registry
     iso:
-      - "almalinux-9.0-rpms"
-      - "kylin-v10SP3-rpms"
       - "ubuntu-22.04-debs"
       - "centos-8-rpms"
-      - "kylin-v10SP2-rpms"
-      - "ubuntu-24.04-debs"
-      - "debian-10-debs"
-      - "kylin-v10SP1-rpms"
-      - "debian-11-debs"
-      - "ubuntu-18.04-debs"
-      - "kylin-v10SP3-2403-rpms"
-      - "ubuntu-20.04-debs"
+      # Add or remove as needed
 ```
 
 **Field descriptions:**
 
 | Field | Description |
-|-------|-------------|
+|---|---|
 | `apiVersion` | API version of the configuration file. Fixed value: `kubekey.kubesphere.io/v1` |
 | `kind` | Resource type. Fixed value: `Config` |
-| `spec.zone` | Download zone for packages. `cn` means using domestic mirrors |
+| `spec.zone` | Region for downloading software packages. `cn` means using domestic sources |
 | `spec.download.arch` | CPU architectures to download. Supports `amd64` and `arm64` |
-| `spec.download.images.policy` | Image download policy. `warn` means only warning if the image does not exist |
+| `spec.download.images.policy` | Image download policy. `warn` means only recording a warning if the image is missing some CPU architectures or operating systems; `strict` means the pulled image must contain all selected CPU architectures and operating systems, otherwise an error is raised |
 | `spec.download.images.registry` | Image registry address |
 | `spec.download.kubernetes.kube_version` | List of Kubernetes versions to include |
 | `spec.download.cni.type` | CNI plugin types to include |
 | `spec.download.cni.multi_cni` | Multi-CNI management components to include |
 | `spec.download.cri.container_manager` | Container runtime types. Supports `containerd` and `docker` |
-| `spec.download.storage_class` | Storage classes to include. Supports `local` and `nfs` |
+| `spec.download.storage_class` | Storage classes to include. Supports `local`, `nfs` |
 | `spec.download.image_registry.type` | Image registry types. Supports `harbor` and `docker-registry` |
-| `spec.download.iso` | List of operating systems for building ISO dependency packages |
+| `spec.download.iso` | List of operating systems for building ISO dependency packages, used to install system dependencies |
 
-### Get kk and Web Installer
+### Get KubeKey
 
-If your access to GitHub/GoogleAPIs is restricted, set the following environment variable:
+If your access to GitHub or Google APIs is restricted, set the following environment variable:
 
-```shell
+```bash
 export KKZONE=cn
 ```
 
-Execute the following command to download KubeKey and Web Installer:
+Execute the following command to download KubeKey:
 
-```shell
+```bash
 curl -sfL https://get-kk.kubesphere.io | sh -
 ```
 
 After execution, the following files will be generated in the current directory:
 
 | Original File | Extracted File |
-|--------|-----------|
-| `kubekey-v4.x.x-linux-amd64.tar.gz` | kk: KubeKey binary |
-| `web-installer.tgz` | dist: Web UI resources<br>host-check.yaml, kubernetes, kubesphere: Task template files<br>schema: Configuration files<br>README.md: Installation documentation |
-| `package.sh` | Offline package build script |
+|---|---|
+| `kubekey-v4.x.x-linux-amd64.tar.gz` | `kk`: KubeKey binary |
+| `package.sh` | Build script for the offline package (automatically generated by the download command; internally calls `kk artifact export` to complete download and packaging) |
 
-### Build Offline Package
+### Build the Offline Package
 
 Execute the build script:
 
-```shell
+```bash
 ./package.sh config.yaml
 ```
 
-When `Offline package artifact.tgz has been created successfully.` is printed, the build is successful. The offline package is `artifact.tgz`.
+When the following information is printed, the build has succeeded:
 
-Offline package contents:
+```text
+Offline package artifact.tgz has been created successfully.
+```
+
+The offline package is `artifact.tgz` and contains the following:
 
 ```text
 artifact/
-├── artifact/kubekey-artifact.tgz    # Complete offline resource package
-└── artifact/tools/                  # Tool packages for different architectures
+├── kubekey-artifact.tgz    # Complete offline resource package
+└── tools/                  # Tool packages for different architectures
     ├── amd64/
     │   ├── kubekey-v4.x.x-linux-amd64.tar.gz
     │   ├── nerdctl-2.2.1-linux-amd64.tar.gz
@@ -169,126 +183,66 @@ artifact/
         └── oras_1.3.0_linux_arm64.tar.gz
 ```
 
----
+After transferring `artifact.tgz` to the target environment, the following steps are all executed in the target environment.
 
-## Install Cluster Using Offline Package
+## Install the Cluster Using the Offline Package
 
-Before installing the cluster, you need to specify a private image registry address. There are two options:
+Before installing the cluster, you need to specify a private image registry address. There are two ways:
 
-- **Option 1**: Install a private image registry separately. Please refer to [Image Registry Installation](../image-registry/README.md).
-- **Option 2**: Install the image registry together with the cluster. You need to add the corresponding configuration in `inventory.yaml` and `config.yaml` (see the command line installation steps below).
+- **Option 1**: Install the private image registry separately. Refer to [Image Registry Installation](https://github.com/kubesphere/kubekey/blob/main/docs/zh/image-registry/README.md).
+- **Option 2**: Install the image registry together with the cluster. See the installation steps below for details.
 
 ### Extract the Offline Package
 
-```shell
+```bash
 tar -zxvf artifact.tgz
 ```
 
-### Method 1: Web Installer
-
-> **Tip**: The Web Installer does not currently support installing a private image registry. Please install it separately beforehand by referring to [Image Registry Installation](../image-registry/README.md).
+### Install the Cluster
 
 #### 1. Enter the Offline Package Directory and Extract Tools
 
-KubeKey tools are located in the `tools/{arch}/` directory. Extract the corresponding tool based on your machine's architecture:
+KubeKey tools are located in the `tools/{arch}/` directory. Extract the corresponding tool based on the architecture of the installation machine.
 
-```shell
-# Check machine architecture
+Check the machine architecture:
+
+```bash
 uname -m
 ```
 
-Extract KubeKey to the offline package directory
+Enter the offline package directory:
 
-```shell
+```bash
 cd artifact/
-tar -zxvf tools/{arch}/kubekey-v4.x.x-linux-{arch}.tar.gz .
 ```
 
-#### 2. Push Images to the Private Image Registry
+Extract KubeKey to the offline package directory:
 
-Execute the following command to push images from the offline package to the deployed private image registry:
-
-```shell
-kk artifact images --push -c config.yaml -a kubekey-artifact.tgz
+```bash
+tar -zxvf tools/$(uname -m)/kubekey-v4.x.x-linux-$(uname -m).tar.gz -C .
 ```
 
-> **Note**: Before executing, make sure the private image registry address is correctly configured in `config.yaml`.
+#### 2. Push Images to the Private Image Registry (Option 1 only: install the private image registry separately)
 
-Example `config.yaml`:
+> **Note**: Only when using **Option 1 (install the private image registry separately)** do you need to manually execute this step to push the images in the offline package to the deployed private image registry. If you use **Option 2 (install the image registry together with the cluster)**, KubeKey automatically deploys the image registry and pushes the images when executing `kk create cluster`. **Skip this step in that case.**
 
-```yaml
-apiVersion: kubekey.kubesphere.io/v1
-kind: Config
-spec:
-  image_registry:
-    auth:
-      registry: dockerhub.kubekey.local
-      username: admin
-      password: Harbor12345
-      skip_tls_verify: false
-      plain_http: false
+Execute the following command to push the images in the offline package to the deployed private image registry:
+
+```bash
+./kk artifact images --push -c config.yaml -a kubekey-artifact.tgz
 ```
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `spec.image_registry.auth.registry` | String | Yes | Private image registry address |
-| `spec.image_registry.auth.username` | String | Yes | Username for the private image registry |
-| `spec.image_registry.auth.password` | String | Yes | Password for the private image registry |
-| `spec.image_registry.auth.skip_tls_verify` | Boolean | No | Whether to skip TLS certificate verification. Default is `false` |
-| `spec.image_registry.auth.plain_http` | Boolean | No | Whether to use plain HTTP. Default is `false` |
-
-#### 3. Start the Web Installer
-
-```shell
-kk web --port 8080 --schema-path web-installer/schema --ui-path web-installer/dist
-```
-
-If the following information is displayed, the Web Installer has started successfully:
-
-```
-Web server started successfully on port 8080
-```
-
-Do not close the command terminal. Open KubeKey's UI page in the browser via `http://<bootstrap-node-ip>:8080`.
-
-### Method 2: Command Line Installation
-
-> **Tip**: The command line supports installing the [Image Registry](../image-registry/README.md) separately. It also supports synchronous installation during cluster creation (just modify `inventory.yaml` and `config.yaml`).
-
-#### 1. Enter the Offline Package Directory
-
-KubeKey tools are located in the `tools/{arch}/` directory. Extract the corresponding tool based on your machine's architecture:
-
-```shell
-# Check machine architecture
-uname -m
-```
-
-Extract KubeKey to the offline package directory
-
-```shell
-tar -zxvf tools/{arch}/kubekey-v4.x.x-linux-{arch}.tar.gz .
-```
-
-#### 2. Push Images to the Private Image Registry
-
-Execute the following command to push images from the offline package to the deployed private image registry:
-
-```shell
-kk artifact images --push -c config.yaml -a kubekey-artifact.tgz
-```
-
-> **Note**: Before executing, make sure the private image registry address is correctly configured in `config.yaml`.
+> **Note**: Before execution, make sure the private image registry address is correctly configured in the `config.yaml` used for pushing (that is, the `spec.image_registry.auth` field). This `config.yaml` is the same file used for packaging in the "Build the Offline Package" section above.
 
 #### 3. Create Node Configuration File
 
 Execute the following command to create the node configuration file `inventory.yaml`:
 
-```shell
+```bash
 ./kk create inventory -o .
 ```
 
-`inventory.yaml` mainly defines the connection information of each node in the cluster. After execution, the node configuration file will be generated. Example:
+After execution, the node configuration file `inventory.yaml` will be generated. `inventory.yaml` is mainly used to set the connection information of each node in the cluster, for example:
 
 ```yaml
 apiVersion: kubekey.kubesphere.io/v1
@@ -296,136 +250,133 @@ kind: Inventory
 metadata:
   name: default
 spec:
-  hosts:
-    # localhost:
-    #   connector:
-    #     password: 123456
-    # node1:
-    #   connector:
-    #     type: ssh
-    #     host: node1
-    #     port: 22
-    #     user: root
-    #     password: 123456
-    #   internal_ipv4: 1.1.1.1
+  hosts: {}
   groups:
-    # All Kubernetes nodes
     k8s_cluster:
       groups:
         - kube_control_plane
         - kube_worker
-    # Control plane nodes
     kube_control_plane:
       hosts:
         - localhost
-    # Worker nodes
     kube_worker:
       hosts:
         - localhost
-    # etcd nodes (when etcd_deployment_type is external)
     etcd:
       hosts:
         - localhost
-#    image_registry:
-#      hosts:
-#        - localhost
-    # NFS nodes for registry storage and Kubernetes NFS storage
-#    nfs:
-#      hosts:
-#        - localhost
 ```
 
-**Configure node connection parameters in `spec:hosts`:**
+Node connection parameters in `spec.hosts`:
 
 | Parameter | Description |
-|-----------|-------------|
+|---|---|
 | `<key>` | Node name |
-| `<key>:connector` | Node connection info |
-| `<key>:connector:type` | Connection type. Supports `local` (local connection) and `ssh` (remote connection). Automatically identifies local or ssh based on the node name or IP |
-| `<key>:connector:host` | Address when using ssh to connect to the node |
-| `<key>:connector:port` | Port when using ssh to connect to the node. Default: `22` |
-| `<key>:connector:user` | Username when using ssh to connect to the node. Default: `root` |
-| `<key>:connector:password` | Password for the connection. For local connections this is the sudo password; for ssh connections this is the ssh password |
-| `<key>:connector:private_key` | Path to the ssh private key file. Either password or key must be provided |
-| `<key>:connector:private_key_content` | Content of the ssh private key. Can be used instead of a key file path |
-| `<key>:internal_ipv4` | IPv4 address used for cluster-internal communication |
-| `<key>:internal_ipv6` | IPv6 address used for cluster-internal communication |
+| `<key>.connector.type` | Node connection type. Supports `local` (local connection) and `ssh` (remote connection). KubeKey automatically identifies the connection type based on the node name or IP |
+| `<key>.connector.host` | Address when using SSH to connect to the node |
+| `<key>.connector.port` | Port when using SSH to connect to the node. Default: `22` |
+| `<key>.connector.user` | Username when using SSH to connect to the node. Default: `root` |
+| `<key>.connector.password` | Password for connecting to the node. For `local` connections this is the sudo password; for `ssh` connections this is the SSH password |
+| `<key>.connector.private_key` | Path to the SSH private key file. Either password or key must be provided |
+| `<key>.connector.private_key_content` | Content of the SSH private key. The key content can be used instead of the key file path |
+| `<key>.internal_ipv4` | IPv4 address used for cluster-internal communication |
+| `<key>.internal_ipv6` | IPv6 address used for cluster-internal communication |
 
-**Configure node role information in `spec:groups`:**
+Node role parameters in `spec.groups`:
 
 | Parameter | Description |
-|-----------|-------------|
-| `k8s_cluster` | Kubernetes cluster organization. Contains `kube_control_plane` and `kube_worker`, no additional configuration needed |
-| `kube_control_plane` | Control plane nodes in the Kubernetes cluster. Configure node names defined in `spec:hosts` under `kube_control_plane:hosts` |
-| `kube_worker` | Worker nodes in the Kubernetes cluster. Configure node names defined in `spec:hosts` under `kube_worker:hosts` |
-| `etcd` | etcd nodes in the Kubernetes cluster. Configure node names defined in `spec:hosts` under `etcd:hosts` |
+|---|---|
+| `k8s_cluster` | Kubernetes cluster node group. Contains `kube_control_plane` and `kube_worker`, no additional configuration needed |
+| `kube_control_plane` | Control plane nodes in the Kubernetes cluster. Configure node names defined in `spec.hosts` under `kube_control_plane.hosts` |
+| `kube_worker` | Worker nodes in the Kubernetes cluster. Configure node names defined in `spec.hosts` under `kube_worker.hosts` |
+| `etcd` | etcd nodes in the Kubernetes cluster. Configure node names defined in `spec.hosts` under `etcd.hosts` |
 | `image_registry` | Nodes used to create a private image registry. Usually required for offline installation |
 
->
-> If you choose to install the image registry together with the cluster, you need to add the `image_registry` node and group in `inventory.yaml`. Example:
->
-> ```yaml
-> spec:
->   hosts:
->     harbor1:
->       connector:
->         type: ssh
->         host: 172.16.0.1
->         port: 22
->         user: root
->         password: 123456
->       internal_ipv4: 172.16.0.1
->   groups:
->     image_registry:
->       hosts:
->         - harbor1
-> ```
+If you choose to install the image registry together with the cluster, you need to add the `image_registry` node and group in `inventory.yaml`. Example:
 
-#### 3. Create Installation Configuration File
-
-Execute the following command to create the installation configuration file `config.yaml`:
-
-```shell
-./kk create config --with-kubernetes v1.32.13 -o .
+```yaml
+spec:
+  hosts:
+    harbor1:
+      connector:
+        type: ssh
+        host: 172.16.0.1
+        port: 22
+        user: root
+        password: 123456
+      internal_ipv4: 172.16.0.1
+  groups:
+    image_registry:
+      hosts:
+        - harbor1
 ```
 
-Replace `v1.32.13` with the actual version you need. KubeKey supports Kubernetes `v1.23~v1.34` by default.
+#### 4. Create Installation Configuration File
 
-After execution, the installation configuration file `config-v1.32.13.yaml` will be generated.
+> **Note**: The configuration file generated in this step is used for **installing the cluster**, and is not the same file as the `config.yaml` used for **packaging** in the "Build the Offline Package" section above.
 
->
-> If you choose to install the image registry together with the cluster, you need to add the image registry configuration in `config.yaml`:
->
-> ```yaml
-> spec:
->   image_registry:
->     # Image registry type. Supports harbor, docker-registry. Leave empty to skip installation.
->     type: "harbor"
->     auth:
->       # Address of the private image registry
->       registry: "dockerhub.kubekey.local"
-> ```
+Execute the following command to create the installation configuration file. The following example uses `v1.34.3`, which is already included in the offline resource list of the `config.yaml` example above:
 
-#### 4. Configure Cluster Parameters
+```bash
+./kk create config --with-kubernetes v1.34.3 -o .
+```
 
-Configure Kubernetes cluster information in `config-v1.32.13.yaml`:
+Replace `v1.34.3` with the actual Kubernetes version you need. Make sure the replaced version is included in the `spec.download.kubernetes.kube_version` list used when building the offline package.
 
-| Parameter | Description |
-|-----------|-------------|
-| `zone` | Download zone for files and images. Not needed for network access during offline installation, but effective when building the offline package |
-| `kubernetes` | Kubernetes-related configuration |
-| `etcd` | etcd-related configuration |
-| `image_registry` | Private image registry-related configuration |
-| `cri` | Container runtime-related configuration |
-| `cni` | Network plugin-related configuration |
-| `storage_class` | Storage plugin-related configuration |
-| `dns` | DNS-related configuration |
-| `image_manifests` | Additional images to be downloaded |
+After execution, the installation configuration file `config-v1.34.3.yaml` will be generated.
 
-> **Note**: For complete configuration reference, please refer to [Configuration Reference](../reference/config.md).
+If you choose to install the image registry together with the cluster, you need to add the image registry configuration in `config-v1.34.3.yaml`:
+
+```yaml
+apiVersion: kubekey.kubesphere.io/v1
+kind: Config
+spec:
+  download:
+    arch:
+      - amd64
+      - arm64
+    images:
+      policy: warn
+  image_registry:
+    auth:
+      registry: dockerhub.kubekey.local  # Replace with your actual private image registry address
+      username: admin
+      password: Harbor12345
+      skip_tls_verify: false
+      plain_http: false
+```
 
 #### 5. Install the Cluster
 
-```shell
-kk create cluster -a kubekey-artifact.tgz -i inventory.yaml -c config.yaml
+```bash
+./kk create cluster -a kubekey-artifact.tgz -i inventory.yaml -c config-v1.34.3.yaml
 ```
+
+After the installation is complete, you can check the cluster node status with `kubectl get nodes`:
+
+```shell
+kubectl get nodes
+```
+
+## FAQ
+
+**Q: The version selected when packaging differs from the version used during installation?**
+A: The Kubernetes version used for installation must be included in the `spec.download.kubernetes.kube_version` list when building the offline package; otherwise, the images of that version are not included in the offline package.
+
+**Q: Image pushing fails?**
+A: Make sure the registry address, username, and password in `config.yaml` are correct, and that port `5000` is reachable over the network.
+
+**Q: Why does pushing images pull the hub.kubesphere.com.cn images online?**
+A: Before pushing images to the private image registry, KubeKey first checks the integrity of the local image files online (verifying whether the image manifests match the images in the registry). If no online check is needed, you can set `spec.download.fetch` to `false` in `config.yaml` to skip the online check and completely complete the image push offline.
+
+**Q: How do I add a single machine?**
+A: The node role must be `Master & Worker`.
+
+**Q: How do I re-run the installation?**
+A: For the command line method, clean up the nodes and then re-run `kk create cluster`.
+
+**Q: How do I keep the CA certificate for adding nodes later?**
+A: If you use the KubeKey default certificate, keep the `<working directory>/kubekey/pki/root.crt` file after the installation (the default working directory is `/root/kubekey`). This certificate may be needed when adding nodes later.
+
+**Q: How do I install in an environment with Internet access?**
+A: Refer to [Online Installation of Kubernetes](./online/).
