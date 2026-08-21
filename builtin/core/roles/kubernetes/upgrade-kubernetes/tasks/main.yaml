@@ -1,0 +1,141 @@
+---
+- name: UpgradeKubernetes | Backup Kubernetes configurations and binaries before upgrade
+  command: |
+    BACKUP_DIR="/etc/kubekey/backup/kubernetes/$(date +%Y%m%d-%H%M%S)"
+    mkdir -p "${BACKUP_DIR}"
+    cp /etc/kubernetes/kubeadm-config.yaml "${BACKUP_DIR}/" 2>/dev/null || true
+    cp /usr/local/bin/kubeadm "${BACKUP_DIR}/" 2>/dev/null || true
+    cp /usr/local/bin/kubelet "${BACKUP_DIR}/" 2>/dev/null || true
+    cp /usr/local/bin/kubectl "${BACKUP_DIR}/" 2>/dev/null || true
+    echo "✅ Kubernetes backup saved to ${BACKUP_DIR}"
+
+- name: UpgradeKubernetes | Fail if kubelet service is not active
+  assert:
+    that: .kubernetes_install_ActiveState.stdout | eq "active"
+    fail_msg: >-
+      The kubelet service must be running and active before upgrade.
+
+- name: UpgradeKubernetes | Ensure kubeadm configuration exists locally on control plane
+  when: .groups.kube_control_plane | default list | has .inventory_hostname
+  command: |
+    mkdir -p /etc/kubernetes
+    # Always re-fetch the current kubeadm-config from the cluster ConfigMap. kubeadm reads
+    # kubernetesVersion from this file (via `upgrade apply --config`) as the "current" cluster
+    # version; if it is left stale from the original create, every upgrade step is seen as a
+    # multi-minor jump and fails with "control plane version >= X. Current version: <stale>".
+    # Re-fetching keeps it in sync with the last successfully applied version.
+    KC=/etc/kubernetes/admin.conf
+    [ -r "$KC" ] || KC=/root/.kube/config
+    [ -r "$KC" ] || KC="$HOME/.kube/config"
+    kubectl --kubeconfig="$KC" get cm kubeadm-config -n kube-system -o=jsonpath='{.data.ClusterConfiguration}' > /etc/kubernetes/kubeadm-config.yaml
+    # The ConfigMap stores ONLY the bare ClusterConfiguration, which drops
+    # nodeRegistration (and therefore criSocket). kubeadm upgrade apply reads
+    # nodeRegistration.criSocket from an InitConfiguration document in the same
+    # file; if it is absent it auto-detects CRI endpoints and aborts with
+    # "Found multiple CRI endpoints" whenever both containerd.sock and
+    # cri-dockerd.sock exist (docker CRI). nodeRegistration is NOT a field of
+    # ClusterConfiguration (embedding it there triggers a strict-decoding
+    # "unknown field" error), so it must live in its own InitConfiguration doc.
+    # Prepend that doc, carrying the pinned criSocket, so upgrade apply uses the
+    # configured runtime instead of guessing.
+    if grep -q '^kind: InitConfiguration' /etc/kubernetes/kubeadm-config.yaml; then
+      sudo sed -i 's|^  criSocket:.*|  criSocket: {{ .cri.cri_socket }}|' /etc/kubernetes/kubeadm-config.yaml
+    else
+      TMP=$(mktemp)
+      {
+        printf 'apiVersion: kubeadm.k8s.io/v1beta3\n'
+        printf 'kind: InitConfiguration\n'
+        printf 'nodeRegistration:\n'
+        printf '  criSocket: {{ .cri.cri_socket }}\n'
+        printf -- '---\n'
+        cat /etc/kubernetes/kubeadm-config.yaml
+      } | sudo tee "${TMP}" >/dev/null
+      sudo mv "${TMP}" /etc/kubernetes/kubeadm-config.yaml
+    fi
+
+- name: UpgradeKubernetes | Regenerate kubelet kubeadm-flags.env with version-correct CRI flags
+  when: .cri.cri_socket | default "" | ne ""
+  command: |
+    # kubeadm upgrade does NOT rewrite /var/lib/kubelet/kubeadm-flags.env, so the flags
+    # written at create time persist. For docker/cri-dockerd clusters those include flags
+    # removed in newer kubelet (--network-plugin @v1.24; --cgroup-driver and
+    # --pod-infra-container-image @v1.28) and lack an explicit CRI endpoint (required since
+    # the dockershim default was dropped in v1.24). Rewrite with the configured endpoint and
+    # only version-supported flags so the bumped kubelet can start. Done BEFORE kubeadm
+    # upgrade apply so apply also sees the pinned CRI endpoint via this file.
+    MINOR=$(echo "{{ .kubernetes.kube_version }}" | sed -E 's/^v?[0-9]+\.([0-9]+)\..*/\1/')
+    FLAGS="--container-runtime-endpoint={{ .cri.cri_socket }}"
+    if [ "${MINOR:-0}" -lt 28 ] 2>/dev/null; then
+      FLAGS="${FLAGS} --pod-infra-container-image=registry.k8s.io/pause:3.6"
+    fi
+    mkdir -p /var/lib/kubelet
+    printf 'KUBELET_KUBEADM_ARGS="%s"\n' "${FLAGS}" > /var/lib/kubelet/kubeadm-flags.env
+    echo "✅ kubeadm-flags.env -> ${FLAGS}"
+
+- name: UpgradeKubernetes | Upgrade Kubernetes cluster on first control plane node
+  when:
+    - .groups.kube_control_plane | default list | has .inventory_hostname
+    - .init_kubernetes_node | eq .inventory_hostname
+  command: |
+    # kubeadm v1.30+ rejects `--config` files that carry an InitConfiguration /
+    # ClusterConfiguration document for `upgrade apply`: it now requires an
+    # UpgradeConfiguration, which is only registered from v1.31+. Passing the
+    # legacy two-document config fails with
+    #   "no UpgradeConfiguration found in the supplied config".
+    # For v1.30+ we therefore drop `--config` entirely; kubeadm then reads the
+    # ClusterConfiguration from the live kubeadm-config ConfigMap and the CRI
+    # socket from /var/lib/kubelet/kubeadm-flags.env (written by the task above).
+    # For < v1.30 the `--config` (with the prepended InitConfiguration carrying
+    # criSocket) is still required, because those kubeadm versions auto-detect
+    # the CRI and abort with "Found multiple CRI endpoints" whenever both
+    # containerd.sock and cri-dockerd.sock exist.
+    MINOR=$(echo "{{ .kubernetes.kube_version }}" | sed -E 's/^v?[0-9]+\.([0-9]+)\..*/\1/')
+    if [ "${MINOR:-0}" -ge 30 ] 2>/dev/null; then
+      CONFIG_ARG=""
+    else
+      CONFIG_ARG="--config=/etc/kubernetes/kubeadm-config.yaml"
+    fi
+    # `kubeadm upgrade apply` runs a battery of preflight checks whose strictness
+    # grows with every Kubernetes minor. Several are harmless for a cluster that is
+    # already running and that KubeKey has already validated in its own precheck
+    # phase, yet they abort the whole upgrade in this environment:
+    #   - CoreDNSUnsupportedPlugins / CoreDNSMigration (added in v1.31): perform a
+    #     SelfSubjectAccessReview against the admin kubeconfig; KubeKey-issued admin
+    #     certs use the non-default org "kubeadm:cluster-admins" (vanilla kubeadm uses
+    #     "system:masters"), so these *advisory* checks report "configmaps coredns is
+    #     forbidden" even though the cert is cluster-admin.
+    #   - CreateJob (added in v1.32): spins up an upgrade-health-check Job and fails
+    #     if it does not complete within 15s; under node pressure during the upgrade
+    #     this false-positives.
+    # Because KubeKey runs its own thorough precheck (os/network/kubernetes/etcd/cni)
+    # before reaching this task, it is safe to let `upgrade apply` skip every preflight
+    # here via the documented "all" escape hatch rather than chase each new check.
+    /usr/local/bin/kubeadm upgrade apply {{ .kubernetes.kube_version }} ${CONFIG_ARG} --yes --ignore-preflight-errors=all
+
+- name: UpgradeKubernetes | Upgrade node configuration on other control plane nodes
+  when:
+    - .groups.kube_control_plane | default list | has .inventory_hostname
+    - .init_kubernetes_node | eq .inventory_hostname | not
+  command: |
+    /usr/local/bin/kubeadm upgrade node --ignore-preflight-errors=ImagePull
+
+- name: UpgradeKubernetes | Upgrade node configuration on worker nodes
+  when: .groups.kube_worker | default list | has .inventory_hostname
+  command: |
+    /usr/local/bin/kubeadm upgrade node --ignore-preflight-errors=ImagePull
+
+- name: UpgradeKubernetes | Restart kubelet service after upgrade
+  command: |
+    systemctl daemon-reload && systemctl restart kubelet.service
+
+- name: UpgradeKubernetes | Wait for kubelet to be ready after restart
+  command: |
+    for ((i=1; i<=30; i++)); do
+      if systemctl is-active kubelet.service >/dev/null 2>&1; then
+        echo "✅ kubelet is active"
+        exit 0
+      fi
+      sleep 5
+    done
+    echo "❌ kubelet is not active within 150 seconds"
+    exit 1

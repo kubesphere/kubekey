@@ -11,7 +11,6 @@ dependencies:
 
   - role: precheck/cri
     tags: ["cri"]
-    when: .inventory_hostname | eq "localhost"
 
   - role: precheck/cni
     tags: ["cni"]

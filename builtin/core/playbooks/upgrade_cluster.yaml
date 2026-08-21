@@ -1,0 +1,112 @@
+---
+- hosts:
+    - all
+  gather_facts: true
+  roles:
+    - native/root
+
+- import_playbook: hook/pre_install.yaml
+
+# Load default variables and perform prechecks on all hosts
+- hosts:
+    - all
+  gather_facts: true
+  roles:
+    - defaults
+    - precheck
+
+# Download all required software and generate certificates on the localhost
+- hosts:
+    - localhost
+  roles:
+    - certs/init
+    - download
+
+# Initialize all nodes and install necessary software packages
+- hosts:
+    - etcd
+    - k8s_cluster
+    - image_registry
+    - nfs
+  roles:
+    - native
+
+# Upgrade external etcd cluster one by one (only when upgrade.etcd is set)
+- hosts:
+    - etcd
+  serial: 1
+  gather_facts: true
+  roles:
+    # etcd/prepare MUST run before etcd/backup: it sets the runtime hostvar
+    # `.installed_etcd` (via add_hostvars), which etcd/backup's
+    # `delegate_to: "{{ .installed_etcd }}"` depends on. Running backup first
+    # left `.installed_etcd` empty, so the delegate resolved to an empty host
+    # and connector.NewConnector("") failed with "no authentication method
+    # available". This ordering matches create_cluster.yaml / add_nodes.yaml.
+    - role: etcd/prepare
+      when:
+        - .etcd.deployment_type | eq "external"
+        - .upgrade.etcd
+    - role: etcd/backup
+      when:
+        - .etcd.deployment_type | eq "external"
+        - .upgrade.etcd
+        - .etcd.etcd_version | semverCompare (printf ">v%s" (index .etcd_install_version "stdout" "etcd Version"))
+    - role: etcd/upgrade
+      when:
+        - .etcd.deployment_type | eq "external"
+        - .upgrade.etcd
+
+# Upgrade Kubernetes binaries and container runtime on all cluster nodes.
+# The `cri` role only runs when upgrade.cri is set (--all / --set upgrade.cri=true /
+# kk upgrade cri). It is left untouched on a Kubernetes-only upgrade so neither the
+# Docker daemon nor containerd is ever reconfigured or restarted during a plain K8s bump.
+# cri-dockerd (required only for docker + Kubernetes >= v1.24.0, dockershim removal) is a
+# standalone role: it is pulled in as a dependency of `cri` for create/upgrade-cri, and
+# referenced directly below for Kubernetes-only upgrades so the daemon never gets touched.
+- hosts:
+    - k8s_cluster
+  gather_facts: true
+  roles:
+    - role: cri
+      when: .upgrade.cri
+    - role: cri/cridockerd
+      when:
+        - .cri.container_manager | eq "docker"
+        - .kubernetes.kube_version | semverCompare ">=v1.24.0"
+        - .upgrade.cri | not
+    - kubernetes/pre-kubernetes
+
+# Upgrade control plane nodes one by one using kubeadm upgrade
+- hosts:
+    - kube_control_plane
+  serial: 1
+  gather_facts: true
+  roles:
+    - role: kubernetes/upgrade-kubernetes
+      when:
+        - .upgrade.kubernetes
+        - .kubernetes_install_ActiveState.stdout | eq "active"
+
+# Upgrade worker nodes using kubeadm upgrade node
+- hosts:
+    - kube_worker
+  gather_facts: true
+  roles:
+    - role: kubernetes/upgrade-kubernetes
+      when:
+        - .upgrade.kubernetes
+        - .kubernetes_install_ActiveState.stdout | eq "active"
+
+# Upgrade network and storage components if their versions changed
+# Only when upgrade.cni / upgrade.storage_class is set
+- hosts:
+    - kube_control_plane|random
+  gather_facts: true
+  roles:
+    - role: cni
+      when: .upgrade.cni
+    - role: storageclass
+      when: .upgrade.storage_class
+
+- import_playbook: hook/post_install.yaml

@@ -1,0 +1,10 @@
+---
+# cri-dockerd is only needed for Kubernetes >= v1.24.0 (dockershim removal)
+- name: Cridockerd | Skip when Kubernetes version is below v1.24.0
+  when: .kubernetes.kube_version | semverCompare "<v1.24.0"
+  debug:
+    msg: "cri-dockerd is not required for Kubernetes < v1.24.0, skipping."
+
+- name: Cridockerd | Install cridockerd
+  when: .kubernetes.kube_version | semverCompare ">=v1.24.0"
+  include_tasks: install.yaml

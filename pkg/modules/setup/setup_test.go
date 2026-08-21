@@ -27,10 +27,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/modules/internal"
+	testutil "github.com/kubesphere/kubekey/v4/pkg/modules/testutil"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
-	"github.com/kubesphere/kubekey/v4/pkg/variable/source"
 )
 
 type failingConnector struct {
@@ -56,21 +55,6 @@ func (c failingConnector) FetchFile(context.Context, string, io.Writer) error {
 func (c failingConnector) ExecuteCommand(context.Context, string) ([]byte, []byte, error) {
 	return nil, nil, nil
 }
-
-// NewTestVariable creates a new variable.Variable for testing purposes.
-func NewTestVariable(hosts []string, vars map[string]any) variable.Variable {
-	client, playbook, err := _const.NewTestPlaybook(hosts)
-	if err != nil {
-		return nil
-	}
-	v, err := variable.New(context.TODO(), client, *playbook, source.MemorySource)
-	if err != nil {
-		return nil
-	}
-	_ = v.Merge(variable.MergeRemoteVariable(vars, hosts...))
-	return v
-}
-
 // createRawArgs creates a runtime.RawExtension from a map
 func createRawArgs(data map[string]any) runtime.RawExtension {
 	raw, _ := json.Marshal(data)
@@ -136,7 +120,7 @@ func TestSetupModule(t *testing.T) {
 func TestSetupModuleReturnsConnectorError(t *testing.T) {
 	expectedErr := errors.New("connector init failed")
 	ctx := context.WithValue(context.Background(), internal.ConnKey, failingConnector{initErr: expectedErr})
-	v := NewTestVariable([]string{"node1"}, map[string]any{})
+	v := testutil.NewTestVariable([]string{"node1"}, map[string]any{})
 
 	stdout, stderr, err := ModuleSetup(ctx, internal.ExecOptions{
 		Host:     "node1",

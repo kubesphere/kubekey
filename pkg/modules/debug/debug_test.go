@@ -25,25 +25,10 @@ import (
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	_const "github.com/kubesphere/kubekey/v4/pkg/const"
 	"github.com/kubesphere/kubekey/v4/pkg/modules/internal"
+	testutil "github.com/kubesphere/kubekey/v4/pkg/modules/testutil"
 	"github.com/kubesphere/kubekey/v4/pkg/variable"
-	"github.com/kubesphere/kubekey/v4/pkg/variable/source"
 )
-
-// NewTestVariable creates a new variable.Variable for testing purposes.
-func NewTestVariable(hosts []string, vars map[string]any) variable.Variable {
-	client, playbook, err := _const.NewTestPlaybook(hosts)
-	if err != nil {
-		return nil
-	}
-	v, err := variable.New(context.TODO(), client, *playbook, source.MemorySource)
-	if err != nil {
-		return nil
-	}
-	_ = v.Merge(variable.MergeRemoteVariable(vars, hosts...))
-	return v
-}
 
 // createRawArgs creates a runtime.RawExtension from a map
 func createRawArgs(data map[string]any) runtime.RawExtension {
@@ -64,7 +49,7 @@ func TestDebugArgsModule(t *testing.T) {
 			name: "missing both msg and var",
 			opt: internal.ExecOptions{
 				Host:     "node1",
-				Variable: NewTestVariable([]string{"node1"}, nil),
+				Variable: testutil.NewTestVariable([]string{"node1"}, nil),
 				Args:     createRawArgs(map[string]any{}),
 			},
 			expectStdout: internal.StdoutFailed,
@@ -251,7 +236,7 @@ func TestDebugModule(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 			defer cancel()
 
-			testVar := NewTestVariable(tc.hosts, tc.vars)
+			testVar := testutil.NewTestVariable(tc.hosts, tc.vars)
 
 			opt := internal.ExecOptions{
 				Host:     tc.hosts[0],
