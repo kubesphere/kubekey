@@ -33,7 +33,7 @@ require (
 	k8s.io/component-base v0.35.0
 	k8s.io/klog/v2 v2.140.0
 	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4
-	oras.land/oras-go/v2 v2.6.0
+	oras.land/oras-go/v2 v2.6.2
 	sigs.k8s.io/cluster-api v1.9.2
 	sigs.k8s.io/controller-runtime v0.23.0
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1
@@ -143,7 +143,7 @@ require (
 	go.yaml.in/yaml/v4 v4.0.0-rc.3 // indirect
 	golang.org/x/exp v0.0.0-20260410095643-746e56fc9e2f // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
-	golang.org/x/sync v0.21.0 // indirect
+	golang.org/x/sync v0.22.0 // indirect
 	golang.org/x/sys v0.46.0 // indirect
 	golang.org/x/term v0.44.0 // indirect
 	golang.org/x/text v0.39.0 // indirect
