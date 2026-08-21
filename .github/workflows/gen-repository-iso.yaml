@@ -145,7 +145,7 @@ jobs:
           - name: ubuntu-24.04-debs
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: iso-${{ matrix.name }}
           path: .
@@ -209,7 +209,7 @@ jobs:
     if: github.repository == 'kubesphere/kubekey' && (github.event_name == 'push' || github.event.inputs.upload_harbor == 'true')
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: harbor
           path: .
