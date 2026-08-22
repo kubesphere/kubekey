@@ -19,15 +19,42 @@
   when: .groups.kube_control_plane | default list | has .inventory_hostname
   command: |
     mkdir -p /etc/kubernetes
-    # Always re-fetch the current kubeadm-config from the cluster ConfigMap. kubeadm reads
-    # kubernetesVersion from this file (via `upgrade apply --config`) as the "current" cluster
-    # version; if it is left stale from the original create, every upgrade step is seen as a
-    # multi-minor jump and fails with "control plane version >= X. Current version: <stale>".
-    # Re-fetching keeps it in sync with the last successfully applied version.
+    # Always re-fetch the current ClusterConfiguration from the cluster ConfigMap so
+    # kubernetesVersion stays in sync with the last applied minor. A degraded / empty
+    # fetch must never clobber an existing healthy local config, so only replace the
+    # file when the fetched document is non-empty and carries a ClusterConfiguration.
     KC=/etc/kubernetes/admin.conf
     [ -r "$KC" ] || KC=/root/.kube/config
     [ -r "$KC" ] || KC="$HOME/.kube/config"
-    kubectl --kubeconfig="$KC" get cm kubeadm-config -n kube-system -o=jsonpath='{.data.ClusterConfiguration}' > /etc/kubernetes/kubeadm-config.yaml
+    TMPF=/etc/kubernetes/.kubeadm-config.fetch
+    kubectl --kubeconfig="$KC" get cm kubeadm-config -n kube-system -o=jsonpath='{.data.ClusterConfiguration}' > "$TMPF" 2>/dev/null || true
+    if [ -s "$TMPF" ] && grep -q '^kubernetesVersion:' "$TMPF"; then
+      mv -f "$TMPF" /etc/kubernetes/kubeadm-config.yaml
+    fi
+    rm -f "$TMPF"
+    # Derive the external etcd endpoints from the inventory (single or multi-member).
+    {{- $endpoints := list -}}
+    {{- range .groups.etcd | default list -}}
+      {{- $iv4 := index $.hostvars . "internal_ipv4" | default "" -}}
+      {{- if $iv4 | empty | not -}}
+        {{- $endpoints = append $endpoints (printf "https://%s:%d" $iv4 $.etcd.port) -}}
+      {{- end -}}
+    {{- end -}}
+    ETCD_ENDPOINTS="{{ join "," $endpoints }}"
+    # Re-inject etcd.external whenever the config carries no etcd section. KubeKey runs
+    # etcd as a systemd service (external topology); if etcd.external is missing here,
+    # kubeadm v1.25+ `upgrade apply` falls back to etcd static-pod annotation discovery
+    # (NewFromCluster) and times out with "could not retrieve the list of etcd endpoints"
+    # because there is no etcd Pod to read the advertise-client-urls from.
+    if [ -n "$ETCD_ENDPOINTS" ] && [ -s /etc/kubernetes/kubeadm-config.yaml ] \
+       && ! grep -qE '^etcd:' /etc/kubernetes/kubeadm-config.yaml; then
+      ETCDCERT=/etc/kubernetes/pki/etcd
+      {
+        printf '\netcd:\n  external:\n    endpoints:\n'
+        echo "$ETCD_ENDPOINTS" | tr ',' '\n' | sed 's/^/      - /'
+        printf '    caFile: %s/ca.crt\n    certFile: %s/client.crt\n    keyFile: %s/client.key\n' "$ETCDCERT" "$ETCDCERT" "$ETCDCERT"
+      } >> /etc/kubernetes/kubeadm-config.yaml
+    fi
     # The ConfigMap stores ONLY the bare ClusterConfiguration, which drops
     # nodeRegistration (and therefore criSocket). kubeadm upgrade apply reads
     # nodeRegistration.criSocket from an InitConfiguration document in the same
@@ -89,6 +116,21 @@
     # criSocket) is still required, because those kubeadm versions auto-detect
     # the CRI and abort with "Found multiple CRI endpoints" whenever both
     # containerd.sock and cri-dockerd.sock exist.
+    # Idempotency guard: if the kubeadm-config ConfigMap already records a version
+    # >= the target, the previous upgrade step already applied this minor (e.g. the
+    # cluster was left partially upgraded with some nodes still lagging). Re-running
+    # `kubeadm upgrade apply` would fail ("version already at target"), so skip it;
+    # the lagging nodes are caught up by `kubeadm upgrade node` below. This is what
+    # makes a half-upgraded cluster resumable without ever producing a >1 minor skew.
+    KC=/etc/kubernetes/admin.conf
+    [ -r "$KC" ] || KC=/root/.kube/config
+    [ -r "$KC" ] || KC="$HOME/.kube/config"
+    CUR=$(/usr/local/bin/kubectl --kubeconfig="$KC" -n kube-system get cm kubeadm-config -o jsonpath='{.data.ClusterConfiguration}' 2>/dev/null | grep -m1 '^kubernetesVersion:' | awk '{print $2}')
+    TGT="{{ .kubernetes.kube_version }}"
+    if [ -n "$CUR" ] && [ "$(printf '%s\n%s\n' "$CUR" "$TGT" | sort -V | tail -1)" = "$CUR" ]; then
+      echo "✅ kubeadm-config already at ${CUR} (>= target ${TGT}); skipping upgrade apply"
+      exit 0
+    fi
     MINOR=$(echo "{{ .kubernetes.kube_version }}" | sed -E 's/^v?[0-9]+\.([0-9]+)\..*/\1/')
     if [ "${MINOR:-0}" -ge 30 ] 2>/dev/null; then
       CONFIG_ARG=""

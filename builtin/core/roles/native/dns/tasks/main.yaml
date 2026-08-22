@@ -146,6 +146,12 @@
   loop: "{{ .native.localDNS | toJson }}"
   when:
     - .groups.k8s_cluster | default list | has .inventory_hostname
+    # During a cluster upgrade the control_plane_endpoint DNS is already
+    # configured by the create pipeline (worker -> init_kubernetes_node real IP,
+    # control plane -> 127.0.0.1). Rewriting every node to 127.0.0.1/::1 here
+    # would break worker 'kubeadm upgrade node' on single-APIServer topologies,
+    # so skip the rewrite on upgrade.
+    - .upgrade.kubernetes | default false | not
   command: |
     # Remove any previous Kubekey-managed kubernetes control plane endpoint DNS entries
     sed -i '/# kubekey kubernetes control_plane_endpoint BEGIN/,/# kubekey kubernetes control_plane_endpoint END/d' {{ .item }}
