@@ -9,6 +9,26 @@
     cp /usr/local/bin/kubectl "${BACKUP_DIR}/" 2>/dev/null || true
     echo "✅ Kubernetes backup saved to ${BACKUP_DIR}"
 
+# kubeadm `upgrade apply` keeps a pre-existing, user-customized CoreDNS ConfigMap
+# (it only migrates non-default Corefiles, backing the old one up inside the
+# same ConfigMap as `Corefile-backup`), but it unconditionally overwrites a
+# DEFAULT Corefile with the new version's template. Either way the original
+# Corefile can change or move after the jump, so snapshot it before upgrading so
+# a customized configuration is never silently lost and can be reconciled from
+# the backup afterwards.
+- name: UpgradeKubernetes | Backup CoreDNS configuration before upgrade
+  when:
+    - .groups.kube_control_plane | default list | has .inventory_hostname
+    - .init_kubernetes_node | eq .inventory_hostname
+  command: |
+    BACKUP_DIR="/etc/kubekey/backup/kubernetes/$(date +%Y%m%d-%H%M%S)"
+    mkdir -p "${BACKUP_DIR}"
+    KC=/etc/kubernetes/admin.conf
+    [ -r "$KC" ] || KC=/root/.kube/config
+    [ -r "$KC" ] || KC="$HOME/.kube/config"
+    /usr/local/bin/kubectl --kubeconfig="$KC" -n kube-system get cm coredns -o yaml > "${BACKUP_DIR}/coredns-configmap.yaml" 2>/dev/null || true
+    echo "✅ CoreDNS ConfigMap backup saved to ${BACKUP_DIR}/coredns-configmap.yaml"
+
 - name: UpgradeKubernetes | Fail if kubelet service is not active
   assert:
     that: .kubernetes_install_ActiveState.stdout | eq "active"
@@ -153,6 +173,38 @@
     # before reaching this task, it is safe to let `upgrade apply` skip every preflight
     # here via the documented "all" escape hatch rather than chase each new check.
     /usr/local/bin/kubeadm upgrade apply {{ .kubernetes.kube_version }} ${CONFIG_ARG} --yes --ignore-preflight-errors=all
+
+# kubeadm `upgrade apply` rewrites a default CoreDNS Corefile to the new version's
+# template (e.g. the `cache 30 { disable success ... }` block introduced in newer
+# minors), but it does NOT bump the coredns image on the Deployment. If the old
+# kube-coredns binary does not understand the new Corefile plugins it stays in
+# CrashLoopBackOff, so the whole cluster-becomes-DNS-dead right after a successful
+# Kubernetes-only bump. Align the Deployment image to the target minor's pinned
+# CoreDNS tag. The configured image PREFIX is retained (only the `:tag` changes) so
+# offline / mirrored registries keep working; the tag comes from this version's
+# dns.coredns.image.tag default and matches what kubeadm expects for the new minor.
+- name: UpgradeKubernetes | Align CoreDNS image with the target Kubernetes version
+  when:
+    - .groups.kube_control_plane | default list | has .inventory_hostname
+    - .init_kubernetes_node | eq .inventory_hostname
+    - .dns.coredns.image.tag | default "" | ne ""
+  command: |
+    KC=/etc/kubernetes/admin.conf
+    [ -r "$KC" ] || KC=/root/.kube/config
+    [ -r "$KC" ] || KC="$HOME/.kube/config"
+    K=/usr/local/bin/kubectl
+    TARGET="{{ .dns.coredns.image.tag }}"
+    CUR=$($K --kubeconfig="$KC" -n kube-system get deploy coredns -o jsonpath='{.spec.template.spec.containers[?(@.name=="coredns")].image}' 2>/dev/null)
+    if [ -z "$CUR" ]; then
+      echo "ℹ️  CoreDNS Deployment not found; nothing to align"
+      exit 0
+    fi
+    IMG="${CUR%:*}:${TARGET}"
+    if [ "$CUR" != "$IMG" ]; then
+      $K --kubeconfig="$KC" -n kube-system set image deploy/coredns coredns="$IMG" >/dev/null
+      $K --kubeconfig="$KC" -n kube-system rollout status deploy/coredns --timeout=180s >/dev/null
+    fi
+    echo "✅ CoreDNS image -> ${IMG}"
 
 - name: UpgradeKubernetes | Upgrade node configuration on other control plane nodes
   when:
