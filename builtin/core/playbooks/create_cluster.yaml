@@ -85,9 +85,9 @@
         /usr/local/bin/kubectl taint --overwrite nodes {{ $.hostname }}
         {{- range .kubernetes.custom_taints }} {{ . }}{{- end }}
 
-# Install Kubernetes cluster software components (CNI and storage class) on a random control plane node
+# Install Kubernetes cluster software components (CNI and storage class) on the first control plane node
 - hosts:
-    - kube_control_plane|random
+    - kube_control_plane[0]
   roles:
     - cni
     - storageclass
