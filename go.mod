@@ -7,7 +7,7 @@ require (
 	github.com/Masterminds/sprig/v3 v3.3.0
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2
 	github.com/cockroachdb/errors v1.12.0
-	github.com/emicklei/go-restful-openapi/v2 v2.12.0
+	github.com/emicklei/go-restful-openapi/v2 v2.12.1
 	github.com/emicklei/go-restful/v3 v3.13.0
 	github.com/evanphx/json-patch v5.9.11+incompatible
 	github.com/fsnotify/fsnotify v1.10.1
