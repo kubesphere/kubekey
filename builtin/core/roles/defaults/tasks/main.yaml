@@ -75,12 +75,8 @@
             {{- $notInitNodes = append $notInitNodes . -}}
           {{- end -}}
         {{- end -}}
-        {{- if $initNodes | len | eq 1 -}}
+        {{- if $initNodes -}}
         {{ $initNodes | first }}
-        {{- else if $initNodes | len | lt 1 -}}
-        {{ index $initNodes (randInt 0 ((sub ($initNodes | len) 1) | int)) }}
-        {{- else if $notInitNodes | len | eq 1 -}}
+        {{- else if $notInitNodes -}}
         {{ $notInitNodes | first }}
-        {{- else if $notInitNodes | len | lt 1 -}}
-        {{ index $notInitNodes (randInt 0 ((sub ($notInitNodes | len) 1) | int)) }}
         {{- end -}}
