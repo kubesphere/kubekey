@@ -1,4 +1,18 @@
 ---
+# Back up existing containerd config/binaries before upgrading CRI.
+# On a fresh cluster create there is nothing to back up, so this is skipped.
+- name: Containerd | Backup containerd configuration and binaries before upgrade
+  when:
+    - .kubernetes_install_LoadState.stdout | default "" | eq "loaded"
+    - .upgrade.cri
+  command: |
+    BACKUP_DIR="/etc/kubekey/backup/containerd/$(date +%Y%m%d-%H%M%S)"
+    mkdir -p "${BACKUP_DIR}"
+    cp /etc/containerd/config.toml "${BACKUP_DIR}/" 2>/dev/null || true
+    cp /usr/local/bin/containerd "${BACKUP_DIR}/" 2>/dev/null || true
+    cp /usr/local/bin/ctr "${BACKUP_DIR}/" 2>/dev/null || true
+    cp /usr/local/bin/runc "${BACKUP_DIR}/" 2>/dev/null || true
+    echo "✅ Containerd backup saved to ${BACKUP_DIR}"
 
 - name: Containerd | Sync Containerd binaries
   block:
@@ -77,3 +91,7 @@
   when: or (.containerd_install_version.error | empty | not) (.containerd_install_version.stdout | contains (printf " %s " .cri.containerd_version) | not) (.cri.containerd.config_policy | empty | not)
   command: |
     systemctl daemon-reload && systemctl restart containerd.service && systemctl enable containerd.service
+
+# Note: when upgrade.cri is false the whole `cri` role is skipped at the
+# playbook level (upgrade_cluster.yaml), so containerd is left untouched
+# during a Kubernetes-only upgrade.

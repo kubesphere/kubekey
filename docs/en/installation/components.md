@@ -57,24 +57,24 @@ Recommended etcd versions for each Kubernetes version:
 | 1.27.7\~1.27.9 | 3.5.9 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.27.7/cmd/kubeadm/app/constants/constants.go |
 | 1.27.10\~1.27.11 | 3.5.10 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.27.10/cmd/kubeadm/app/constants/constants.go |
 | 1.27.12\~1.27.16 | 3.5.12 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.27.12/cmd/kubeadm/app/constants/constants.go |
-| 1.28.0\~1.28.5 | 3.5.9 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.28.0/cmd/kubeadm/app/constants/constants.go |
-| 1.28.6\~1.28.7 | 3.5.10 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.28.6/cmd/kubeadm/app/constants/constants.go |
-| 1.28.8\~1.28.13 | 3.5.12 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.28.8/cmd/kubeadm/app/constants/constants.go |
-| 1.28.14\~1.28.15 | 3.5.15 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.28.14/cmd/kubeadm/app/constants/constants.go |
-| 1.29.0\~1.29.2 | 3.5.10 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.29.0/cmd/kubeadm/app/constants/constants.go |
-| 1.29.3\~1.29.8 | 3.5.12 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.29.3/cmd/kubeadm/app/constants/constants.go |
-| 1.29.9\~1.29.10 | 3.5.15 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.29.9/cmd/kubeadm/app/constants/constants.go |
-| 1.29.11\~1.29.15 | 3.5.16 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.29.11/cmd/kubeadm/app/constants/constants.go |
-| 1.30.0\~1.30.4 | 3.5.12 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.30.0/cmd/kubeadm/app/constants/constants.go |
-| 1.30.5\~1.30.14 | 3.5.15 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.30.5/cmd/kubeadm/app/constants/constants.go |
-| 1.31.0\~1.31.13 | 3.5.15 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.31.0/cmd/kubeadm/app/constants/constants.go |
-| 1.31.14 | 3.5.24 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.31.14/cmd/kubeadm/app/constants/constants.go |
-| 1.32.0\~1.32.9 | 3.5.16 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.32.0/cmd/kubeadm/app/constants/constants.go |
-| 1.32.10\~1.32.13 | 3.5.24 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.32.10/cmd/kubeadm/app/constants/constants.go |
-| 1.33.0\~1.33.5 | 3.5.21 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.33.0/cmd/kubeadm/app/constants/constants.go |
-| 1.33.6\~1.33.7 | 3.5.24 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.33.6/cmd/kubeadm/app/constants/constants.go |
-| 1.34.0\~1.34.1 | 3.6.4 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.34.0/cmd/kubeadm/app/constants/constants.go |
-| 1.34.2\~1.34.3 | 3.6.5 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.34.2/cmd/kubeadm/app/constants/constants.go |
+| 1.28.0\~1.28.5 | 3.5.9 | 3.4.13-4 | https://github.com/kubernetes/kubernetes/blob/v1.28.0/cmd/kubeadm/app/constants/constants.go |
+| 1.28.6\~1.28.7 | 3.5.10 | 3.4.13-4 | https://github.com/kubernetes/kubernetes/blob/v1.28.6/cmd/kubeadm/app/constants/constants.go |
+| 1.28.8\~1.28.13 | 3.5.12 | 3.4.13-4 | https://github.com/kubernetes/kubernetes/blob/v1.28.8/cmd/kubeadm/app/constants/constants.go |
+| 1.28.14\~1.28.15 | 3.5.15 | 3.4.13-4 | https://github.com/kubernetes/kubernetes/blob/v1.28.14/cmd/kubeadm/app/constants/constants.go |
+| 1.29.0\~1.29.2 | 3.5.10 | 3.4.13-4 | https://github.com/kubernetes/kubernetes/blob/v1.29.0/cmd/kubeadm/app/constants/constants.go |
+| 1.29.3\~1.29.8 | 3.5.12 | 3.4.13-4 | https://github.com/kubernetes/kubernetes/blob/v1.29.3/cmd/kubeadm/app/constants/constants.go |
+| 1.29.9\~1.29.10 | 3.5.15 | 3.4.13-4 | https://github.com/kubernetes/kubernetes/blob/v1.29.9/cmd/kubeadm/app/constants/constants.go |
+| 1.29.11\~1.29.15 | 3.5.16 | 3.4.13-4 | https://github.com/kubernetes/kubernetes/blob/v1.29.11/cmd/kubeadm/app/constants/constants.go |
+| 1.30.0\~1.30.4 | 3.5.12 | 3.4.13-4 | https://github.com/kubernetes/kubernetes/blob/v1.30.0/cmd/kubeadm/app/constants/constants.go |
+| 1.30.5\~1.30.14 | 3.5.15 | 3.4.13-4 | https://github.com/kubernetes/kubernetes/blob/v1.30.5/cmd/kubeadm/app/constants/constants.go |
+| 1.31.0\~1.31.13 | 3.5.15 | 3.5.11-0 | https://github.com/kubernetes/kubernetes/blob/v1.31.0/cmd/kubeadm/app/constants/constants.go |
+| 1.31.14 | 3.5.24 | 3.5.24-0 | https://github.com/kubernetes/kubernetes/blob/v1.31.14/cmd/kubeadm/app/constants/constants.go |
+| 1.32.0\~1.32.9 | 3.5.16 | 3.5.11-0 | https://github.com/kubernetes/kubernetes/blob/v1.32.0/cmd/kubeadm/app/constants/constants.go |
+| 1.32.10\~1.32.13 | 3.5.24 | 3.5.24-0 | https://github.com/kubernetes/kubernetes/blob/v1.32.10/cmd/kubeadm/app/constants/constants.go |
+| 1.33.0\~1.33.5 | 3.5.21 | 3.5.11-0 | https://github.com/kubernetes/kubernetes/blob/v1.33.0/cmd/kubeadm/app/constants/constants.go |
+| 1.33.6\~1.33.7 | 3.5.24 | 3.5.24-0 | https://github.com/kubernetes/kubernetes/blob/v1.33.6/cmd/kubeadm/app/constants/constants.go |
+| 1.34.0\~1.34.1 | 3.6.4 | 3.5.21-0 | https://github.com/kubernetes/kubernetes/blob/v1.34.0/cmd/kubeadm/app/constants/constants.go |
+| 1.34.2\~1.34.3 | 3.6.5 | 3.5.24-0 | https://github.com/kubernetes/kubernetes/blob/v1.34.2/cmd/kubeadm/app/constants/constants.go |
 
 **etcd default values in kubekey config**:
 
@@ -96,6 +96,9 @@ Recommended etcd versions for each Kubernetes version:
 | 1.32 | v3.5.24 |
 | 1.33 | v3.5.24 |
 | 1.34 | v3.6.5 |
+
+> **About the etcd minimum required version column**:
+> Kubernetes 1.23~1.27 keep the historical `MinExternalEtcdVersion` (`3.2.18`) in the minimum column; starting at 1.28, the minimum column reflects each release's own `MinExternalEtcdVersion` (e.g. `3.4.13-4` for 1.28~1.30, `3.5.11-0` then `3.5.24-0` for 1.31~1.33, `3.5.21-0` then `3.5.24-0` for 1.34). KubeKey mirrors this in `etcd_min_versions` and rejects etcd that is **too old** in **precheck, before kubeadm runs** — e.g. `etcd 3.5.6` cannot be upgraded together with Kubernetes 1.31.14+ (minimum `3.5.24-0`). KubeKey intentionally does **not** enforce an upper bound on external etcd: kubeadm itself only hard-rejects an etcd that is too old (`preflight/checks.go` errors only when `etcdVersion < minExternalEtcdVersion`), and its `SupportedEtcdVersion` map is used solely to pick the stacked (local) etcd version with a graceful warning fallback — never to reject a newer external etcd.
 
 ### Container Runtime
 

@@ -26,6 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/kubesphere/kubekey/v4/pkg/modules/internal"
+	testutil "github.com/kubesphere/kubekey/v4/pkg/modules/testutil"
 )
 
 // createRawArgs creates a runtime.RawExtension from a map (simulating JSON/YAML parsing)
@@ -47,7 +48,7 @@ func TestAssertArgsModule(t *testing.T) {
 			name: "missing that",
 			opt: internal.ExecOptions{
 				Host:     "node1",
-				Variable: internal.NewTestVariable([]string{"node1"}, nil),
+				Variable: testutil.NewTestVariable([]string{"node1"}, nil),
 				Args:     createRawArgs(map[string]any{"success_msg": "success"}),
 			},
 			expectStdout: internal.StdoutFailed,
@@ -58,7 +59,7 @@ func TestAssertArgsModule(t *testing.T) {
 			name: "empty that",
 			opt: internal.ExecOptions{
 				Host:     "node1",
-				Variable: internal.NewTestVariable([]string{"node1"}, nil),
+				Variable: testutil.NewTestVariable([]string{"node1"}, nil),
 				Args:     createRawArgs(map[string]any{"that": []string{}}),
 			},
 			expectStdout: internal.StdoutSuccess,
@@ -69,7 +70,7 @@ func TestAssertArgsModule(t *testing.T) {
 			name: "condition evaluates to false",
 			opt: internal.ExecOptions{
 				Host:     "node1",
-				Variable: internal.NewTestVariable([]string{"node1"}, nil),
+				Variable: testutil.NewTestVariable([]string{"node1"}, nil),
 				Args:     createRawArgs(map[string]any{"that": []string{"false"}}),
 			},
 			expectStdout: internal.StdoutFailed,
@@ -237,7 +238,7 @@ func TestAssertModule(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 			defer cancel()
 
-			testVar := internal.NewTestVariable(tc.hosts, nil)
+			testVar := testutil.NewTestVariable(tc.hosts, nil)
 
 			opt := internal.ExecOptions{
 				Host:     tc.hosts[0],

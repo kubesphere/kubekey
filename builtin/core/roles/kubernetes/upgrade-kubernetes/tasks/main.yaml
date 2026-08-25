@@ -1,0 +1,229 @@
+---
+- name: UpgradeKubernetes | Backup Kubernetes configurations and binaries before upgrade
+  command: |
+    BACKUP_DIR="/etc/kubekey/backup/kubernetes/$(date +%Y%m%d-%H%M%S)"
+    mkdir -p "${BACKUP_DIR}"
+    cp /etc/kubernetes/kubeadm-config.yaml "${BACKUP_DIR}/" 2>/dev/null || true
+    cp /usr/local/bin/kubeadm "${BACKUP_DIR}/" 2>/dev/null || true
+    cp /usr/local/bin/kubelet "${BACKUP_DIR}/" 2>/dev/null || true
+    cp /usr/local/bin/kubectl "${BACKUP_DIR}/" 2>/dev/null || true
+    echo "✅ Kubernetes backup saved to ${BACKUP_DIR}"
+
+# kubeadm `upgrade apply` keeps a pre-existing, user-customized CoreDNS ConfigMap
+# (it only migrates non-default Corefiles, backing the old one up inside the
+# same ConfigMap as `Corefile-backup`), but it unconditionally overwrites a
+# DEFAULT Corefile with the new version's template. Either way the original
+# Corefile can change or move after the jump, so snapshot it before upgrading so
+# a customized configuration is never silently lost and can be reconciled from
+# the backup afterwards.
+- name: UpgradeKubernetes | Backup CoreDNS configuration before upgrade
+  when:
+    - .groups.kube_control_plane | default list | has .inventory_hostname
+    - .init_kubernetes_node | eq .inventory_hostname
+  command: |
+    BACKUP_DIR="/etc/kubekey/backup/kubernetes/$(date +%Y%m%d-%H%M%S)"
+    mkdir -p "${BACKUP_DIR}"
+    KC=/etc/kubernetes/admin.conf
+    [ -r "$KC" ] || KC=/root/.kube/config
+    [ -r "$KC" ] || KC="$HOME/.kube/config"
+    /usr/local/bin/kubectl --kubeconfig="$KC" -n kube-system get cm coredns -o yaml > "${BACKUP_DIR}/coredns-configmap.yaml" 2>/dev/null || true
+    echo "✅ CoreDNS ConfigMap backup saved to ${BACKUP_DIR}/coredns-configmap.yaml"
+
+- name: UpgradeKubernetes | Ensure kubeadm configuration exists locally on control plane
+  when: .groups.kube_control_plane | default list | has .inventory_hostname
+  command: |
+    mkdir -p /etc/kubernetes
+    # Keep /etc/kubernetes/kubeadm-config.yaml in sync with the cluster's kubeadm-config
+    # ConfigMap (consumed by kubeadm < v1.30 as --config, and by the backup task above).
+    #
+    # This MUST re-sync the local file on every upgrade hop, not only when it is absent:
+    # kubeadm `upgrade apply` updates the live kubeadm-config ConfigMap to the new version
+    # but does NOT rewrite this on-disk copy. In the auto-step flow each hop runs
+    # `kubeadm upgrade apply` with --config=<this file> (kubeadm < v1.30), so a stale
+    # local kubernetesVersion (e.g. still v1.23.17 after the hop to v1.24.17) makes the
+    # next kubeadm (v1.25+) reject the upgrade ("this version of kubeadm only supports
+    # deploying clusters with control plane version >= 1.24.0. Current version: v1.23.17").
+    # The ConfigMap is the per-hop source of truth (kubeadm keeps it current), so mirror it.
+    #
+    # No other surgery is needed: the etcd section and nodeRegistration are UNCHANGED
+    # across an upgrade (KubeKey writes etcd.external into the ClusterConfiguration at init
+    # time, and the CRI endpoint is injected via kubeadm-flags.env, not this file).
+    #
+    # A healthy local copy is still never clobbered by an empty/degraded fetch: we only
+    # write when the live ClusterConfiguration is non-empty.
+    KC=/etc/kubernetes/admin.conf
+    [ -r "$KC" ] || KC=/root/.kube/config
+    [ -r "$KC" ] || KC="$HOME/.kube/config"
+    CUR=$(kubectl --kubeconfig="$KC" get cm kubeadm-config -n kube-system -o=jsonpath='{.data.ClusterConfiguration}' 2>/dev/null)
+    if [ -n "$CUR" ] && printf '%s' "$CUR" | grep -q 'ClusterConfiguration'; then
+      printf '%s\n' "$CUR" > /etc/kubernetes/kubeadm-config.yaml
+    fi
+
+- name: UpgradeKubernetes | Regenerate kubelet kubeadm-flags.env with the configured CRI endpoint
+  when: .cri.cri_socket | default "" | ne ""
+  command: |
+    # kubeadm upgrade does NOT rewrite /var/lib/kubelet/kubeadm-flags.env, so the flags
+    # written at create time persist and lack the explicit CRI endpoint that newer kubelet
+    # requires (the dockershim default was dropped in v1.24). Rewrite with the configured
+    # endpoint so the bumped kubelet starts, and so kubeadm v1.30+ `upgrade apply` reads
+    # the pinned CRI endpoint from this file instead of auto-detecting. The pod infra image
+    # is deliberately NOT set here: that is the container runtime's responsibility.
+    mkdir -p /var/lib/kubelet
+    printf 'KUBELET_KUBEADM_ARGS="--container-runtime-endpoint={{ .cri.cri_socket }}"\n' > /var/lib/kubelet/kubeadm-flags.env
+    echo "✅ kubeadm-flags.env -> --container-runtime-endpoint={{ .cri.cri_socket }}"
+
+- name: UpgradeKubernetes | Upgrade Kubernetes cluster on first control plane node
+  when:
+    - .groups.kube_control_plane | default list | has .inventory_hostname
+    - .init_kubernetes_node | eq .inventory_hostname
+  command: |
+    # kubeadm v1.30+ rejects `--config` files that carry an InitConfiguration /
+    # ClusterConfiguration document for `upgrade apply`: it now requires an
+    # UpgradeConfiguration, which is only registered from v1.31+. Passing the
+    # legacy two-document config fails with
+    #   "no UpgradeConfiguration found in the supplied config".
+    # For v1.30+ we therefore drop `--config` entirely; kubeadm then reads the
+    # ClusterConfiguration from the live kubeadm-config ConfigMap and the CRI
+    # socket from /var/lib/kubelet/kubeadm-flags.env (written by the task above).
+    # For < v1.30 the `--config` (the on-disk kubeadm-config.yaml, which still
+    # carries its original nodeRegistration) is used; those kubeadm versions
+    # auto-detect the CRI and only abort with "Found multiple CRI endpoints"
+    # whenever both containerd.sock and cri-dockerd.sock exist.
+    # Idempotency guard: if the kubeadm-config ConfigMap already records a version
+    # >= the target, the previous upgrade step already applied this minor (e.g. the
+    # cluster was left partially upgraded with some nodes still lagging). Re-running
+    # `kubeadm upgrade apply` would fail ("version already at target"), so skip it;
+    # the lagging nodes are caught up by `kubeadm upgrade node` below. This is what
+    # makes a half-upgraded cluster resumable without ever producing a >1 minor skew.
+    KC=/etc/kubernetes/admin.conf
+    [ -r "$KC" ] || KC=/root/.kube/config
+    [ -r "$KC" ] || KC="$HOME/.kube/config"
+    CUR=$(/usr/local/bin/kubectl --kubeconfig="$KC" -n kube-system get cm kubeadm-config -o jsonpath='{.data.ClusterConfiguration}' 2>/dev/null | grep -m1 '^kubernetesVersion:' | awk '{print $2}')
+    TGT="{{ .kubernetes.kube_version }}"
+    if [ -n "$CUR" ] && [ "$(printf '%s\n%s\n' "$CUR" "$TGT" | sort -V | tail -1)" = "$CUR" ]; then
+      echo "✅ kubeadm-config already at ${CUR} (>= target ${TGT}); skipping upgrade apply"
+      exit 0
+    fi
+    MINOR=$(echo "{{ .kubernetes.kube_version }}" | sed -E 's/^v?[0-9]+\.([0-9]+)\..*/\1/')
+    if [ "${MINOR:-0}" -ge 30 ] 2>/dev/null; then
+      CONFIG_ARG=""
+    else
+      CONFIG_ARG="--config=/etc/kubernetes/kubeadm-config.yaml"
+    fi
+    # `kubeadm upgrade apply` runs a battery of preflight checks whose strictness
+    # grows with every Kubernetes minor. Several are harmless for a cluster that is
+    # already running and that KubeKey has already validated in its own precheck
+    # phase, yet they abort the whole upgrade in this environment:
+    #   - CoreDNSUnsupportedPlugins / CoreDNSMigration (added in v1.31): perform a
+    #     SelfSubjectAccessReview against the admin kubeconfig; KubeKey-issued admin
+    #     certs use the non-default org "kubeadm:cluster-admins" (vanilla kubeadm uses
+    #     "system:masters"), so these *advisory* checks report "configmaps coredns is
+    #     forbidden" even though the cert is cluster-admin.
+    #   - CreateJob (added in v1.32): spins up an upgrade-health-check Job and fails
+    #     if it does not complete within 15s; under node pressure during the upgrade
+    #     this false-positives.
+    # Because KubeKey runs its own thorough precheck (os/network/kubernetes/etcd/cni)
+    # before reaching this task, it is safe to let `upgrade apply` skip every preflight
+    # here via the documented "all" escape hatch rather than chase each new check.
+    /usr/local/bin/kubeadm upgrade apply {{ .kubernetes.kube_version }} ${CONFIG_ARG} --yes --ignore-preflight-errors=all
+
+# kubeadm `upgrade apply` rewrites a default CoreDNS Corefile to the new version's
+# template (e.g. the `cache 30 { disable success ... }` block introduced in newer
+# minors), but it does NOT bump the coredns image on the Deployment. If the old
+# kube-coredns binary does not understand the new Corefile plugins it stays in
+# CrashLoopBackOff, so the whole cluster-becomes-DNS-dead right after a successful
+# Kubernetes-only bump. Align the Deployment image to the target minor's pinned
+# CoreDNS tag. The configured image PREFIX is retained (only the `:tag` changes) so
+# offline / mirrored registries keep working; the tag comes from this version's
+# dns.coredns.image.tag default and matches what kubeadm expects for the new minor.
+- name: UpgradeKubernetes | Align CoreDNS image with the target Kubernetes version
+  when:
+    - .groups.kube_control_plane | default list | has .inventory_hostname
+    - .init_kubernetes_node | eq .inventory_hostname
+    - .dns.coredns.image.tag | default "" | ne ""
+  command: |
+    KC=/etc/kubernetes/admin.conf
+    [ -r "$KC" ] || KC=/root/.kube/config
+    [ -r "$KC" ] || KC="$HOME/.kube/config"
+    K=/usr/local/bin/kubectl
+    # In the auto-step flow every hop pins .dns.coredns.image.tag to the CURRENT minor's
+    # tag (see the upgradeVersionFieldPaths allow-list in builtin/core/upgrade_path.go), so
+    # we align straight to it and no longer query `kubeadm config images list`. The registry
+    # PREFIX of the running image is kept; only the `:tag` is replaced, so mirrored /
+    # offline registries keep working.
+    TARGET="{{ .dns.coredns.image.tag }}"
+    if [ -z "$TARGET" ]; then
+      echo "ℹ️  No CoreDNS target tag configured; nothing to align"
+      exit 0
+    fi
+    CUR=$($K --kubeconfig="$KC" -n kube-system get deploy coredns -o jsonpath='{.spec.template.spec.containers[?(@.name=="coredns")].image}' 2>/dev/null)
+    if [ -z "$CUR" ]; then
+      echo "ℹ️  CoreDNS Deployment not found; nothing to align"
+      exit 0
+    fi
+    IMG="${CUR%:*}:${TARGET}"
+    if [ "$CUR" != "$IMG" ]; then
+      $K --kubeconfig="$KC" -n kube-system set image deploy/coredns coredns="$IMG" >/dev/null
+      $K --kubeconfig="$KC" -n kube-system rollout status deploy/coredns --timeout=180s >/dev/null
+    fi
+    echo "✅ CoreDNS image -> ${IMG}"
+
+# NodeLocalDNS (k8s-dns-node-cache) is a node-local forwarding cache whose config
+# is compatible across Kubernetes minors and which kubeadm NEVER manages/migrates.
+# Unlike CoreDNS (whose kube-coredns binary cannot parse a newer Corefile), there
+# is no crash risk from an older node-cache image. The per-hop config pins
+# .dns.nodelocaldns.image.tag to the current minor, so this task idempotently
+# aligns the DaemonSet to it on every hop (node-cache is forward compatible, so it
+# is safe to bump per hop). The running image's registry PREFIX is kept; only the
+# `:tag` is replaced.
+- name: UpgradeKubernetes | Align NodeLocalDNS image to the final target version
+  when:
+    - .groups.kube_control_plane | default list | has .inventory_hostname
+    - .init_kubernetes_node | eq .inventory_hostname
+    - .dns.nodelocaldns.enabled | default false
+    - .dns.nodelocaldns.image.tag | default "" | ne ""
+  command: |
+    KC=/etc/kubernetes/admin.conf
+    [ -r "$KC" ] || KC=/root/.kube/config
+    [ -r "$KC" ] || KC="$HOME/.kube/config"
+    K=/usr/local/bin/kubectl
+    TAG="{{ .dns.nodelocaldns.image.tag }}"
+    CUR=$($K --kubeconfig="$KC" -n kube-system get ds nodelocaldns -o jsonpath='{.spec.template.spec.containers[?(@.name=="node-cache")].image}' 2>/dev/null)
+    if [ -z "$CUR" ]; then
+      echo "ℹ️  NodeLocalDNS DaemonSet not found; nothing to align"
+      exit 0
+    fi
+    IMG="${CUR%:*}:${TAG}"
+    if [ "$CUR" != "$IMG" ]; then
+      $K --kubeconfig="$KC" -n kube-system set image ds/nodelocaldns node-cache="$IMG" >/dev/null
+      $K --kubeconfig="$KC" -n kube-system rollout status ds/nodelocaldns --timeout=180s >/dev/null
+    fi
+    echo "✅ NodeLocalDNS image -> ${IMG}"
+
+- name: UpgradeKubernetes | Upgrade node configuration on other control plane nodes
+  when:
+    - .groups.kube_control_plane | default list | has .inventory_hostname
+    - .init_kubernetes_node | eq .inventory_hostname | not
+  command: |
+    /usr/local/bin/kubeadm upgrade node --ignore-preflight-errors=ImagePull
+
+- name: UpgradeKubernetes | Upgrade node configuration on worker nodes
+  when: .groups.kube_worker | default list | has .inventory_hostname
+  command: |
+    /usr/local/bin/kubeadm upgrade node --ignore-preflight-errors=ImagePull
+
+- name: UpgradeKubernetes | Restart kubelet service after upgrade
+  command: |
+    systemctl daemon-reload && systemctl restart kubelet.service
+
+- name: UpgradeKubernetes | Wait for kubelet to be ready after restart
+  command: |
+    for ((i=1; i<=30; i++)); do
+      if systemctl is-active kubelet.service >/dev/null 2>&1; then
+        echo "✅ kubelet is active"
+        exit 0
+      fi
+      sleep 5
+    done
+    echo "❌ kubelet is not active within 150 seconds"
+    exit 1

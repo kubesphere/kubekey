@@ -67,7 +67,9 @@ cluster_require:
     v1.14: ["v1.23", "v1.24", "v1.25", "v1.26", "v1.27", "v1.28", "v1.29", "v1.30", "v1.31", "v1.32", "v1.33", "v1.34"]
     v1.15: ["v1.23", "v1.24", "v1.25", "v1.26", "v1.27", "v1.28", "v1.29", "v1.30", "v1.31", "v1.32", "v1.33", "v1.34"]
 
-  # ETCD MIN Version
+  # ETCD MIN Version: minimum etcd allowed per Kubernetes version. Matching is
+  # exact-patch-first, then minor fallback (see precheck/etcd tasks).
+  # Values come from kubeadm's etcd floor for each target Kubernetes version.
   etcd_min_versions:
     v1.23: v3.2.18
     v1.24: v3.2.18
@@ -82,6 +84,8 @@ cluster_require:
     v1.32: v3.5.11-0
     v1.32.10: v3.5.24-0
     v1.32.11: v3.5.24-0
+    v1.32.12: v3.5.24-0
+    v1.32.13: v3.5.24-0
     v1.33.0: v3.5.11-0
     v1.33.1: v3.5.11-0
     v1.33.2: v3.5.11-0

@@ -49,15 +49,27 @@
   command: kubelet --version
   register: kubelet_install_version
 
-- name: Binary | Install kubelet if not present or version mismatch
+- name: Binary | Install kubelet binary if not present or version mismatch
   when: or (.kubelet_install_version.error | empty | not) (.kubelet_install_version.stdout | ne (printf "Kubernetes %s" .kubernetes.kube_version))
+  copy:
+    src: >-
+      {{ .binary_dir }}/kube/{{ .kubernetes.kube_version }}/{{ .binary_type }}/kubelet
+    dest: /usr/local/bin/kubelet
+    mode: 0755
+
+# kubelet systemd units must always be present (idempotent).
+# Even when the download role pre-stages the kubelet binary (so the version check
+# above matches and the binary is not re-copied), kubeadm init/join still needs the
+# kubelet.service unit in order to systemctl start kubelet. If the unit is missing,
+# the kubelet-check fails and create cluster aborts at init.
+- name: Binary | Check kubelet service unit presence
+  command: systemctl show -p LoadState --value kubelet.service
+  register: kubelet_unit_state
+  ignore_errors: true
+
+- name: Binary | Ensure kubelet systemd units are present
+  when: .kubelet_unit_state.stdout | ne "loaded"
   block:
-    - name: Binary | Copy kubelet binary to remote host
-      copy:
-        src: >-
-          {{ .binary_dir }}/kube/{{ .kubernetes.kube_version }}/{{ .binary_type }}/kubelet
-        dest: /usr/local/bin/kubelet
-        mode: 0755
     - name: Binary | Deploy kubelet environment configuration
       template:
         src: kubelet/kubelet.env

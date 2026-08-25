@@ -36,10 +36,55 @@
             fail_msg: >-
               The kubelet service must be running and active when it is loaded.
         - name: Kubernetes | Ensure installed Kubernetes version matches expected version
+          when: not (.upgrade.kubernetes | default false)
           assert:
             that: .kubernetes_install_version.stdout | default "" | trimPrefix "Kubernetes " | eq .kubernetes.kube_version
             fail_msg: >-
               The installed Kubernetes version ({{ .kubernetes_install_version.stdout | default "" | trimPrefix "Kubernetes " }}) does not match the expected version ({{ .kubernetes.kube_version }}).
+        - name: Kubernetes | Validate Kubernetes upgrade path
+          when: .upgrade.kubernetes | default false
+          assert:
+            that:
+              - .kubernetes_install_version.stdout | default "" | trimPrefix "Kubernetes " | empty | not
+              - .kubernetes_install_version.stdout | default "" | trimPrefix "Kubernetes " | semverCompare (printf "<%s" .kubernetes.kube_version)
+            fail_msg: >-
+              {{- if .kubernetes_install_version.stdout | default "" | trimPrefix "Kubernetes " | empty }}
+              Cannot determine the running Kubernetes version. The kubelet version must be
+              readable (and the kubelet service running) before upgrading.
+              {{- else }}
+              Cannot upgrade: the running Kubernetes version ({{ .kubernetes_install_version.stdout | default "" | trimPrefix "Kubernetes " }}) is not lower than the target version ({{ .kubernetes.kube_version }}).
+              {{- end }}
+        - name: Kubernetes | Allow only a single-minor upgrade per invocation
+          when: .upgrade.kubernetes | default false
+          assert:
+            that:
+              - .kubernetes_install_version.stdout | default "" | trimPrefix "Kubernetes " | empty | not
+              # The upgrade_cluster playbook is a single-minor playbook: a single
+              # invocation must never leap more than one Kubernetes minor ahead of the
+              # running (installed kubelet) version. Cross-many-minor upgrades are
+              # handled by the auto-step flow in the CLI, which spawns one playbook per
+              # minor (kube 1.23 -> 1.34 runs 1.24, 1.25, ..., 1.34 as separate
+              # invocations). Same-minor patch upgrades (e.g. 1.33.1 -> 1.33.5) are
+              # still allowed.
+              #
+              # Compare flattened (major*1000+minor) so that both a two-minor leap
+              # within the same major and a major bump are rejected, while a patch-only
+              # (0 minor) or +1-minor step within the same major passes.
+              - |-
+                {{- $run := .kubernetes_install_version.stdout | default "" | trimPrefix "Kubernetes " -}}
+                {{- $rmaj := index (splitList "." ($run | trimPrefix "v")) 0 | atoi -}}
+                {{- $rmin := index (splitList "." ($run | trimPrefix "v")) 1 | atoi -}}
+                {{- $tmaj := index (splitList "." (.kubernetes.kube_version | trimPrefix "v")) 0 | atoi -}}
+                {{- $tmin := index (splitList "." (.kubernetes.kube_version | trimPrefix "v")) 1 | atoi -}}
+                {{- $rf := ($rmaj | mul 1000) | add $rmin -}}
+                {{- $tf := ($tmaj | mul 1000) | add $tmin -}}
+                {{- ($rf | add 1) | le $tf -}}
+            fail_msg: >-
+              Only a single-minor Kubernetes upgrade is allowed per invocation. The running
+              version ({{ .kubernetes_install_version.stdout | default "" | trimPrefix "Kubernetes " }}) cannot jump straight to
+              {{ .kubernetes.kube_version }} (more than one minor ahead). Use the automatic
+              multi-minor flow (kk upgrade cluster --with-kubernetes <target> --all), which
+              steps through each minor one at a time.
 
 # - name: ImageRegistry | Verify successful authentication to image registry
 #   when:

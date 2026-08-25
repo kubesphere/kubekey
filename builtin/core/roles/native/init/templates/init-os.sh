@@ -228,8 +228,15 @@ sysctl -p
 
 for dnsFile in {{ .native.localDNS | join " " }}; do
    sed -i '/# kubekey hosts BEGIN/,/# kubekey hosts END/d' $dnsFile
+   # During a cluster upgrade the control_plane_endpoint DNS must NOT be touched:
+   # it is already correct from the create pipeline (control plane -> 127.0.0.1,
+   # worker -> init_kubernetes_node real IP). Deleting the block here would leave
+   # every node with no resolvable control_plane_endpoint, breaking
+   # 'kubeadm upgrade node' on workers (single-APIServer topology).
+   {{- if not (.upgrade.kubernetes | default false) }}
    sed -i '/# kubekey kubernetes control_plane_endpoint BEGIN/,/# kubekey kubernetes control_plane_endpoint END/d' $dnsFile
    sed -i '/# kubekey image_registry control_plane_endpoint BEGIN/,/# kubekey image_registry control_plane_endpoint END/d' $dnsFile
+   {{- end }}
    awk 'NF{blank=0} !NF{blank++} blank<2' $dnsFile > tmp && mv tmp $dnsFile
 
    cat >>$dnsFile<<EOF

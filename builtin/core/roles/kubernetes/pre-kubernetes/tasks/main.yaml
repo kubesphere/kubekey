@@ -49,6 +49,23 @@
   when: 
     - .etcd.deployment_type | eq "external"
     - .groups.kube_control_plane | default list | has .inventory_hostname
+    # Copy etcd certs onto a control plane node ONLY when that node has NOT yet
+    # bootstrapped a kubelet, i.e. it is a fresh node -- either a cluster CREATE or a
+    # NEW control plane node joining via `kk add nodes`. The signal comes from the
+    # kubelet.service LoadState fact gathered in the defaults role:
+    #   * "not-found" (no kubelet) -> copy the etcd CA / client certs so this node
+    #     can run an apiserver that talks to etcd.
+    #   * "loaded" (kubelet already present) -> this is an existing node being
+    #     UPGRADED, so the running etcd and its apiserver client certs already exist
+    #     on disk and must NOT be clobbered. A multi-minor auto-step that runs with a
+    #     *fresh* workdir makes certs/init regenerate a brand-new root CA there;
+    #     copying that CA into /etc/kubernetes/pki/etcd would swap the
+    #     apiserver->etcd CA to one that does NOT match the running etcd, breaking
+    #     apiserver<->etcd TLS (x509: certificate signed by unknown authority
+    #     "root") and sending the apiserver into CrashLoopBackOff. Skipping on every
+    #     upgrade (kubernetes or etcd) keeps the existing correct pki/etcd certs
+    #     intact for the whole jump.
+    - .kubernetes_install_LoadState.stdout | default "not-found" | ne "loaded"
   block:
     - name: PreKubernetes | Copy etcd CA certificate to control plane node
       copy:
