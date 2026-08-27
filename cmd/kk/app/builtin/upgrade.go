@@ -251,6 +251,32 @@ func detectCurrentClusterMinor() (int, error) {
 	if err != nil {
 		return 0, errors.Wrap(err, "build kubernetes clientset")
 	}
+	// The auto-step path must never launch a hop that any node is more than one
+	// minor behind, because kubeadm hard-rejects that ("kubelets ... too old").
+	// Use the MINIMUM kubelet minor across the cluster as the path source: during
+	// a half-upgrade where the control plane has already reached a higher minor
+	// than lagging workers (e.g. apiserver v1.24 while some workers are still
+	// v1.23), sourcing the path from the apiserver version would start one minor
+	// above the lagging nodes and get stuck. Starting from the min node minor makes
+	// the first hop the control-plane minor, where the idempotent apply guard
+	// (upgrade-kubernetes role) skips kubeadm apply and reconciles the lagging
+	// workers via "kubeadm upgrade node". Fall back to the apiserver (server)
+	// version when the node list is unavailable.
+	minMinor := -1
+	if nodes, lerr := cs.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{}); lerr == nil {
+		for i := range nodes.Items {
+			m, merr := minorOfKubeletVersion(nodes.Items[i].Status.NodeInfo.KubeletVersion)
+			if merr != nil {
+				continue
+			}
+			if minMinor == -1 || m < minMinor {
+				minMinor = m
+			}
+		}
+	}
+	if minMinor != -1 {
+		return minMinor, nil
+	}
 	vi, err := cs.Discovery().ServerVersion()
 	if err != nil {
 		return 0, errors.Wrap(err, "discover server version")
@@ -264,4 +290,19 @@ func detectCurrentClusterMinor() (int, error) {
 		return 0, errors.Wrapf(err, "parse server minor %q", vi.Minor)
 	}
 	return minor, nil
+}
+
+// minorOfKubeletVersion parses the integer minor from a node's kubelet version
+// string (e.g. "v1.23.17" -> 23). It returns an error when the string cannot be
+// parsed into an expected "v1.<minor>..." shape.
+func minorOfKubeletVersion(ver string) (int, error) {
+	parts := strings.Split(strings.TrimPrefix(ver, "v"), ".")
+	if len(parts) < 2 {
+		return 0, fmt.Errorf("parse kubelet version %q", ver)
+	}
+	m, err := strconv.Atoi(parts[1])
+	if err != nil {
+		return 0, errors.Wrapf(err, "parse kubelet minor %q", parts[1])
+	}
+	return m, nil
 }

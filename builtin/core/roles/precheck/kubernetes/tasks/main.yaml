@@ -46,13 +46,18 @@
           assert:
             that:
               - .kubernetes_install_version.stdout | default "" | trimPrefix "Kubernetes " | empty | not
-              - .kubernetes_install_version.stdout | default "" | trimPrefix "Kubernetes " | semverCompare (printf "<%s" .kubernetes.kube_version)
+              # Allow the running kubelet version to already equal the target hop (a node left at
+              # this minor by an interrupted multi-hop upgrade). Only running > target is a real
+              # downgrade and stays rejected. The control-plane apply guard (upgrade-kubernetes
+              # role) skips kubeadm apply when already at target and reconciles lagging workers via
+              # "kubeadm upgrade node", so equality here is a legitimate resume, not an error.
+              - .kubernetes_install_version.stdout | default "" | trimPrefix "Kubernetes " | semverCompare (printf "<=%s" .kubernetes.kube_version)
             fail_msg: >-
               {{- if .kubernetes_install_version.stdout | default "" | trimPrefix "Kubernetes " | empty }}
               Cannot determine the running Kubernetes version. The kubelet version must be
               readable (and the kubelet service running) before upgrading.
               {{- else }}
-              Cannot upgrade: the running Kubernetes version ({{ .kubernetes_install_version.stdout | default "" | trimPrefix "Kubernetes " }}) is not lower than the target version ({{ .kubernetes.kube_version }}).
+              Cannot upgrade: the running Kubernetes version ({{ .kubernetes_install_version.stdout | default "" | trimPrefix "Kubernetes " }}) is newer than the target version ({{ .kubernetes.kube_version }}).
               {{- end }}
         - name: Kubernetes | Allow only a single-minor upgrade per invocation
           when: .upgrade.kubernetes | default false
@@ -69,7 +74,14 @@
               #
               # Compare flattened (major*1000+minor) so that both a two-minor leap
               # within the same major and a major bump are rejected, while a patch-only
-              # (0 minor) or +1-minor step within the same major passes.
+              # (0 minor) step within the same major passes.
+              #
+              # Guard: target minor must be at most running minor + 1 (tf <= rf+1), so a single
+              # invocation never leaps more than one Kubernetes minor. It ALREADY permits the
+              # half-upgrade resume case where a node sits on the same minor as the target
+              # (tf == rf) — the actual blocker for "resume at an already-reached hop" is the
+              # sibling "Validate Kubernetes upgrade path" task, relaxed to "<=" above.
+              # A true downgrade is rejected by that sibling task, not here.
               - |-
                 {{- $run := .kubernetes_install_version.stdout | default "" | trimPrefix "Kubernetes " -}}
                 {{- $rmaj := index (splitList "." ($run | trimPrefix "v")) 0 | atoi -}}
