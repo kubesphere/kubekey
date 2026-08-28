@@ -146,6 +146,45 @@ func TestKubeVipTemplatesRenderDefaults(t *testing.T) {
 	})
 }
 
+// TestDockerRegistryArtifactURLUsesMirrorHost renders the real docker_registry
+// artifact_url template the same way pkg/modules/http_get_file does: first as
+// the defaults file's own self-referential template, then through tpl with the
+// download item. docker-registry-*.tgz is a KubeKey-repackaged asset that only
+// exists on the cn_host mirror, so the resulting URL must route through
+// cn_host regardless of zone; falling back to a bare "https://docker.io/..."
+// host for non-cn zones 404s (docker.io redirects to www.docker.com).
+func TestDockerRegistryArtifactURLUsesMirrorHost(t *testing.T) {
+	raw, err := os.ReadFile("../../../builtin/core/roles/defaults/defaults/main/10-download.yaml")
+	assert.NoError(t, err)
+
+	var defaults map[string]any
+	assert.NoError(t, yaml.Unmarshal(raw, &defaults))
+
+	download, ok := defaults["download"].(map[string]any)
+	assert.True(t, ok)
+	artifactURL, ok := download["artifact_url"].(map[string]any)
+	assert.True(t, ok)
+	tmplStr, ok := artifactURL["docker_registry"].(string)
+	assert.True(t, ok)
+
+	for _, zone := range []string{"", "cn"} {
+		variable := map[string]any{
+			"zone": zone,
+			"download": map[string]any{
+				"cn_host": download["cn_host"],
+			},
+		}
+
+		rendered, err := Parse(variable, tmplStr)
+		assert.NoError(t, err)
+
+		final, err := Parse(map[string]any{"version": "2.8.3", "arch": "amd64"}, string(rendered))
+		assert.NoError(t, err)
+
+		assert.Equal(t, "https://kubekey.pek3b.qingstor.com/docker.io/registry/2.8.3/docker-registry-2.8.3-linux-amd64.tgz", string(final))
+	}
+}
+
 func TestParseBool(t *testing.T) {
 	testcases := []struct {
 		name      string
