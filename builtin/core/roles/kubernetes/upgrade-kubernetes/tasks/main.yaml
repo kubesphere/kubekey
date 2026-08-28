@@ -233,11 +233,13 @@
 
 - name: UpgradeKubernetes | Wait for kubelet to be ready after restart
   command: |
-    for ((i=1; i<=30; i++)); do
+    i=1
+    while [ $i -le 30 ]; do
       if systemctl is-active kubelet.service >/dev/null 2>&1; then
         echo "✅ kubelet is active"
         exit 0
       fi
+      i=$((i+1))
       sleep 5
     done
     echo "❌ kubelet is not active within 150 seconds"

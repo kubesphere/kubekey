@@ -152,6 +152,30 @@ func runClusterUpgrade(ctx context.Context, o *builtin.UpgradeClusterOptions, ba
 	}
 	if targetMinor <= currentMinor {
 		// Patch-only (same minor) or already-at/above target: single run.
+		//
+		// When every node already runs a kubelet at or above the target, there is
+		// no Kubernetes work left. Handle that explicitly instead of running the
+		// playbook and letting the precheck reject it:
+		//   - without --all: the whole invocation is a no-op, so skip it.
+		//   - with --all:    Kubernetes is done, but the wired components
+		//                    (etcd/cri/cni/storage_class) may still lag their
+		//                    target versions, so run the playbook with the
+		//                    Kubernetes roles disabled and upgrade components only.
+		atTarget, aerr := clusterNodesAtTarget(targetVer)
+		if aerr != nil {
+			// Cluster unreachable or node versions unreadable: keep the previous
+			// behavior (single run) rather than guessing.
+			fmt.Fprintf(os.Stderr, "warning: could not verify node kubelet versions (%v); performing a single upgrade run\n", aerr)
+		} else if atTarget {
+			if !o.UpgradeAllComponents {
+				fmt.Fprintf(os.Stderr, "cluster is already at %s; nothing to upgrade (pass --all to upgrade components)\n", targetVer)
+				return nil
+			}
+			if err := unstructured.SetNestedField(o.Config.Value(), false, "upgrade", "kubernetes"); err != nil {
+				return errors.Wrapf(err, "failed to set %q to config", "upgrade.kubernetes")
+			}
+			fmt.Fprintf(os.Stderr, "cluster is already at %s; skipping Kubernetes and upgrading components only\n", targetVer)
+		}
 		return o.Run(ctx, base)
 	}
 
@@ -236,20 +260,70 @@ func buildStepConfigObject(cfg map[string]interface{}) (*kkcorev1.Config, error)
 	}, nil
 }
 
+// clusterNodesAtTarget reports whether every node in the cluster already runs a
+// kubelet at or above targetVer, i.e. whether a Kubernetes upgrade to targetVer
+// has any work left to do. A node still below the target (including a same-minor
+// patch bump, e.g. v1.34.1 -> v1.34.3) makes this return false so the upgrade
+// proceeds normally. It returns an error when the cluster cannot be reached or
+// the node list is unavailable, letting callers fall back to the plain single-run
+// behavior instead of guessing.
+func clusterNodesAtTarget(targetVer string) (bool, error) {
+	cs, err := buildClientset()
+	if err != nil {
+		return false, err
+	}
+	return nodesAtTarget(cs, targetVer)
+}
+
+// nodesAtTarget reports whether every node already runs a kubelet at or above
+// targetVer. A node still below the target (including a same-minor patch bump,
+// e.g. v1.34.1 -> v1.34.3) makes this return false so the upgrade proceeds
+// normally. An empty or unreadable kubelet version is not treated as evidence of
+// being at target, so those cases fall through to the regular upgrade flow.
+func nodesAtTarget(cs kubernetes.Interface, targetVer string) (bool, error) {
+	nodes, err := cs.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return false, errors.Wrap(err, "list nodes")
+	}
+	if len(nodes.Items) == 0 {
+		return false, errors.New("no nodes found")
+	}
+	for i := range nodes.Items {
+		kv := nodes.Items[i].Status.NodeInfo.KubeletVersion
+		if kv == "" {
+			return false, nil
+		}
+		if core.CompareVersionNumbers(kv, targetVer) < 0 {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
+// buildClientset builds a Kubernetes clientset from the standard kubeconfig
+// loading rules (KUBECONFIG env, then ~/.kube/config).
+func buildClientset() (kubernetes.Interface, error) {
+	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
+	cfg := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})
+	restCfg, err := cfg.ClientConfig()
+	if err != nil {
+		return nil, errors.Wrap(err, "build kubeconfig client config")
+	}
+	cs, err := kubernetes.NewForConfig(restCfg)
+	if err != nil {
+		return nil, errors.Wrap(err, "build kubernetes clientset")
+	}
+	return cs, nil
+}
+
 // detectCurrentClusterMinor resolves the currently installed Kubernetes minor
 // version from the target cluster, using the standard kubeconfig loading rules
 // (KUBECONFIG env, then ~/.kube/config). It returns an error if the cluster is
 // unreachable or the version cannot be parsed.
 func detectCurrentClusterMinor() (int, error) {
-	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
-	cfg := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})
-	restCfg, err := cfg.ClientConfig()
+	cs, err := buildClientset()
 	if err != nil {
-		return 0, errors.Wrap(err, "build kubeconfig client config")
-	}
-	cs, err := kubernetes.NewForConfig(restCfg)
-	if err != nil {
-		return 0, errors.Wrap(err, "build kubernetes clientset")
+		return 0, err
 	}
 	// The auto-step path must never launch a hop that any node is more than one
 	// minor behind, because kubeadm hard-rejects that ("kubelets ... too old").
