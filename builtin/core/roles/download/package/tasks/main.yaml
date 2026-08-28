@@ -3,6 +3,14 @@
   command: |
     rm -rf {{ .artifact_dir }} && mkdir -p {{ .artifact_dir }}
 
+- name: Package | Verify helm is installed when charts are configured
+  when: .download.charts | empty | not
+  command: |
+    if ! command -v helm >/dev/null 2>&1; then
+      echo "helm command not found. Downloading charts to the artifact requires the helm CLI to be installed and available on PATH. See https://helm.sh/docs/intro/install/ for installation instructions." >&2
+      exit 1
+    fi
+
 - name: Package | Copy required binaries and images
   block:
     # Download core binaries
