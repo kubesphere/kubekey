@@ -105,10 +105,25 @@
       exit 0
     fi
     MINOR=$(echo "{{ .kubernetes.kube_version }}" | sed -E 's/^v?[0-9]+\.([0-9]+)\..*/\1/')
+    CONFIG=/etc/kubernetes/kubeadm-config.yaml
+    CRI="{{ .cri.cri_socket | default "" }}"
     if [ "${MINOR:-0}" -ge 30 ] 2>/dev/null; then
       CONFIG_ARG=""
     else
-      CONFIG_ARG="--config=/etc/kubernetes/kubeadm-config.yaml"
+      # kubeadm < v1.30 reads the CRI endpoint from --config's
+      # InitConfiguration.nodeRegistration.criSocket. The on-disk file is rewritten
+      # per hop as a ClusterConfiguration-only document (see the re-sync task above),
+      # so without an explicit socket kubeadm auto-detects the endpoint and aborts
+      # with "Found multiple CRI endpoints" whenever both containerd.sock and
+      # cri-dockerd.sock coexist (docker + Kubernetes >= v1.24). Pin the configured
+      # endpoint by appending a v1beta3 InitConfiguration document (only criSocket,
+      # no name / localAPIEndpoint) so kubeadm uses it directly instead of probing.
+      # Run every hop, AFTER the re-sync task, because that task overwrites the file.
+      if [ -n "$CRI" ] && [ -f "$CONFIG" ]; then
+        printf '\n---\napiVersion: kubeadm.k8s.io/v1beta3\nkind: InitConfiguration\nnodeRegistration:\n  criSocket: "%s"\n' "$CRI" >> "$CONFIG"
+        echo "✅ config criSocket -> $CRI"
+      fi
+      CONFIG_ARG="--config=$CONFIG"
     fi
     # `kubeadm upgrade apply` runs a battery of preflight checks whose strictness
     # grows with every Kubernetes minor. Several are harmless for a cluster that is
