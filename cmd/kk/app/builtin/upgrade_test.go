@@ -77,7 +77,7 @@ func TestNodesAtTarget(t *testing.T) {
 					},
 				})
 			}
-			cs := fake.NewSimpleClientset(objs...)
+			cs := fake.NewClientset(objs...)
 
 			got, err := nodesAtTarget(cs, tt.target)
 			if (err != nil) != tt.wantErr {
