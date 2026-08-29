@@ -120,6 +120,14 @@
       # no name / localAPIEndpoint) so kubeadm uses it directly instead of probing.
       # Run every hop, AFTER the re-sync task, because that task overwrites the file.
       if [ -n "$CRI" ] && [ -f "$CONFIG" ]; then
+        # The on-disk kubeadm-config.yaml may already carry an InitConfiguration
+        # document from create time (and the re-sync task above cannot always
+        # overwrite it, e.g. when admin.conf is root-only). Blindly appending
+        # another one makes kubeadm reject the file with
+        #   'kind "InitConfiguration" is specified twice in YAML file'
+        # so drop any pre-existing document and keep only the leading
+        # ClusterConfiguration before appending the pinned init.
+        awk '/^---[[:space:]]*$/ { exit } { print }' "$CONFIG" > "${CONFIG}.kk" && mv "${CONFIG}.kk" "$CONFIG"
         printf '\n---\napiVersion: kubeadm.k8s.io/v1beta3\nkind: InitConfiguration\nnodeRegistration:\n  criSocket: "%s"\n' "$CRI" >> "$CONFIG"
         echo "✅ config criSocket -> $CRI"
       fi
@@ -140,7 +148,53 @@
     # Because KubeKey runs its own thorough precheck (os/network/kubernetes/etcd/cni)
     # before reaching this task, it is safe to let `upgrade apply` skip every preflight
     # here via the documented "all" escape hatch rather than chase each new check.
-    /usr/local/bin/kubeadm upgrade apply {{ .kubernetes.kube_version }} ${CONFIG_ARG} --yes --ignore-preflight-errors=all
+    # kube-apiserver restarts when this hop switches the control plane to the
+    # target minor (or when the kubelet pulls the bumped control-plane binaries).
+    # `kubeadm upgrade apply` reads the kubeadm-config ConfigMap; if a fresh
+    # apiserver has not yet loaded its RBAC policy it transiently rejects the read
+    # with
+    #   configmaps "kubeadm-config" is forbidden: User "kubernetes-admin" ...
+    # failing the whole hop. So wait until the CM is readable with the admin
+    # kubeconfig both before apply and again before each RBAC-window retry.
+    wait_apiserver() {
+      i=1
+      while [ $i -le 12 ]; do
+        if /usr/local/bin/kubectl --kubeconfig="$KC" -n kube-system get cm kubeadm-config >/dev/null 2>&1; then
+          return 0
+        fi
+        i=$((i+1))
+        sleep 5
+      done
+      return 1
+    }
+    if ! wait_apiserver; then
+      echo "❌ kube-apiserver not ready to serve kubeadm-config within 60s"
+      exit 1
+    fi
+    # apply, wrapping only the RBAC read-window failure with a bounded retry; any
+    # other failure surfaces immediately.
+    APPTRIES=3
+    n=0
+    while :; do
+      OUT=$(/usr/local/bin/kubeadm upgrade apply {{ .kubernetes.kube_version }} ${CONFIG_ARG} --yes --ignore-preflight-errors=all 2>&1)
+      RC=$?
+      if [ $RC -eq 0 ]; then
+        echo "✅ kubeadm upgrade apply to {{ .kubernetes.kube_version }} succeeded"
+        break
+      fi
+      if ! printf '%s' "$OUT" | grep -qiE "forbidden|cannot get resource .configmaps|failed to get config map"; then
+        printf '%s\n' "$OUT"
+        exit $RC
+      fi
+      n=$((n+1))
+      if [ $n -ge $APPTRIES ]; then
+        printf '%s\n' "$OUT"
+        echo "❌ kubeadm upgrade apply failed $APPTRIES times (RBAC read window); giving up"
+        exit $RC
+      fi
+      echo "⚠️  kubeadm upgrade apply hit the RBAC read window (attempt $n); waiting for apiserver readiness, retrying"
+      wait_apiserver
+    done
 
 # kubeadm `upgrade apply` rewrites a default CoreDNS Corefile to the new version's
 # template (e.g. the `cache 30 { disable success ... }` block introduced in newer
