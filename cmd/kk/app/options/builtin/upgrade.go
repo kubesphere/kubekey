@@ -27,8 +27,8 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	cliflag "k8s.io/component-base/cli/flag"
 
-	"github.com/kubesphere/kubekey/v4/cmd/kk/app/options"
 	"github.com/kubesphere/kubekey/v4/builtin/core"
+	"github.com/kubesphere/kubekey/v4/cmd/kk/app/options"
 )
 
 // ======================================================================================

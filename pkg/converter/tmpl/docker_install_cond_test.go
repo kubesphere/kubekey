@@ -12,11 +12,11 @@ const dockerInstallCond = `or (.docker_install_version.error | empty | not) (.do
 
 func TestDockerInstallCond(t *testing.T) {
 	cases := []struct {
-		name    string
-		stdout  string
-		err     string
-		target  string // .cri.docker_version
-		want    bool
+		name   string
+		stdout string
+		err    string
+		target string // .cri.docker_version
+		want   bool
 	}{
 		{"matching -> no install", "24.0.9", "", "24.0.9", false},
 		{"mismatch -> install", "25.0.5", "", "24.0.9", true},

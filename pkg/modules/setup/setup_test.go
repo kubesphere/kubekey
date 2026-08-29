@@ -55,6 +55,7 @@ func (c failingConnector) FetchFile(context.Context, string, io.Writer) error {
 func (c failingConnector) ExecuteCommand(context.Context, string) ([]byte, []byte, error) {
 	return nil, nil, nil
 }
+
 // createRawArgs creates a runtime.RawExtension from a map
 func createRawArgs(data map[string]any) runtime.RawExtension {
 	raw, _ := json.Marshal(data)

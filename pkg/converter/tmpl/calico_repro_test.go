@@ -44,8 +44,8 @@ func TestCalicoFull(t *testing.T) {
 	}
 	// Candidate corrected forms
 	forms := map[string]string{
-		"A_index_first_pipe": `index .cluster_require.calico_allowed_versions (slice (.cni.calico_version | splitList ".") 0 2 | join ".") | has (slice (.kubernetes.kube_version | splitList ".") 0 2 | join ".")`,
-		"B_has_needle_first": `has (slice (.kubernetes.kube_version | splitList ".") 0 2 | join ".") (index .cluster_require.calico_allowed_versions (slice (.cni.calico_version | splitList ".") 0 2 | join "."))`,
+		"A_index_first_pipe":      `index .cluster_require.calico_allowed_versions (slice (.cni.calico_version | splitList ".") 0 2 | join ".") | has (slice (.kubernetes.kube_version | splitList ".") 0 2 | join ".")`,
+		"B_has_needle_first":      `has (slice (.kubernetes.kube_version | splitList ".") 0 2 | join ".") (index .cluster_require.calico_allowed_versions (slice (.cni.calico_version | splitList ".") 0 2 | join "."))`,
 		"C_index_piped_as_needle": `(index .cluster_require.calico_allowed_versions (slice (.cni.calico_version | splitList ".") 0 2 | join ".")) | has (slice (.kubernetes.kube_version | splitList ".") 0 2 | join ".")`,
 	}
 	for name, form := range forms {
