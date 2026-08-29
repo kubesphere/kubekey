@@ -1,11 +1,11 @@
 ---
 - name: Check if docker is installed
   ignore_errors: true
-  command: docker --version
+  command: docker version --format '{{ .Client.Version }}' 2>/dev/null || true
   register: docker_install_version
 
 - name: Install docker
-  when: or (.docker_install_version.error | empty | not) (.docker_install_version.stdout | hasPrefix (printf "Docker version %s," .docker_version) | not)
+  when: or (.docker_install_version.error | empty | not) (.docker_install_version.stdout | ne .docker_version)
   block:
     - name: Sync docker binary to remote
       copy:

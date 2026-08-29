@@ -56,24 +56,24 @@
 | 1.27.7\~1.27.9 | 3.5.9 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.27.7/cmd/kubeadm/app/constants/constants.go |
 | 1.27.10\~1.27.11 | 3.5.10 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.27.10/cmd/kubeadm/app/constants/constants.go |
 | 1.27.12\~1.27.16 | 3.5.12 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.27.12/cmd/kubeadm/app/constants/constants.go |
-| 1.28.0\~1.28.5 | 3.5.9 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.28.0/cmd/kubeadm/app/constants/constants.go |
-| 1.28.6\~1.28.7 | 3.5.10 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.28.6/cmd/kubeadm/app/constants/constants.go |
-| 1.28.8\~1.28.13 | 3.5.12 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.28.8/cmd/kubeadm/app/constants/constants.go |
-| 1.28.14\~1.28.15 | 3.5.15 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.28.14/cmd/kubeadm/app/constants/constants.go |
-| 1.29.0\~1.29.2 | 3.5.10 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.29.0/cmd/kubeadm/app/constants/constants.go |
-| 1.29.3\~1.29.8 | 3.5.12 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.29.3/cmd/kubeadm/app/constants/constants.go |
-| 1.29.9\~1.29.10 | 3.5.15 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.29.9/cmd/kubeadm/app/constants/constants.go |
-| 1.29.11\~1.29.15 | 3.5.16 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.29.11/cmd/kubeadm/app/constants/constants.go |
-| 1.30.0\~1.30.4 | 3.5.12 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.30.0/cmd/kubeadm/app/constants/constants.go |
-| 1.30.5\~1.30.14 | 3.5.15 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.30.5/cmd/kubeadm/app/constants/constants.go |
-| 1.31.0\~1.31.13 | 3.5.15 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.31.0/cmd/kubeadm/app/constants/constants.go |
-| 1.31.14 | 3.5.24 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.31.14/cmd/kubeadm/app/constants/constants.go |
-| 1.32.0\~1.32.9 | 3.5.16 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.32.0/cmd/kubeadm/app/constants/constants.go |
-| 1.32.10\~1.32.13 | 3.5.24 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.32.10/cmd/kubeadm/app/constants/constants.go |
-| 1.33.0\~1.33.5 | 3.5.21 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.33.0/cmd/kubeadm/app/constants/constants.go |
-| 1.33.6\~1.33.7 | 3.5.24 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.33.6/cmd/kubeadm/app/constants/constants.go |
-| 1.34.0\~1.34.1 | 3.6.4 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.34.0/cmd/kubeadm/app/constants/constants.go |
-| 1.34.2\~1.34.3 | 3.6.5 | 3.2.18 | https://github.com/kubernetes/kubernetes/blob/v1.34.2/cmd/kubeadm/app/constants/constants.go |
+| 1.28.0\~1.28.5 | 3.5.9 | 3.4.13-4 | https://github.com/kubernetes/kubernetes/blob/v1.28.0/cmd/kubeadm/app/constants/constants.go |
+| 1.28.6\~1.28.7 | 3.5.10 | 3.4.13-4 | https://github.com/kubernetes/kubernetes/blob/v1.28.6/cmd/kubeadm/app/constants/constants.go |
+| 1.28.8\~1.28.13 | 3.5.12 | 3.4.13-4 | https://github.com/kubernetes/kubernetes/blob/v1.28.8/cmd/kubeadm/app/constants/constants.go |
+| 1.28.14\~1.28.15 | 3.5.15 | 3.4.13-4 | https://github.com/kubernetes/kubernetes/blob/v1.28.14/cmd/kubeadm/app/constants/constants.go |
+| 1.29.0\~1.29.2 | 3.5.10 | 3.4.13-4 | https://github.com/kubernetes/kubernetes/blob/v1.29.0/cmd/kubeadm/app/constants/constants.go |
+| 1.29.3\~1.29.8 | 3.5.12 | 3.4.13-4 | https://github.com/kubernetes/kubernetes/blob/v1.29.3/cmd/kubeadm/app/constants/constants.go |
+| 1.29.9\~1.29.10 | 3.5.15 | 3.4.13-4 | https://github.com/kubernetes/kubernetes/blob/v1.29.9/cmd/kubeadm/app/constants/constants.go |
+| 1.29.11\~1.29.15 | 3.5.16 | 3.4.13-4 | https://github.com/kubernetes/kubernetes/blob/v1.29.11/cmd/kubeadm/app/constants/constants.go |
+| 1.30.0\~1.30.4 | 3.5.12 | 3.4.13-4 | https://github.com/kubernetes/kubernetes/blob/v1.30.0/cmd/kubeadm/app/constants/constants.go |
+| 1.30.5\~1.30.14 | 3.5.15 | 3.4.13-4 | https://github.com/kubernetes/kubernetes/blob/v1.30.5/cmd/kubeadm/app/constants/constants.go |
+| 1.31.0\~1.31.13 | 3.5.15 | 3.5.11-0 | https://github.com/kubernetes/kubernetes/blob/v1.31.0/cmd/kubeadm/app/constants/constants.go |
+| 1.31.14 | 3.5.24 | 3.5.24-0 | https://github.com/kubernetes/kubernetes/blob/v1.31.14/cmd/kubeadm/app/constants/constants.go |
+| 1.32.0\~1.32.9 | 3.5.16 | 3.5.11-0 | https://github.com/kubernetes/kubernetes/blob/v1.32.0/cmd/kubeadm/app/constants/constants.go |
+| 1.32.10\~1.32.13 | 3.5.24 | 3.5.24-0 | https://github.com/kubernetes/kubernetes/blob/v1.32.10/cmd/kubeadm/app/constants/constants.go |
+| 1.33.0\~1.33.5 | 3.5.21 | 3.5.11-0 | https://github.com/kubernetes/kubernetes/blob/v1.33.0/cmd/kubeadm/app/constants/constants.go |
+| 1.33.6\~1.33.7 | 3.5.24 | 3.5.24-0 | https://github.com/kubernetes/kubernetes/blob/v1.33.6/cmd/kubeadm/app/constants/constants.go |
+| 1.34.0\~1.34.1 | 3.6.4 | 3.5.21-0 | https://github.com/kubernetes/kubernetes/blob/v1.34.0/cmd/kubeadm/app/constants/constants.go |
+| 1.34.2\~1.34.3 | 3.6.5 | 3.5.24-0 | https://github.com/kubernetes/kubernetes/blob/v1.34.2/cmd/kubeadm/app/constants/constants.go |
 
 **kubekey config 中 etcd 默认值**：
 
@@ -95,6 +95,9 @@
 | 1.32 | v3.5.24 |
 | 1.33 | v3.5.24 |
 | 1.34 | v3.6.5 |
+
+> **关于 etcd 最小要求版本列**：
+> Kubernetes 1.23~1.27 在最小列保留历史 `MinExternalEtcdVersion`（`3.2.18`）；从 1.28 起，最小列反映各版本自身的 `MinExternalEtcdVersion`（1.28~1.30 为 `3.4.13-4`，1.31~1.33 为 `3.5.11-0` 及 `3.5.24-0`，1.34 为 `3.5.21-0` 及 `3.5.24-0`）。KubeKey 在 `etcd_min_versions` 中镜像该值，在 **precheck 阶段、kubeadm 运行之前** 拒绝**过旧**的 etcd——例如 `etcd 3.5.6` 无法随 Kubernetes 1.31.14+（最小 `3.5.24-0`）升级。KubeKey 刻意**不**对外部 etcd 施加上限：kubeadm 本身只硬性拒绝过旧的 etcd（`preflight/checks.go` 仅在 `etcdVersion < minExternalEtcdVersion` 时报错），其 `SupportedEtcdVersion` map 仅用于选择堆叠式（本地）etcd 版本（缺失时仅告警兜底），从不会拒绝过新的外部 etcd。
 
 ### 容器运行时
 

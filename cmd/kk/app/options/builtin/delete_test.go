@@ -266,6 +266,9 @@ spec:
 			o := &DeleteNodesOptions{
 				CommonOptions: options.CommonOptions{
 					InventoryFile: inventoryFile,
+					// Config must be non-nil: removeNodesFromInventoryFile reads
+					// "delete.etcd" via o.Config.Value(), which panics on a nil Config.
+					Config: &kkcorev1.Config{},
 					Inventory: &kkcorev1.Inventory{
 						Spec: kkcorev1.InventorySpec{
 							Hosts: kkcorev1.InventoryHost{

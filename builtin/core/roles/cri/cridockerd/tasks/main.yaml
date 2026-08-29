@@ -1,0 +1,58 @@
+---
+- name: Cridockerd | Check if cri-dockerd is installed on the system
+  ignore_errors: true
+  command: cri-dockerd --version
+  register: cridockerd_install_version
+
+# When upgrade.cri=true or create cluster: install or upgrade cri-dockerd if version mismatch
+- name: Cridockerd | Install or upgrade cri-dockerd
+  when:
+    - or (.kubernetes_install_LoadState.stdout | default "" | ne "loaded") (.upgrade.cri)
+    - or (.cridockerd_install_version.error | empty | not) (.cridockerd_install_version.stdout | hasPrefix (printf "cri-dockerd %s " .cri.cridockerd_version) | not)
+  block:
+    - name: Cridockerd | Backup cri-dockerd binary before upgrade
+      when: .kubernetes_install_LoadState.stdout | default "" | eq "loaded"
+      command: |
+        BACKUP_DIR="/etc/kubekey/backup/cridockerd/$(date +%Y%m%d-%H%M%S)"
+        mkdir -p "${BACKUP_DIR}"
+        cp /usr/local/bin/cri-dockerd "${BACKUP_DIR}/" 2>/dev/null || true
+        echo "✅ cri-dockerd backup saved to ${BACKUP_DIR}"
+    - name: Cridockerd | Copy cri-dockerd binary archive to the remote node
+      copy:
+        src: >-
+          {{ .binary_dir }}/cri-dockerd/{{ .cri.cridockerd_version }}/{{ .binary_type }}/cri-dockerd-{{ .cri.cridockerd_version | default "" | trimPrefix "v" }}.{{ .binary_type }}.tgz
+        dest: >-
+          {{ .tmp_dir }}/cri-dockerd-{{ .cri.cridockerd_version | default "" | trimPrefix "v" }}.{{ .binary_type }}.tgz
+    - name: Cridockerd | Extract cri-dockerd binary to /usr/local/bin
+      command: |
+        tar -xvf {{ .tmp_dir }}/cri-dockerd-{{ .cri.cridockerd_version | default "" | trimPrefix "v" }}.{{ .binary_type }}.tgz --strip-components=1 -C /usr/local/bin/
+    - name: Cridockerd | Generate cri-dockerd systemd service file
+      template:
+        src: cri-dockerd.service
+        dest: /etc/systemd/system/cri-dockerd.service
+    - name: Cridockerd | Start and enable the cri-dockerd service
+      command: |
+        systemctl daemon-reload && systemctl start cri-dockerd.service && systemctl enable cri-dockerd.service
+
+# When upgrade.cri=false and K8s is being upgraded: only install cri-dockerd if missing (not upgrade)
+- name: Cridockerd | Install cri-dockerd if missing when not upgrading cri
+  when:
+    - .kubernetes_install_LoadState.stdout | default "" | eq "loaded"
+    - .cridockerd_install_version.error | empty | not
+  block:
+    - name: Cridockerd | Copy cri-dockerd binary archive to the remote node
+      copy:
+        src: >-
+          {{ .binary_dir }}/cri-dockerd/{{ .cri.cridockerd_version }}/{{ .binary_type }}/cri-dockerd-{{ .cri.cridockerd_version | default "" | trimPrefix "v" }}.{{ .binary_type }}.tgz
+        dest: >-
+          {{ .tmp_dir }}/cri-dockerd-{{ .cri.cridockerd_version | default "" | trimPrefix "v" }}.{{ .binary_type }}.tgz
+    - name: Cridockerd | Extract cri-dockerd binary to /usr/local/bin
+      command: |
+        tar -xvf {{ .tmp_dir }}/cri-dockerd-{{ .cri.cridockerd_version | default "" | trimPrefix "v" }}.{{ .binary_type }}.tgz --strip-components=1 -C /usr/local/bin/
+    - name: Cridockerd | Generate cri-dockerd systemd service file
+      template:
+        src: cri-dockerd.service
+        dest: /etc/systemd/system/cri-dockerd.service
+    - name: Cridockerd | Start and enable the cri-dockerd service
+      command: |
+        systemctl daemon-reload && systemctl start cri-dockerd.service && systemctl enable cri-dockerd.service

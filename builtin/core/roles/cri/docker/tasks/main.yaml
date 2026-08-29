@@ -1,13 +1,31 @@
----
+# Scenario 2: Create cluster or upgrading CRI together.
+# Perform full Docker installation/upgrade (backup, install, certs).
+# cri-dockerd is handled inside the block for K8s >= v1.24.0.
+- name: Docker | Full Docker installation or upgrade
+  when:
+    - or (.kubernetes_install_LoadState.stdout | default "" | ne "loaded") (.upgrade.cri)
+  block:
+    - name: Docker | Backup Docker configuration and binaries before upgrade
+      when:
+        - .kubernetes_install_LoadState.stdout | default "" | eq "loaded"
+      command: |
+        BACKUP_DIR="/etc/kubekey/backup/docker/$(date +%Y%m%d-%H%M%S)"
+        mkdir -p "${BACKUP_DIR}"
+        cp /etc/docker/daemon.json "${BACKUP_DIR}/" 2>/dev/null || true
+        cp /usr/local/bin/docker "${BACKUP_DIR}/" 2>/dev/null || true
+        cp /usr/local/bin/dockerd "${BACKUP_DIR}/" 2>/dev/null || true
+        cp /usr/local/bin/ctr "${BACKUP_DIR}/" 2>/dev/null || true
+        echo "✅ Docker backup saved to ${BACKUP_DIR}"
+
 # sync docker binary
 - name: Docker | Sync Docker binaries
   block:
     - name: Docker | Check if Docker is installed on the system
       ignore_errors: true
-      command: docker --version
+      command: docker version --format '{{ .Client.Version }}' 2>/dev/null || true
       register: docker_install_version
     - name: Docker | Install and configure Docker if not present or version mismatch
-      when: or (.docker_install_version.error | empty | not) (.docker_install_version.stdout | hasPrefix (printf "Docker version %s," .cri.docker_version) | not)
+      when: or (.docker_install_version.error | empty | not) (.docker_install_version.stdout | ne .cri.docker_version)
       block:
         - name: Docker | Copy Docker binary archive to the remote node
           copy:
@@ -71,7 +89,7 @@
 
 # install or update docker service
 - name: Docker | Configure Docker daemon
-  when: or (.docker_install_version.error | empty | not) (.docker_install_version.stdout | hasPrefix (printf "Docker version %s," .cri.docker_version) | not) (.cri.docker.daemon_policy | empty | not)
+  when: or (.docker_install_version.error | empty | not) (.docker_install_version.stdout | ne .cri.docker_version) (.cri.docker.daemon_policy | empty | not)
   block:
     - name: Docker | Read existing Docker daemon configuration
       when: .cri.docker.daemon_policy | eq "merge"
@@ -84,12 +102,12 @@
         src: daemon.json
         dest: /etc/docker/daemon.json
 - name: Docker | Deploy the Docker systemd service file
-  when: or (.docker_install_version.error | empty | not) (.docker_install_version.stdout | hasPrefix (printf "Docker version %s," .cri.docker_version) | not) (.cri.docker.daemon_policy | empty | not)
+  when: or (.docker_install_version.error | empty | not) (.docker_install_version.stdout | ne .cri.docker_version) (.cri.docker.daemon_policy | empty | not)
   copy:
     src: docker.service
     dest: /etc/systemd/system/docker.service
 - name: Containerd | Configure containerd
-  when: or (.docker_install_version.error | empty | not) (.docker_install_version.stdout | hasPrefix (printf "Docker version %s," .cri.docker_version) | not) (.cri.docker.daemon_policy | empty | not)
+  when: or (.docker_install_version.error | empty | not) (.docker_install_version.stdout | ne .cri.docker_version) (.cri.docker.daemon_policy | empty | not)
   block:
     - name: Containerd | Read existing containerd configuration
       when: .cri.containerd.config_policy | eq "merge"
@@ -101,18 +119,17 @@
         src: config.toml
         dest: /etc/containerd/config.toml
 - name: Docker | Deploy the containerd systemd service file
-  when: or (.docker_install_version.error | empty | not) (.docker_install_version.stdout | hasPrefix (printf "Docker version %s," .cri.docker_version) | not) (.cri.docker.daemon_policy | empty | not)
+  when: or (.docker_install_version.error | empty | not) (.docker_install_version.stdout | ne .cri.docker_version) (.cri.docker.daemon_policy | empty | not)
   copy:
     src: containerd.service
     dest: /etc/systemd/system/containerd.service
 - name: Docker | Start and enable Docker and containerd services
-  when: or (.docker_install_version.error | empty | not) (.docker_install_version.stdout | hasPrefix (printf "Docker version %s," .cri.docker_version) | not) (.cri.docker.daemon_policy | empty | not)
+  when: or (.docker_install_version.error | empty | not) (.docker_install_version.stdout | ne .cri.docker_version) (.cri.docker.daemon_policy | empty | not)
   command: |
     systemctl daemon-reload && systemctl restart containerd.service && systemctl enable containerd.service
     systemctl daemon-reload && systemctl restart docker.service && systemctl enable docker.service
 
-# Docker | Install cri-dockerd if required for Kubernetes >= v1.24.0
-- include_tasks: cridockerd.yaml
-  when:
-    - .cri.container_manager | eq "docker"
-    - .kubernetes.kube_version | semverCompare ">=v1.24.0"
+# cri-dockerd is handled by the dedicated `cri/cridockerd` role (referenced both as a
+# dependency of the `cri` role for create/upgrade-cri, and directly in upgrade_cluster.yaml
+# for Kubernetes-only upgrades on docker + Kubernetes >= v1.24.0). It is intentionally NOT
+# included here so that a Kubernetes-only upgrade never touches the Docker daemon.

@@ -15,6 +15,11 @@
       The etcd inventory group "etcd" must not be empty. Please verify that this group is properly defined in your inventory.
 
 - name: Inventory | Fail if the number of etcd hosts is even
+  # `.groups` is host-scoped: on hosts that are not etcd members (e.g. the
+  # localhost runner) `.groups.etcd` is nil, and sprig's `len` panics on a nil
+  # interface. Only enforce the odd-count invariant where the etcd group is
+  # actually defined.
+  when: .groups.etcd | empty | not
   assert:
     that: (mod (.groups.etcd | len) 2) | eq 1
     fail_msg: >-

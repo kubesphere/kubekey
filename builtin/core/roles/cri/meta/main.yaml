@@ -6,3 +6,11 @@ dependencies:
 
   - role: cri/containerd
     when: .cri.container_manager | eq "containerd"
+
+  # cri-dockerd is only relevant for docker runtimes on Kubernetes >= v1.24.0
+  # (dockershim removal). It is also referenced directly in upgrade_cluster.yaml
+  # for Kubernetes-only upgrades, so it must remain a standalone role.
+  - role: cri/cridockerd
+    when:
+      - .kubernetes.kube_version | semverCompare ">=v1.24.0"
+      - .cri.container_manager | eq "docker"
