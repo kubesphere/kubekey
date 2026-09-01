@@ -398,7 +398,7 @@ download:
         - ghcr.io/flannel-io/flannel-cni-plugin:v1.9.1-flannel3
         - ghcr.io/flannel-io/flannel:v0.28.9
     hybridnet/hybridnet:
-      v0.8.8:
+      0.6.8:
         - docker.io/hybridnetdev/hybridnet:v0.8.8
     kubeovn/kube-ovn:
       v1.13.15:

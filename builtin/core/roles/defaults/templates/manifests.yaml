@@ -484,8 +484,8 @@
     {{- if $default_flannel_version | has "v0.28.9" | not }}
     {{- $default_flannel_version = append $default_flannel_version "v0.28.9" }}
     {{- end }}
-    {{- if $default_hybridnet_version | has "v0.8.8" | not }}
-    {{- $default_hybridnet_version = append $default_hybridnet_version "v0.8.8" }}
+    {{- if $default_hybridnet_version | has "0.6.8" | not }}
+    {{- $default_hybridnet_version = append $default_hybridnet_version "0.6.8" }}
     {{- end }}
     {{- if $default_kubeovn_version | has "v1.16.2" | not }}
     {{- $default_kubeovn_version = append $default_kubeovn_version "v1.16.2" }}
@@ -521,8 +521,8 @@
     {{- if $default_flannel_version | has "v0.28.9" | not }}
     {{- $default_flannel_version = append $default_flannel_version "v0.28.9" }}
     {{- end }}
-    {{- if $default_hybridnet_version | has "v0.8.8" | not }}
-    {{- $default_hybridnet_version = append $default_hybridnet_version "v0.8.8" }}
+    {{- if $default_hybridnet_version | has "0.6.8" | not }}
+    {{- $default_hybridnet_version = append $default_hybridnet_version "0.6.8" }}
     {{- end }}
     {{- if $default_kubeovn_version | has "v1.16.2" | not }}
     {{- $default_kubeovn_version = append $default_kubeovn_version "v1.16.2" }}
