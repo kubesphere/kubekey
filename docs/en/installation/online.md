@@ -160,7 +160,7 @@ Execute the following command to create the installation configuration file `con
 ./kk create config --with-kubernetes <Kubernetes version> -o .
 ```
 
-Replace `<Kubernetes version>` with the actual version you need, for example `v1.34.3`. Kubernetes `v1.23` ~ `v1.34` is supported by default.
+Replace `<Kubernetes version>` with the actual version you need, for example `v1.36.4`. Kubernetes `v1.23` ~ `v1.36` is supported by default.
 
 After execution, the installation configuration file `config-<Kubernetes version>.yaml` will be generated.
 

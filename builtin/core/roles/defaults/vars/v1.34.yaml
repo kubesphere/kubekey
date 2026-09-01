@@ -10,6 +10,12 @@ kubernetes:
     haproxy:
       image:
         tag: 2.9.6-alpine
+  # kube-proxy proxy mode. Kubernetes v1.34 deprecates ipvs (it is removed in
+  # v1.36) and recommends nftables, which has been GA since v1.33. The nftables
+  # backend defaults match the iptables tuning values in the kube_proxy config,
+  # so switching the mode needs no extra config block.
+  kube_proxy:
+    mode: "nftables"
 etcd:
   # etcd binary
   etcd_version: v3.6.5
@@ -49,10 +55,10 @@ cni:
   cni_plugins_version: v1.9.1
   # ========== cni: calico ==========
   # calicoctl binary
-  calico_version: v3.31.3
+  calico_version: v3.31.7
   # ========== cni: cilium ==========
   # cilium helm
-  cilium_version: 1.19.1
+  cilium_version: 1.19.7
   # ========== cni: flannel ==========
   flannel_version: v0.27.4
   # ========== cni: kubeovn ==========

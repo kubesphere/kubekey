@@ -70,6 +70,11 @@ download:
     calico: >-
       {{- .zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
       github.com/projectcalico/calico/releases/download/{{ "{{ .version }}" }}/tigera-operator-{{ "{{ .version }}" }}.tgz
+    # Calico v3.32+ splits CRDs into a dedicated chart; install it before the
+    # tigera-operator chart on both fresh install and upgrade.
+    calico_crd: >-
+      {{- .zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
+      github.com/projectcalico/calico/releases/download/{{ "{{ .version }}" }}/crd.projectcalico.org.v1-{{ "{{ .version }}" }}.tgz
     cilium: >-
       {{- .zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
       helm.cilium.io/cilium-{{ "{{ .version }}" }}.tgz
@@ -264,6 +269,30 @@ download:
         - docker.io/calico/goldmane:v3.31.3
         - docker.io/calico/whisker:v3.31.3
         - docker.io/calico/whisker-backend:v3.31.3
+      v3.32.1:
+        - quay.io/tigera/operator:v1.42.3
+        - quay.io/calico/ctl:v3.32.1
+        - docker.io/calico/typha:v3.32.1
+        - quay.io/calico/node:v3.32.1
+        # - docker.io/calico/node-windows:v3.32.1
+        - docker.io/calico/cni:v3.32.1
+        # - docker.io/calico/cni-windows:v3.32.1
+        - docker.io/calico/csi:v3.32.1
+        - docker.io/calico/apiserver:v3.32.1
+        - docker.io/calico/kube-controllers:v3.32.1
+        - docker.io/calico/envoy-gateway:v3.32.1
+        - docker.io/calico/envoy-proxy:v3.32.1
+        - docker.io/calico/envoy-ratelimit:v3.32.1
+        - docker.io/calico/flannel-migration-controller:v3.32.1
+        - docker.io/flannel/flannel:v0.24.4
+        - docker.io/calico/dikastes:v3.32.1
+        - docker.io/calico/node-driver-registrar:v3.32.1
+        - quay.io/calico/pod2daemon-flexvol:v3.32.1
+        - docker.io/calico/csi:v3.32.1
+        - docker.io/calico/key-cert-provisioner:v3.32.1
+        - docker.io/calico/goldmane:v3.32.1
+        - docker.io/calico/whisker:v3.32.1
+        - docker.io/calico/whisker-backend:v3.32.1
     cilium/cilium:
       "1.14.19":
         - quay.io/cilium/cilium:v1.14.19
@@ -347,12 +376,29 @@ download:
         - docker.io/library/busybox:1.37.0
         - ghcr.io/spiffe/spire-agent:1.9.6
         - ghcr.io/spiffe/spire-server:1.9.6
+      "1.20.1":
+        - quay.io/cilium/cilium:v1.20.1
+        - quay.io/cilium/ztunnel:v1.0.0
+        - quay.io/cilium/certgen:v0.4.9
+        - quay.io/cilium/hubble-relay:v1.20.1
+        - quay.io/cilium/hubble-ui-backend:v0.13.5
+        - quay.io/cilium/hubble-ui:v0.13.5
+        - quay.io/cilium/cilium-envoy:v1.37.5-1786810558-766ccfb37260a43e9d228837aa84ce3faf9f64e7
+        - quay.io/cilium/operator:v1.20.1
+        - quay.io/cilium/startup-script:1782916218-36ae25f
+        - quay.io/cilium/clustermesh-apiserver:v1.20.1
+        - docker.io/library/busybox:1.38.0
+        - ghcr.io/spiffe/spire-agent:1.15.2
+        - ghcr.io/spiffe/spire-server:1.15.2
     flannel/flannel:
       v0.27.4:
         - ghcr.io/flannel-io/flannel-cni-plugin:v1.8.0-flannel1
         - ghcr.io/flannel-io/flannel:v0.27.4
+      v0.28.9:
+        - ghcr.io/flannel-io/flannel-cni-plugin:v1.9.1-flannel3
+        - ghcr.io/flannel-io/flannel:v0.28.9
     hybridnet/hybridnet:
-      0.6.8:
+      v0.8.8:
         - docker.io/hybridnetdev/hybridnet:v0.8.8
     kubeovn/kube-ovn:
       v1.13.15:
@@ -361,9 +407,17 @@ download:
       v1.15.0:
         - docker.io/kubeovn/kube-ovn:v1.15.0
         - docker.io/kubeovn/vpc-nat-gateway:v1.15.0
+      v1.16.2:
+        - docker.io/kubeovn/kube-ovn:v1.16.2
+        - docker.io/kubeovn/vpc-nat-gateway:v1.16.2
     spiderpool/spiderpool:
       v1.1.1:
         - ghcr.io/spidernet-io/spiderpool/spiderpool-plugins:27c4f118b1cec3773f2679b772e7583fc77e5686
         - ghcr.io/k8snetworkplumbingwg/multus-cni:v4.1.4
         - ghcr.io/spidernet-io/spiderpool/spiderpool-agent:v1.1.1
         - ghcr.io/spidernet-io/spiderpool/spiderpool-controller:v1.1.1
+      v1.2.2:
+        - ghcr.io/spidernet-io/spiderpool/spiderpool-plugins:87fd4a400858705c208d5a4b7059423b33a551aa
+        - ghcr.io/k8snetworkplumbingwg/multus-cni:v4.1.4
+        - ghcr.io/spidernet-io/spiderpool/spiderpool-agent:v1.2.2
+        - ghcr.io/spidernet-io/spiderpool/spiderpool-controller:v1.2.2

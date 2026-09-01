@@ -9,6 +9,17 @@
     src: "{{ .binary_dir }}/cni/calico/tigera-operator-{{ .item }}.tgz"
     dest: "{{ .artifact_dir }}/kubekey/cni/calico/tigera-operator-{{ .item }}.tgz"
 
+- name: Helm | Ensure the Calico CRD chart binary is available
+  loop: "{{ .download.cni.calico_version | toJson }}"
+  when:
+    - .item | empty | not
+    - .item | semverCompare ">=3.32.0"
+    - .download.cni.type | has "calico"
+    - printf "%s/cni/calico/crd.projectcalico.org.v1-%s.tgz" .artifact_dir .item | fileExists | not
+  copy:
+    src: "{{ .binary_dir }}/cni/calico/crd.projectcalico.org.v1-{{ .item }}.tgz"
+    dest: "{{ .artifact_dir }}/kubekey/cni/calico/crd.projectcalico.org.v1-{{ .item }}.tgz"
+
 - name: Helm | Ensure the Cilium binary is available
   loop: "{{ .download.cni.cilium_version | toJson }}"
   when:

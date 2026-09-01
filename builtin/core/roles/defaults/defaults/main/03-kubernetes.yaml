@@ -47,9 +47,15 @@ kubernetes:
       #               operator: In
       #               values:
       #                 - linux
-    # Supported proxy modes: ipvs, iptables
+    # Supported proxy modes: iptables, ipvs, nftables.
+    # This is the baseline default; Kubernetes v1.34 and later override it to
+    # "nftables" via roles/defaults/vars/v1.{34,35,36}.yaml. ipvs is deprecated
+    # in v1.34 and removed in v1.36, so keep it only for clusters running
+    # v1.33 or earlier. Set this field explicitly to pin a mode.
     mode: "ipvs"
-    # kube-proxy config
+    # kube-proxy config. These keys belong to the iptables backend and are
+    # ignored when mode is "nftables", whose defaults are equivalent. To tune
+    # the nftables backend, nest the keys under "nftables" instead.
     config:
       iptables:
         masqueradeAll: false

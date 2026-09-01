@@ -12,7 +12,7 @@
 - name: Repository | Initialize Debian-based repository and install required system packages
   command: |
     now=$(date +"%Y%m%d%H%M%S")
-    PKGS="socat conntrack ipset ebtables chrony ipvsadm{{ if .groups.nfs | default list | has .inventory_hostname }} nfs-kernel-server{{ end }}"
+    PKGS="socat conntrack ipset ebtables chrony ipvsadm{{ if .kubernetes.kube_proxy.mode | default "iptables" | eq "nftables" }} nftables{{ end }}{{ if .groups.nfs | default list | has .inventory_hostname }} nfs-kernel-server{{ end }}"
     PKGS_TO_INSTALL=""
     for pkg in $PKGS; do
       if [ -n "$pkg" ]; then
@@ -35,6 +35,9 @@
             ;;
           ipvsadm)
             ipvsadm -Ln >/dev/null 2>&1 || PKGS_TO_INSTALL="$PKGS_TO_INSTALL ipvsadm"
+            ;;
+          nftables)
+            nft --version >/dev/null 2>&1 || PKGS_TO_INSTALL="$PKGS_TO_INSTALL nftables"
             ;;
           nfs-kernel-server)
             [ "$(systemctl show -p LoadState --value nfs-server.service 2>/dev/null)" = "loaded" ] \
@@ -73,7 +76,7 @@
 - name: Repository | Initialize RHEL-based repository and install required system packages
   command: |
     BACKUP_FILE="/etc/yum.repos.d.kubekey.bak-$(date +%Y%m%d%H%M%S)"
-    PKGS="socat conntrack ipset ebtables chrony ipvsadm{{ if .groups.nfs | default list | has .inventory_hostname }} nfs-kernel-server{{ end }}"
+    PKGS="socat conntrack ipset ebtables chrony ipvsadm{{ if .kubernetes.kube_proxy.mode | default "iptables" | eq "nftables" }} nftables{{ end }}{{ if .groups.nfs | default list | has .inventory_hostname }} nfs-kernel-server{{ end }}"
     PKGS_TO_INSTALL=""
     for pkg in $PKGS; do
       if [ -n "$pkg" ]; then
@@ -96,6 +99,9 @@
             ;;
           ipvsadm)
             ipvsadm -Ln >/dev/null 2>&1 || PKGS_TO_INSTALL="$PKGS_TO_INSTALL ipvsadm"
+            ;;
+          nftables)
+            nft --version >/dev/null 2>&1 || PKGS_TO_INSTALL="$PKGS_TO_INSTALL nftables"
             ;;
           nfs-kernel-server)
             [ "$(systemctl show -p LoadState --value nfs-server.service 2>/dev/null)" = "loaded" ] \

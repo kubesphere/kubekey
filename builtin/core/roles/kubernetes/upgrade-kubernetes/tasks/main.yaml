@@ -209,33 +209,67 @@
   when:
     - .groups.kube_control_plane | default list | has .inventory_hostname
     - .init_kubernetes_node | eq .inventory_hostname
-    - .dns.coredns.image.tag | default "" | ne ""
   command: |
-    KC=/etc/kubernetes/admin.conf
-    [ -r "$KC" ] || KC=/root/.kube/config
-    [ -r "$KC" ] || KC="$HOME/.kube/config"
-    K=/usr/local/bin/kubectl
+    set -u
+    # Locate a readable kubeconfig: the root-owned admin.conf first, then the
+    # common fallbacks. kk runs tasks as root, but be defensive about $HOME.
+    KC=""
+    for p in /etc/kubernetes/admin.conf /root/.kube/config "$HOME/.kube/config"; do
+      if [ -r "$p" ]; then KC="$p"; break; fi
+    done
+    K="$(command -v kubectl || true)"; [ -x "$K" ] || K=/usr/local/bin/kubectl
+    TARGET="{{ .dns.coredns.image.tag }}"
+    [ -n "$TARGET" ] || exit 0
+    # kubeadm upgrade apply just restarted the control plane, so wait for the
+    # apiserver to be ready before touching CoreDNS. Without this the read below
+    # hits the brief RBAC/read window and the whole align is skipped, leaving
+    # CoreDNS pinned to the old (baseline) tag across a multi-hop upgrade.
+    for _ in $(seq 1 40); do
+      if "$K" ${KC:+"--kubeconfig=$KC"} get --raw=/healthz 2>/dev/null | grep -q ok; then break; fi
+      sleep 3
+    done
     # In the auto-step flow every hop pins .dns.coredns.image.tag to the CURRENT minor's
     # tag (see the upgradeVersionFieldPaths allow-list in builtin/core/upgrade_path.go), so
     # we align straight to it and no longer query `kubeadm config images list`. The registry
     # PREFIX of the running image is kept; only the `:tag` is replaced, so mirrored /
     # offline registries keep working.
-    TARGET="{{ .dns.coredns.image.tag }}"
-    if [ -z "$TARGET" ]; then
-      echo "ℹ️  No CoreDNS target tag configured; nothing to align"
-      exit 0
-    fi
-    CUR=$($K --kubeconfig="$KC" -n kube-system get deploy coredns -o jsonpath='{.spec.template.spec.containers[?(@.name=="coredns")].image}' 2>/dev/null)
-    if [ -z "$CUR" ]; then
-      echo "ℹ️  CoreDNS Deployment not found; nothing to align"
-      exit 0
-    fi
+    CUR=""
+    for _ in $(seq 1 10); do
+      CUR=$("$K" ${KC:+"--kubeconfig=$KC"} -n kube-system get deploy coredns -o jsonpath='{.spec.template.spec.containers[?(@.name=="coredns")].image}' 2>/dev/null)
+      [ -n "$CUR" ] && break
+      sleep 3
+    done
+    [ -n "$CUR" ] || exit 0
     IMG="${CUR%:*}:${TARGET}"
-    if [ "$CUR" != "$IMG" ]; then
-      $K --kubeconfig="$KC" -n kube-system set image deploy/coredns coredns="$IMG" >/dev/null
-      $K --kubeconfig="$KC" -n kube-system rollout status deploy/coredns --timeout=180s >/dev/null
+    "$K" ${KC:+"--kubeconfig=$KC"} -n kube-system set image deploy/coredns coredns="$IMG" >/dev/null
+    "$K" ${KC:+"--kubeconfig=$KC"} -n kube-system rollout status deploy/coredns --timeout=180s >/dev/null
+    # kubeadm `upgrade apply` re-applies the CoreDNS addon from the kubeadm-config
+    # ClusterConfiguration's `dns.imageTag` on EVERY hop -- including the worker-play
+    # apply, whose (delayed) CoreDNS reconcile runs AFTER this align. If that tag is
+    # still pinned to the baseline version the next apply reverts CoreDNS right back
+    # to it, which is exactly the multi-hop "CoreDNS stuck at the start minor" bug.
+    # Keep kubeadm's view in sync: patch the live ConfigMap (kubeadm v1.30+ source of
+    # truth) and the on-disk file (kubeadm < v1.30 reads it via --config).
+    patch_kubeadm_dns_tag() {
+      local f="$1"
+      [ -s "$f" ] || return 0
+      awk -v tag="$TARGET" '
+        /^dns:/ { indns=1 }
+        indns && /^  imageTag:/ { print "  imageTag: " tag; next }
+        indns && /^[^ ]/ && !/^dns:/ { indns=0 }
+        { print }
+      ' "$f" > "$f.kk" && mv "$f.kk" "$f"
+    }
+    CFGCM="$(mktemp /tmp/kk-kubeadm-config.XXXXXX.yaml)"
+    if "$K" ${KC:+"--kubeconfig=$KC"} -n kube-system get cm kubeadm-config -o jsonpath='{.data.ClusterConfiguration}' > "$CFGCM" 2>/dev/null && [ -s "$CFGCM" ]; then
+      patch_kubeadm_dns_tag "$CFGCM"
+      "$K" ${KC:+"--kubeconfig=$KC"} -n kube-system create cm kubeadm-config --from-file=ClusterConfiguration="$CFGCM" --dry-run=client -o yaml 2>/dev/null | "$K" ${KC:+"--kubeconfig=$KC"} apply -f - >/dev/null 2>&1
     fi
-    echo "✅ CoreDNS image -> ${IMG}"
+    rm -f "$CFGCM"
+    if [ -f /etc/kubernetes/kubeadm-config.yaml ]; then
+      patch_kubeadm_dns_tag /etc/kubernetes/kubeadm-config.yaml
+    fi
+    echo "CoreDNS image -> ${IMG}"
 
 # NodeLocalDNS (k8s-dns-node-cache) is a node-local forwarding cache whose config
 # is compatible across Kubernetes minors and which kubeadm NEVER manages/migrates.
@@ -268,6 +302,29 @@
       $K --kubeconfig="$KC" -n kube-system rollout status ds/nodelocaldns --timeout=180s >/dev/null
     fi
     echo "✅ NodeLocalDNS image -> ${IMG}"
+
+# The containerd role only re-renders /etc/containerd/config.toml when the
+# containerd VERSION changes (or config_policy is set). A plain Kubernetes minor
+# bump therefore leaves sandbox_image (the pause image) pinned to the baseline tag,
+# so new pod sandboxes keep using the old pause. Align it per hop from the per-hop
+# .kubernetes.sandbox_image.tag overlay and restart containerd. Runs on every node
+# because config.toml is node-local. Idempotent: skip the restart when already aligned.
+- name: UpgradeKubernetes | Align pause (sandbox_image) with the target Kubernetes version
+  when:
+    - .kubernetes.sandbox_image.tag | default "" | ne ""
+  command: |
+    set -u
+    TARGET="{{ .kubernetes.sandbox_image.tag }}"
+    IMG="{{ .kubernetes.sandbox_image.registry }}/{{ .kubernetes.sandbox_image.repository }}:${TARGET}"
+    CFG=/etc/containerd/config.toml
+    [ -f "$CFG" ] || { echo "no containerd config at $CFG; skip"; exit 0; }
+    if grep -q "sandbox_image[[:space:]]*=[[:space:]]*\"${IMG}\"" "$CFG"; then
+      echo "sandbox_image already ${IMG}; skip"
+      exit 0
+    fi
+    sed -i "s#sandbox_image[[:space:]]*=[[:space:]]*\"[^\"]*\"#sandbox_image = \"${IMG}\"#g" "$CFG"
+    systemctl daemon-reload && systemctl restart containerd.service
+    echo "pause sandbox_image -> ${IMG}"
 
 - name: UpgradeKubernetes | Upgrade node configuration on other control plane nodes
   when:

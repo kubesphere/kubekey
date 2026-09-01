@@ -38,7 +38,8 @@ import (
 var defaultPath = core.KubeUpgradePath{
 	23: "v1.23.17", 24: "v1.24.17", 25: "v1.25.16", 26: "v1.26.15",
 	27: "v1.27.16", 28: "v1.28.15", 29: "v1.29.15", 30: "v1.30.14",
-	31: "v1.31.14", 32: "v1.32.13", 33: "v1.33.7", 34: "v1.34.3",
+	31: "v1.31.14", 32: "v1.32.13", 33: "v1.33.13", 34: "v1.34.11",
+	35: "v1.35.8", 36: "v1.36.4",
 }
 
 // TestMergeAndEffectiveKubeUpgradePath locks in the "Go default into config"
@@ -53,7 +54,8 @@ func TestMergeAndEffectiveKubeUpgradePath(t *testing.T) {
 	eff, err := core.EffectiveKubeUpgradePath(cfg)
 	require.NoError(t, err)
 	assert.Equal(t, "v1.24.17", eff[24], "v1.24 default should be seeded")
-	assert.Equal(t, "v1.34.3", eff[34], "v1.34 default should be seeded")
+	assert.Equal(t, "v1.34.11", eff[34], "v1.34 default should be seeded")
+	assert.Equal(t, "v1.36.4", eff[36], "v1.36 default should be seeded")
 	assert.Len(t, eff, len(defaultPath), "empty config should carry the full default path")
 
 	// 2. Partial override set in config -> merge keeps it, fills the rest.
@@ -68,7 +70,7 @@ func TestMergeAndEffectiveKubeUpgradePath(t *testing.T) {
 	require.NoError(t, core.MergeKubeUpgradePathDefaults(over, defaultPath))
 	eff2, err := core.EffectiveKubeUpgradePath(over)
 	require.NoError(t, err)
-	assert.Equal(t, "v1.34.3", eff2[34], "unset minor should fall back to the default")
+	assert.Equal(t, "v1.34.11", eff2[34], "unset minor should fall back to the default")
 	assert.Equal(t, "v1.24.99", eff2[24], "config override of v1.24 must win")
 	assert.Equal(t, "v1.31.99", eff2[31], "config override of v1.31 must win")
 	assert.Len(t, eff2, len(defaultPath), "merged config must still cover every minor")
@@ -85,16 +87,17 @@ func TestComputeUpgradeSteps(t *testing.T) {
 		wantErr         bool
 	}{
 		{
-			// The headline scenario: v1.23.17 -> v1.34.3 must be split into 11
+			// The headline scenario: v1.23.17 -> v1.36.4 must be split into 13
 			// single-minor hops, each intermediate using the path's highest patch
 			// and the final hop using the user-requested version.
-			name:            "multi-minor 1.23 -> 1.34",
+			name:            "multi-minor 1.23 -> 1.36",
 			currentMinor:    23,
-			targetMinor:     34,
-			requestedTarget: "v1.34.3",
+			targetMinor:     36,
+			requestedTarget: "v1.36.4",
 			want: []string{
 				"v1.24.17", "v1.25.16", "v1.26.15", "v1.27.16", "v1.28.15",
-				"v1.29.15", "v1.30.14", "v1.31.14", "v1.32.13", "v1.33.7", "v1.34.3",
+				"v1.29.15", "v1.30.14", "v1.31.14", "v1.32.13", "v1.33.13",
+				"v1.34.11", "v1.35.8", "v1.36.4",
 			},
 		},
 		{
@@ -118,7 +121,7 @@ func TestComputeUpgradeSteps(t *testing.T) {
 			name:            "downgrade rejected",
 			currentMinor:    34,
 			targetMinor:     33,
-			requestedTarget: "v1.33.7",
+			requestedTarget: "v1.33.13",
 			wantErr:         true,
 		},
 		{
@@ -175,10 +178,10 @@ func terminalCfg() map[string]interface{} {
 			"env": "prod",
 		},
 		"kubernetes": map[string]interface{}{
-			"kube_version": "v1.34.3",
+			"kube_version": "v1.36.4",
 			"helm_version": "v3.18.5",
 			"sandbox_image": map[string]interface{}{
-				"tag": "3.10.1",
+				"tag": "3.10.2",
 			},
 			"control_plane_endpoint": map[string]interface{}{
 				"type": "local",
@@ -191,7 +194,7 @@ func terminalCfg() map[string]interface{} {
 			},
 		},
 		"etcd": map[string]interface{}{
-			"etcd_version": "v3.6.5",
+			"etcd_version": "v3.6.8",
 		},
 		"image_registry": map[string]interface{}{
 			"type":           "harbor",
@@ -201,15 +204,15 @@ func terminalCfg() map[string]interface{} {
 		"cri": map[string]interface{}{
 			"container_manager":  "containerd",
 			"containerd_version": "v1.7.13",
-			"crictl_version":     "v1.34.0",
+			"crictl_version":     "v1.36.0",
 		},
 		"cni": map[string]interface{}{
 			"type":           "calico",
-			"calico_version": "v3.31.3",
+			"calico_version": "v3.32.1",
 		},
 		"dns": map[string]interface{}{
 			"coredns": map[string]interface{}{
-				"image": map[string]interface{}{"tag": "v1.12.1"},
+				"image": map[string]interface{}{"tag": "v1.14.2"},
 			},
 		},
 		"storage_class": map[string]interface{}{
@@ -241,16 +244,16 @@ func TestBuildUpgradeStepConfig(t *testing.T) {
 
 		// Version fields explicitly overlaid from embedded v1.28.yaml (NOT terminal).
 		v, _, _ = unstructured.NestedString(got, "etcd", "etcd_version")
-		assert.Equal(t, "v3.5.15", v, "etcd.etcd_version must come from v1.28.yaml, not terminal v3.6.5")
+		assert.Equal(t, "v3.5.15", v, "etcd.etcd_version must come from v1.28.yaml, not terminal v3.6.8")
 		v, _, _ = unstructured.NestedString(got, "cni", "calico_version")
-		assert.Equal(t, "v3.28.5", v, "cni.calico_version must come from v1.28.yaml, not terminal v3.31.3")
+		assert.Equal(t, "v3.28.5", v, "cni.calico_version must come from v1.28.yaml, not terminal v3.32.1")
 		v, _, _ = unstructured.NestedString(got, "kubernetes", "helm_version")
 		assert.Equal(t, "v3.12.1", v, "kubernetes.helm_version must come from v1.28.yaml")
 		// crictl follows kube_version: the v1.28 hop pins crictl to v1.28.0 (from
-		// v1.28.yaml), NOT the terminal v1.34.0 — so a plain Kubernetes-only upgrade
+		// v1.28.yaml), NOT the terminal v1.36.0 — so a plain Kubernetes-only upgrade
 		// keeps the CRI CLI tool in lockstep with each minor it passes through.
 		v, _, _ = unstructured.NestedString(got, "cri", "crictl_version")
-		assert.Equal(t, "v1.28.0", v, "cri.crictl_version must come from v1.28.yaml, not terminal v1.34.0")
+		assert.Equal(t, "v1.28.0", v, "cri.crictl_version must come from v1.28.yaml, not terminal v1.36.0")
 
 		// Non-version terminal fields inherited.
 		cm, _, _ := unstructured.NestedString(got, "cri", "container_manager")
@@ -269,15 +272,15 @@ func TestBuildUpgradeStepConfig(t *testing.T) {
 	})
 
 	t.Run("final hop keeps terminal version fields", func(t *testing.T) {
-		got, err := core.BuildUpgradeStepConfig(vfs, terminalCfg(), "v1.34.3", true)
+		got, err := core.BuildUpgradeStepConfig(vfs, terminalCfg(), "v1.36.4", true)
 		require.NoError(t, err)
 
 		v, _, _ := unstructured.NestedString(got, "kubernetes", "kube_version")
-		assert.Equal(t, "v1.34.3", v)
+		assert.Equal(t, "v1.36.4", v)
 		ev, _, _ := unstructured.NestedString(got, "etcd", "etcd_version")
-		assert.Equal(t, "v3.6.5", ev, "terminal etcd.etcd_version must be honored on the final hop")
+		assert.Equal(t, "v3.6.8", ev, "terminal etcd.etcd_version must be honored on the final hop")
 		cv, _, _ := unstructured.NestedString(got, "cni", "calico_version")
-		assert.Equal(t, "v3.31.3", cv, "terminal cni.calico_version must be honored on the final hop")
+		assert.Equal(t, "v3.32.1", cv, "terminal cni.calico_version must be honored on the final hop")
 		cm, _, _ := unstructured.NestedString(got, "cri", "container_manager")
 		assert.Equal(t, "containerd", cm)
 	})
@@ -299,9 +302,9 @@ func TestBuildUpgradeStepConfig(t *testing.T) {
 		require.NoError(t, err)
 		// The original terminal config must keep its version fields and its kube_version.
 		v, _, _ := unstructured.NestedString(base, "kubernetes", "kube_version")
-		assert.Equal(t, "v1.34.3", v)
+		assert.Equal(t, "v1.36.4", v)
 		ev, _, _ := unstructured.NestedString(base, "etcd", "etcd_version")
-		assert.Equal(t, "v3.6.5", ev)
+		assert.Equal(t, "v3.6.8", ev)
 	})
 }
 
@@ -311,7 +314,7 @@ func TestBuildUpgradeStepConfig(t *testing.T) {
 // compared, non-pinned fields and single-hop runs pass.
 func TestValidateTerminalVersions(t *testing.T) {
 	vfs := core.BuiltinPlaybook
-	multi := []string{"v1.24.17", "v1.25.16", "v1.26.15", "v1.27.16", "v1.28.15", "v1.34.3"}
+	multi := []string{"v1.24.17", "v1.25.16", "v1.26.15", "v1.27.16", "v1.28.15", "v1.36.4"}
 
 	t.Run("terminal etcd lower than intermediate hop errors", func(t *testing.T) {
 		// terminal etcd v3.5.6 is below v1.28's etcd v3.5.15.
@@ -324,14 +327,14 @@ func TestValidateTerminalVersions(t *testing.T) {
 	})
 
 	t.Run("terminal etcd at or above all intermediates passes", func(t *testing.T) {
-		cfg := terminalCfg() // terminal etcd v3.6.5 >= every intermediate
+		cfg := terminalCfg() // terminal etcd v3.6.8 >= every intermediate
 		require.NoError(t, core.ValidateTerminalVersions(vfs, cfg, multi))
 	})
 
 	t.Run("non-pinned version fields pass", func(t *testing.T) {
 		// No etcd/component version pinned at all -> nothing to conflict.
 		cfg := map[string]interface{}{
-			"kubernetes": map[string]interface{}{"kube_version": "v1.34.3"},
+			"kubernetes": map[string]interface{}{"kube_version": "v1.36.4"},
 			"cri":        map[string]interface{}{"container_manager": "containerd"},
 		}
 		require.NoError(t, core.ValidateTerminalVersions(vfs, cfg, multi))
