@@ -327,11 +327,11 @@
     {{- if $default_runc_version | has "v1.1.12" | not }}
     {{- $default_runc_version = append $default_runc_version "v1.1.12" }}
     {{- end }}
-    {{- if $default_calico_version | has "v3.30.5" | not }}
-    {{- $default_calico_version = append $default_calico_version "v3.30.5" }}
+    {{- if $default_calico_version | has "v3.30.7" | not }}
+    {{- $default_calico_version = append $default_calico_version "v3.30.7" }}
     {{- end }}
-    {{- if $default_cilium_version | has "1.19.1" | not }}
-    {{- $default_cilium_version = append $default_cilium_version "1.19.1" }}
+    {{- if $default_cilium_version | has "1.19.7" | not }}
+    {{- $default_cilium_version = append $default_cilium_version "1.19.7" }}
     {{- end }}
     {{- if $default_flannel_version | has "v0.27.4" | not }}
     {{- $default_flannel_version = append $default_flannel_version "v0.27.4" }}
@@ -364,11 +364,11 @@
     {{- if $default_runc_version | has "v1.1.12" | not }}
     {{- $default_runc_version = append $default_runc_version "v1.1.12" }}
     {{- end }}
-    {{- if $default_calico_version | has "v3.31.3" | not }}
-    {{- $default_calico_version = append $default_calico_version "v3.31.3" }}
+    {{- if $default_calico_version | has "v3.31.7" | not }}
+    {{- $default_calico_version = append $default_calico_version "v3.31.7" }}
     {{- end }}
-    {{- if $default_cilium_version | has "1.19.1" | not }}
-    {{- $default_cilium_version = append $default_cilium_version "1.19.1" }}
+    {{- if $default_cilium_version | has "1.19.7" | not }}
+    {{- $default_cilium_version = append $default_cilium_version "1.19.7" }}
     {{- end }}
     {{- if $default_flannel_version | has "v0.27.4" | not }}
     {{- $default_flannel_version = append $default_flannel_version "v0.27.4" }}
@@ -401,11 +401,11 @@
     {{- if $default_runc_version | has "v1.1.12" | not }}
     {{- $default_runc_version = append $default_runc_version "v1.1.12" }}
     {{- end }}
-    {{- if $default_calico_version | has "v3.31.3" | not }}
-    {{- $default_calico_version = append $default_calico_version "v3.31.3" }}
+    {{- if $default_calico_version | has "v3.31.7" | not }}
+    {{- $default_calico_version = append $default_calico_version "v3.31.7" }}
     {{- end }}
-    {{- if $default_cilium_version | has "1.19.1" | not }}
-    {{- $default_cilium_version = append $default_cilium_version "1.19.1" }}
+    {{- if $default_cilium_version | has "1.20.1" | not }}
+    {{- $default_cilium_version = append $default_cilium_version "1.20.1" }}
     {{- end }}
     {{- if $default_flannel_version | has "v0.27.4" | not }}
     {{- $default_flannel_version = append $default_flannel_version "v0.27.4" }}
@@ -438,11 +438,11 @@
     {{- if $default_runc_version | has "v1.1.12" | not }}
     {{- $default_runc_version = append $default_runc_version "v1.1.12" }}
     {{- end }}
-    {{- if $default_calico_version | has "v3.31.3" | not }}
-    {{- $default_calico_version = append $default_calico_version "v3.31.3" }}
+    {{- if $default_calico_version | has "v3.32.2" | not }}
+    {{- $default_calico_version = append $default_calico_version "v3.32.2" }}
     {{- end }}
-    {{- if $default_cilium_version | has "1.19.1" | not }}
-    {{- $default_cilium_version = append $default_cilium_version "1.19.1" }}
+    {{- if $default_cilium_version | has "1.20.1" | not }}
+    {{- $default_cilium_version = append $default_cilium_version "1.20.1" }}
     {{- end }}
     {{- if $default_flannel_version | has "v0.27.4" | not }}
     {{- $default_flannel_version = append $default_flannel_version "v0.27.4" }}
@@ -475,8 +475,8 @@
     {{- if $default_runc_version | has "v1.1.12" | not }}
     {{- $default_runc_version = append $default_runc_version "v1.1.12" }}
     {{- end }}
-    {{- if $default_calico_version | has "v3.32.1" | not }}
-    {{- $default_calico_version = append $default_calico_version "v3.32.1" }}
+    {{- if $default_calico_version | has "v3.32.2" | not }}
+    {{- $default_calico_version = append $default_calico_version "v3.32.2" }}
     {{- end }}
     {{- if $default_cilium_version | has "1.20.1" | not }}
     {{- $default_cilium_version = append $default_cilium_version "1.20.1" }}
@@ -512,8 +512,8 @@
     {{- if $default_runc_version | has "v1.1.12" | not }}
     {{- $default_runc_version = append $default_runc_version "v1.1.12" }}
     {{- end }}
-    {{- if $default_calico_version | has "v3.32.1" | not }}
-    {{- $default_calico_version = append $default_calico_version "v3.32.1" }}
+    {{- if $default_calico_version | has "v3.32.2" | not }}
+    {{- $default_calico_version = append $default_calico_version "v3.32.2" }}
     {{- end }}
     {{- if $default_cilium_version | has "1.20.1" | not }}
     {{- $default_cilium_version = append $default_cilium_version "1.20.1" }}

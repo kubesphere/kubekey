@@ -90,7 +90,7 @@ spec:
     # spiderpool_version: v1.2.2
     # ========== Calico CNI ==========
     # Calico version (effective only when type is calico).
-    calico_version: v3.32.1
+    calico_version: v3.32.2
     # ========== Cilium CNI ==========
     # Cilium version (effective only when type is cilium).
     #cilium_version: 1.20.1

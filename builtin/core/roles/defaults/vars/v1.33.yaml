@@ -52,7 +52,7 @@ cni:
   calico_version: v3.31.7
   # ========== cni: cilium ==========
   # cilium helm
-  cilium_version: 1.19.7
+  cilium_version: 1.20.1
   # ========== cni: flannel ==========
   flannel_version: v0.27.4
   # ========== cni: kubeovn ==========

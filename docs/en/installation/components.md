@@ -157,11 +157,11 @@ Recommended etcd versions for each Kubernetes version:
 | 1.31 | 3.29, 3.30 | v3.30.7 | https://docs.tigera.io/calico/3.29/getting-started/kubernetes/requirements#kubernetes-requirements<br>https://docs.tigera.io/calico/3.30/getting-started/kubernetes/requirements#kubernetes-requirements |
 | 1.32 | 3.29, 3.30, 3.31 | v3.31.7 | https://docs.tigera.io/calico/3.29/getting-started/kubernetes/requirements#kubernetes-requirements<br>https://docs.tigera.io/calico/3.30/getting-started/kubernetes/requirements#kubernetes-requirements<br>https://docs.tigera.io/calico/latest/getting-started/kubernetes/requirements#kubernetes-requirements |
 | 1.33 | 3.30, 3.31 | v3.31.7 | https://docs.tigera.io/calico/3.30/getting-started/kubernetes/requirements#kubernetes-requirements<br>https://docs.tigera.io/calico/latest/getting-started/kubernetes/requirements#kubernetes-requirements |
-| 1.34 | 3.31 | v3.31.7 | https://docs.tigera.io/calico/latest/getting-started/kubernetes/requirements#kubernetes-requirements |
+| 1.34 | 3.31, 3.32 | v3.32.2 | https://docs.tigera.io/calico/3.31/getting-started/kubernetes/requirements#kubernetes-requirements<br>https://docs.tigera.io/calico/latest/getting-started/kubernetes/requirements#kubernetes-requirements |
 | 1.35 | 3.31, 3.32 | v3.32.2 | https://docs.tigera.io/calico/3.31/getting-started/kubernetes/requirements#kubernetes-requirements<br>https://docs.tigera.io/calico/latest/getting-started/kubernetes/requirements#kubernetes-requirements |
 | 1.36 | 3.32 | v3.32.2 | https://docs.tigera.io/calico/latest/getting-started/kubernetes/requirements#kubernetes-requirements |
 
-> **Note**: Calico v3.31 is tested by Tigera against Kubernetes 1.32~1.35 and Calico v3.32 against 1.34~1.36; Cilium 1.19 is tested against 1.31~1.34 and Cilium 1.20 against 1.33~1.36. KubeKey keeps each CNI on the newest patch of the minor series that still covers the target Kubernetes minor, so 1.31~1.34 default to Cilium `1.19.7` while 1.35/1.36 default to Calico `v3.32.2` and Cilium `1.20.1`.
+> **Note**: Calico v3.31 is tested by Tigera against Kubernetes 1.32~1.35 and Calico v3.32 against 1.34~1.36; Cilium 1.19 is tested against 1.31~1.34 and Cilium 1.20 against 1.33~1.36. KubeKey keeps each CNI on the newest minor series that still covers the target Kubernetes minor. So for Calico, 1.34~1.36 default to `v3.32.2` (latest supporting those minors) while 1.31~1.33 stay on 3.31.x; for Cilium, 1.33~1.36 default to `1.20.1` while 1.31/1.32 stay on `1.19.7` (1.20 does not cover those minors).
 
 
 #### [cilium](https://github.com/cilium/cilium)
@@ -186,8 +186,8 @@ Recommended etcd versions for each Kubernetes version:
 | 1.30 | 1.16, 1.17, 1.18 | 1.18.13 | https://docs.cilium.io/en/v1.16/network/kubernetes/compatibility/<br>https://docs.cilium.io/en/v1.17/network/kubernetes/compatibility/<br>https://docs.cilium.io/en/v1.18/network/kubernetes/compatibility/ |
 | 1.31 | 1.17, 1.18, 1.19 | 1.19.7 | https://docs.cilium.io/en/v1.17/network/kubernetes/compatibility/<br>https://docs.cilium.io/en/v1.18/network/kubernetes/compatibility/ |
 | 1.32 | 1.17, 1.18, 1.19 | 1.19.7 | https://docs.cilium.io/en/v1.17/network/kubernetes/compatibility/<br>https://docs.cilium.io/en/v1.18/network/kubernetes/compatibility/ |
-| 1.33 | 1.18, 1.19, 1.20 | 1.19.7 | https://docs.cilium.io/en/v1.18/network/kubernetes/compatibility/ |
-| 1.34 | 1.19, 1.20 | 1.19.7 | - |
+| 1.33 | 1.18, 1.19, 1.20 | 1.20.1 | https://docs.cilium.io/en/v1.18/network/kubernetes/compatibility/ |
+| 1.34 | 1.19, 1.20 | 1.20.1 | https://docs.cilium.io/en/v1.20/network/kubernetes/compatibility/ |
 | 1.35\~1.36 | 1.20 | 1.20.1 | https://docs.cilium.io/en/stable/network/kubernetes/requirements/ |
 
 #### [flannel](https://github.com/flannel-io/flannel)
