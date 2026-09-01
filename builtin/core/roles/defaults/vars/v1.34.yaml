@@ -55,7 +55,7 @@ cni:
   cni_plugins_version: v1.9.1
   # ========== cni: calico ==========
   # calicoctl binary
-  calico_version: v3.31.7
+  calico_version: v3.32.2
   # ========== cni: cilium ==========
   # cilium helm
   cilium_version: 1.19.7
