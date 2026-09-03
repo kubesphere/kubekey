@@ -21,4 +21,4 @@
 # See: https://docs.cilium.io/en/stable/installation/k8s-install-helm/
 - name: Cilium | Deploy cilium with Helm
   command: |
-    helm upgrade --install --namespace kube-system cilium /etc/kubernetes/cni/cilium-{{ .cni.cilium_version }}.tgz -f /etc/kubernetes/cni/cilium-default-values.yaml {{ if .cni.cilium.values | empty | not }}-f /etc/kubernetes/cni/cilium-custom-values.yaml{{ end }}
+    helm upgrade --install --reuse-values --namespace kube-system cilium /etc/kubernetes/cni/cilium-{{ .cni.cilium_version }}.tgz -f /etc/kubernetes/cni/cilium-default-values.yaml {{ if .cni.cilium.values | empty | not }}-f /etc/kubernetes/cni/cilium-custom-values.yaml{{ end }}
