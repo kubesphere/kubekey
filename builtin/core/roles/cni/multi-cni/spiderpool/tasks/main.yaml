@@ -20,4 +20,4 @@
 
 - name: Spiderpool | Install Spiderpool using Helm with custom values
   command: |
-    helm upgrade --install --namespace kube-system spiderpool /etc/kubernetes/cni/spiderpool-{{ .cni.spiderpool_version }}.tgz -f /etc/kubernetes/cni/spiderpool-default-values.yaml {{ if .cni.spiderpool.values | empty | not }}-f /etc/kubernetes/cni/spiderpool-custom-values.yaml{{ end }}
+    helm upgrade --install --reuse-values --namespace kube-system spiderpool /etc/kubernetes/cni/spiderpool-{{ .cni.spiderpool_version }}.tgz -f /etc/kubernetes/cni/spiderpool-default-values.yaml {{ if .cni.spiderpool.values | empty | not }}-f /etc/kubernetes/cni/spiderpool-custom-values.yaml{{ end }}

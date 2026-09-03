@@ -24,4 +24,4 @@
     # Needs manual creation of namespace to avoid Helm error
     kubectl create ns kube-flannel
     kubectl label --overwrite ns kube-flannel pod-security.kubernetes.io/enforce=privileged
-    helm upgrade --install --create-namespace --namespace kube-flannel flannel /etc/kubernetes/cni/flannel-{{ .cni.flannel_version }}.tgz -f /etc/kubernetes/cni/flannel-default-values.yaml {{ if .cni.flannel.values | empty | not }}-f /etc/kubernetes/cni/flannel-custom-values.yaml{{ end }}
+    helm upgrade --install --reuse-values --create-namespace --namespace kube-flannel flannel /etc/kubernetes/cni/flannel-{{ .cni.flannel_version }}.tgz -f /etc/kubernetes/cni/flannel-default-values.yaml {{ if .cni.flannel.values | empty | not }}-f /etc/kubernetes/cni/flannel-custom-values.yaml{{ end }}
