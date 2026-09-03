@@ -8,16 +8,15 @@
 
 ```yaml
 upgrade:
-  cri: false          # 是否同步升级容器运行时（docker/containerd）
   etcd: false         # 是否同步升级外部 etcd 集群
-  dns: false          # 是否同步升级 CoreDNS / NodeLocalDNS
-  image_registry: false
+  cri: false          # 是否同步升级容器运行时（docker/containerd）
   cni: false          # 是否同步升级网络插件
-  storage_class: false
-  nfs: false
+  storage_class: false # 是否同步升级 StorageClass provisioner
 ```
 
 也可以在命令行通过 `--all` 或 `--set upgrade.xxx=true` 覆盖。
+
+> **注意**：CoreDNS / NodeLocalDNS 会随 Kubernetes 一并升级，无需单独开关；`image_registry` 和 `nfs` 不支持升级。
 
 ## pre_hook
 

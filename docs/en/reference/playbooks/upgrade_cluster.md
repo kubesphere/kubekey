@@ -8,16 +8,15 @@ The `upgrade` section in `config.yaml` controls whether optional components are 
 
 ```yaml
 upgrade:
-  cri: false          # Whether to upgrade the container runtime (docker/containerd)
   etcd: false         # Whether to upgrade the external etcd cluster
-  dns: false          # Whether to upgrade CoreDNS / NodeLocalDNS
-  image_registry: false
+  cri: false          # Whether to upgrade the container runtime (docker/containerd)
   cni: false          # Whether to upgrade the CNI plugin
-  storage_class: false
-  nfs: false
+  storage_class: false # Whether to upgrade the StorageClass provisioner
 ```
 
 You can also override them on the command line with `--all` or `--set upgrade.xxx=true`.
+
+> **Note**: CoreDNS / NodeLocalDNS are upgraded together with Kubernetes and do not require a separate switch. `image_registry` and `nfs` are not supported for upgrade.
 
 ## pre_hook
 
