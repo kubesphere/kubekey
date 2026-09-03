@@ -128,6 +128,7 @@ KubeKey 支持**在线安装**和**离线安装**两种方式。
 
 - **添加节点**：向已有 Kubernetes 集群添加新的控制平面节点、工作节点或 etcd 节点。详细步骤请参考 [添加集群节点](add-nodes.md)。
 - **删除节点**：从 Kubernetes 集群中安全移除指定节点。详细步骤请参考 [删除集群节点](delete-nodes.md)。
+- **升级集群**：升级已有集群的 Kubernetes 版本，并可选择升级 etcd、容器运行时、CNI 插件和 StorageClass 存储插件。详细步骤请参考 [升级集群](upgrade-cluster.md)。
 
 ## 启用 kubectl 自动补全
 

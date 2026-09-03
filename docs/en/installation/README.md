@@ -133,6 +133,7 @@ After the cluster is created, you can scale nodes according to business requirem
 
 - **Add Nodes**: Add new control plane, worker, or etcd nodes to an existing Kubernetes cluster. For detailed steps, see [Add Cluster Nodes](add-nodes.md).
 - **Delete Nodes**: Safely remove specified nodes from a Kubernetes cluster. For detailed steps, see [Delete Cluster Nodes](delete-nodes.md).
+- **Upgrade Cluster**: Upgrade the Kubernetes version of an existing cluster, and optionally etcd, the container runtime, the CNI plugin, and the StorageClass provisioner. For detailed steps, see [Upgrade Cluster](upgrade-cluster.md).
 
 ## Enable kubectl autocompletion
 

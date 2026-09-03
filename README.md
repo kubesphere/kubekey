@@ -59,6 +59,7 @@ curl -sfL https://get-kk.kubesphere.io | sh -
   - [Offline Installation](docs/en/installation/offline.md)
   - [Add Cluster Nodes](docs/en/installation/add-nodes.md)
   - [Delete Cluster Nodes](docs/en/installation/delete-nodes.md)
+  - [Upgrade Cluster](docs/en/installation/upgrade-cluster.md)
 - **[Configuration Reference](docs/en/reference/config.md)**
 - **Playbooks**
   - [Create Kubernetes Cluster](docs/en/reference/playbooks/create_cluster.md)
