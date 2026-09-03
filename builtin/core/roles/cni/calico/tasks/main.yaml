@@ -22,6 +22,26 @@
     dest: >-
       /etc/kubernetes/cni/tigera-operator-{{ .cni.calico_version }}.tgz
 
+# Calico v3.32+ moved CRDs out of the tigera-operator chart into a dedicated
+# chart (crd.projectcalico.org.v1); copy and apply it before Helm so that the
+# operator's CustomResources can be mapped. Matches Calico's documented flow:
+#   helm template calico-crds ... | kubectl apply --server-side -f -
+- name: Calico | Copy Calico CRD Helm package to remote node (v3.32+)
+  when: .cni.calico_version | semverCompare ">=3.32.0"
+  copy:
+    src: >-
+      {{ .binary_dir }}/cni/calico/crd.projectcalico.org.v1-{{ .cni.calico_version }}.tgz
+    dest: >-
+      /etc/kubernetes/cni/crd.projectcalico.org.v1-{{ .cni.calico_version }}.tgz
+
+- name: Calico | Apply Calico CRDs from the CRD chart (v3.32+ no longer bundles CRDs)
+  when: .cni.calico_version | semverCompare ">=3.32.0"
+  command: |
+    rm -rf /etc/kubernetes/cni/calico-crds-{{ .cni.calico_version }}
+    mkdir -p /etc/kubernetes/cni/calico-crds-{{ .cni.calico_version }}
+    tar xzf /etc/kubernetes/cni/crd.projectcalico.org.v1-{{ .cni.calico_version }}.tgz -C /etc/kubernetes/cni/calico-crds-{{ .cni.calico_version }}
+    kubectl apply --server-side --force-conflicts -f /etc/kubernetes/cni/calico-crds-{{ .cni.calico_version }}/crd.projectcalico.org.v1/templates/
+
 - name: Calico | Generate custom values file for Calico
   when: .cni.calico.values | empty | not
   copy:
@@ -40,8 +60,12 @@
 # are never registered and `helm upgrade` fails with "no matches for kind ...".
 # Apply the chart's CRDs explicitly (matching Calico's documented upgrade flow)
 # before the operator upgrade so the new kinds exist when Helm applies them.
+# This only applies to charts < v3.32; v3.32+ charts no longer bundle CRDs and
+# are handled by the dedicated crd.projectcalico.org.v1 chart task above.
 - name: Calico | Apply Calico CRDs before Helm upgrade (Helm skips new CRDs on upgrade)
-  when: .upgrade.cni | default false
+  when:
+    - .upgrade.cni | default false
+    - .cni.calico_version | semverCompare "<3.32.0"
   command: |
     rm -rf /etc/kubernetes/cni/calico-crds-{{ .cni.calico_version }}
     mkdir -p /etc/kubernetes/cni/calico-crds-{{ .cni.calico_version }}

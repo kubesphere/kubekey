@@ -65,8 +65,10 @@ var defaultKubeUpgradePath = core.KubeUpgradePath{
 	30: "v1.30.14",
 	31: "v1.31.14",
 	32: "v1.32.13",
-	33: "v1.33.7",
-	34: "v1.34.3",
+	33: "v1.33.13",
+	34: "v1.34.11",
+	35: "v1.35.8",
+	36: "v1.36.4",
 }
 
 // UpgradeClusterOptions contains options for upgrading a Kubernetes cluster

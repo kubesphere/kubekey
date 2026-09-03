@@ -98,6 +98,27 @@
               multi-minor flow (kk upgrade cluster --with-kubernetes <target> --all), which
               steps through each minor one at a time.
 
+# The nftables proxy mode is the default for Kubernetes v1.34 and later, but it
+# only runs on kernel 5.13+ (see
+# https://kubernetes.io/docs/reference/node/kernel-version-requirements/).
+# KubeKey's baseline min_kernel_version is far lower than that, so nodes on
+# older distributions would otherwise reach kube-proxy and crash-loop there.
+# The "nft" command-line tool itself is installed by KubeKey's package step
+# (roles/native/repository) when the mode is "nftables", so it is not checked here.
+- name: Kubernetes | Fail if the nftables proxy mode is unsupported on this node
+  when:
+    - .groups.k8s_cluster | default list | has .inventory_hostname
+    - .kubernetes.kube_proxy.mode | default "iptables" | eq "nftables"
+  block:
+    - name: Kubernetes | Ensure the kernel supports the nftables proxy mode
+      assert:
+        that: .os.kernel_version | splitList "-" | first | semverCompare ">=5.13.0"
+        fail_msg: >-
+          kube-proxy is configured with mode "nftables", but this node runs kernel
+          {{ .os.kernel_version }}. The nftables backend requires kernel 5.13 or later.
+          Upgrade the kernel, or set "kubernetes.kube_proxy.mode" to "iptables" to keep the
+          legacy backend.
+
 # - name: ImageRegistry | Verify successful authentication to image registry
 #   when:
 #     - .image_registry.auth.registry | empty | not

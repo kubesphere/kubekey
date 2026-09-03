@@ -11,6 +11,21 @@
     dest: "{{ .binary_dir }}/cni/calico/tigera-operator-{{ .item }}.tgz"
     timeout: "{{ .download.timeout }}"
 
+# Calico v3.32+ no longer bundles CRDs in the tigera-operator chart; a dedicated
+# CRD chart must be fetched for install/upgrade of those versions.
+- name: Helm | Ensure the Calico CRD chart binary is available
+  loop: >
+    {{ index (.download.cni) "calico_version" | default (list .cni.calico_version) | toJson }}
+  when:
+    - .item | empty | not
+    - .item | semverCompare ">=3.32.0"
+    - (index (.download.cni | default dict) "type" | default (list .cni.type)) | has "calico"
+    - printf "%s/cni/calico/crd.projectcalico.org.v1-%s.tgz" .binary_dir .item | fileExists | not
+  http_get_file:
+    url: "{{ tpl .download.artifact_url.calico_crd (dict \"version\" .item) }}"
+    dest: "{{ .binary_dir }}/cni/calico/crd.projectcalico.org.v1-{{ .item }}.tgz"
+    timeout: "{{ .download.timeout }}"
+
 - name: Helm | Ensure the Cilium binary is available
   loop: >
     {{ index (.download.cni) "cilium_version" | default (list .cni.cilium_version) | toJson }}

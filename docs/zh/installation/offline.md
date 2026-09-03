@@ -84,8 +84,8 @@ spec:
       registry: hub.kubesphere.com.cn
     kubernetes:
       kube_version:
-        - v1.34.3
-        # 也可列出 v1.23~v1.34 中的其他版本
+        - v1.36.4
+        # 也可列出 v1.23~v1.36 中的其他版本
     cni:
       type:
         - calico
@@ -315,17 +315,17 @@ spec:
 
 > **注意**：此步骤生成的配置文件用于**安装集群**，与前面「构建离线安装包」步骤中用于**打包**的 `config.yaml` 不是同一个文件。
 
-执行以下命令创建安装配置文件。以下示例使用 `v1.34.3`，该版本已包含在前文 `config.yaml` 示例的离线资源列表中：
+执行以下命令创建安装配置文件。以下示例使用 `v1.36.4`，该版本已包含在前文 `config.yaml` 示例的离线资源列表中：
 
 ```bash
-./kk create config --with-kubernetes v1.34.3 -o .
+./kk create config --with-kubernetes v1.36.4 -o .
 ```
 
-将 `v1.34.3` 替换为实际需要的 Kubernetes 版本。请确保替换后的版本已包含在构建离线包时使用的 `spec.download.kubernetes.kube_version` 列表中。
+将 `v1.36.4` 替换为实际需要的 Kubernetes 版本。请确保替换后的版本已包含在构建离线包时使用的 `spec.download.kubernetes.kube_version` 列表中。
 
-命令执行完毕后，将生成安装配置文件 `config-v1.34.3.yaml`。
+命令执行完毕后，将生成安装配置文件 `config-v1.36.4.yaml`。
 
-如果选择在创建集群时同时安装镜像仓库，需要在 `config-v1.34.3.yaml` 中补充镜像仓库配置：
+如果选择在创建集群时同时安装镜像仓库，需要在 `config-v1.36.4.yaml` 中补充镜像仓库配置：
 
 ```yaml
 apiVersion: kubekey.kubesphere.io/v1
@@ -349,7 +349,7 @@ spec:
 #### 5. 安装集群
 
 ```bash
-./kk create cluster -a kubekey-artifact.tgz -i inventory.yaml -c config-v1.34.3.yaml
+./kk create cluster -a kubekey-artifact.tgz -i inventory.yaml -c config-v1.36.4.yaml
 ```
 
 安装完成后，可通过 `kubectl get nodes` 查看集群节点状态：

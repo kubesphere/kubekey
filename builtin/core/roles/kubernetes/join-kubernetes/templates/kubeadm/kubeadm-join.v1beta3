@@ -23,7 +23,9 @@ nodeRegistration:
   criSocket: {{ .cri.cri_socket }}
   kubeletExtraArgs:
     cgroup-driver: {{ .cri.cgroup_driver }}
+{{- if semverCompare "<1.28.0" .kubernetes.kube_version }}
     pod-infra-container-image: "{{ .kubernetes.sandbox_image.registry }}/{{ .kubernetes.sandbox_image.repository }}:{{ .kubernetes.sandbox_image.tag }}"
+{{- end }}
 {{- if .kubernetes.kubelet.extra_args | empty | not }}
 {{ .kubernetes.kubelet.extra_args | toYaml | indent 4}}
 {{- end }}

@@ -235,8 +235,8 @@
     {{- if $default_helm_version | has "v3.13.3" | not }}
     {{- $default_helm_version = append $default_helm_version "v3.13.3" }}
     {{- end }}
-    {{- if $default_etcd_version | has "v3.5.15" | not }}
-    {{- $default_etcd_version = append $default_etcd_version "v3.5.15" }}
+    {{- if $default_etcd_version | has "v3.5.16" | not }}
+    {{- $default_etcd_version = append $default_etcd_version "v3.5.16" }}
     {{- end }}
     {{- if $default_crictl_version | has "v1.29.0" | not }}
     {{- $default_crictl_version = append $default_crictl_version "v1.29.0" }}
@@ -327,11 +327,11 @@
     {{- if $default_runc_version | has "v1.1.12" | not }}
     {{- $default_runc_version = append $default_runc_version "v1.1.12" }}
     {{- end }}
-    {{- if $default_calico_version | has "v3.30.5" | not }}
-    {{- $default_calico_version = append $default_calico_version "v3.30.5" }}
+    {{- if $default_calico_version | has "v3.30.7" | not }}
+    {{- $default_calico_version = append $default_calico_version "v3.30.7" }}
     {{- end }}
-    {{- if $default_cilium_version | has "1.19.1" | not }}
-    {{- $default_cilium_version = append $default_cilium_version "1.19.1" }}
+    {{- if $default_cilium_version | has "1.19.7" | not }}
+    {{- $default_cilium_version = append $default_cilium_version "1.19.7" }}
     {{- end }}
     {{- if $default_flannel_version | has "v0.27.4" | not }}
     {{- $default_flannel_version = append $default_flannel_version "v0.27.4" }}
@@ -364,11 +364,11 @@
     {{- if $default_runc_version | has "v1.1.12" | not }}
     {{- $default_runc_version = append $default_runc_version "v1.1.12" }}
     {{- end }}
-    {{- if $default_calico_version | has "v3.31.3" | not }}
-    {{- $default_calico_version = append $default_calico_version "v3.31.3" }}
+    {{- if $default_calico_version | has "v3.31.7" | not }}
+    {{- $default_calico_version = append $default_calico_version "v3.31.7" }}
     {{- end }}
-    {{- if $default_cilium_version | has "1.19.1" | not }}
-    {{- $default_cilium_version = append $default_cilium_version "1.19.1" }}
+    {{- if $default_cilium_version | has "1.19.7" | not }}
+    {{- $default_cilium_version = append $default_cilium_version "1.19.7" }}
     {{- end }}
     {{- if $default_flannel_version | has "v0.27.4" | not }}
     {{- $default_flannel_version = append $default_flannel_version "v0.27.4" }}
@@ -401,11 +401,11 @@
     {{- if $default_runc_version | has "v1.1.12" | not }}
     {{- $default_runc_version = append $default_runc_version "v1.1.12" }}
     {{- end }}
-    {{- if $default_calico_version | has "v3.31.3" | not }}
-    {{- $default_calico_version = append $default_calico_version "v3.31.3" }}
+    {{- if $default_calico_version | has "v3.31.7" | not }}
+    {{- $default_calico_version = append $default_calico_version "v3.31.7" }}
     {{- end }}
-    {{- if $default_cilium_version | has "1.19.1" | not }}
-    {{- $default_cilium_version = append $default_cilium_version "1.19.1" }}
+    {{- if $default_cilium_version | has "1.20.1" | not }}
+    {{- $default_cilium_version = append $default_cilium_version "1.20.1" }}
     {{- end }}
     {{- if $default_flannel_version | has "v0.27.4" | not }}
     {{- $default_flannel_version = append $default_flannel_version "v0.27.4" }}
@@ -438,11 +438,11 @@
     {{- if $default_runc_version | has "v1.1.12" | not }}
     {{- $default_runc_version = append $default_runc_version "v1.1.12" }}
     {{- end }}
-    {{- if $default_calico_version | has "v3.31.3" | not }}
-    {{- $default_calico_version = append $default_calico_version "v3.31.3" }}
+    {{- if $default_calico_version | has "v3.32.2" | not }}
+    {{- $default_calico_version = append $default_calico_version "v3.32.2" }}
     {{- end }}
-    {{- if $default_cilium_version | has "1.19.1" | not }}
-    {{- $default_cilium_version = append $default_cilium_version "1.19.1" }}
+    {{- if $default_cilium_version | has "1.20.1" | not }}
+    {{- $default_cilium_version = append $default_cilium_version "1.20.1" }}
     {{- end }}
     {{- if $default_flannel_version | has "v0.27.4" | not }}
     {{- $default_flannel_version = append $default_flannel_version "v0.27.4" }}
@@ -452,6 +452,80 @@
     {{- end }}
     {{- if $default_kubeovn_version | has "v1.15.0" | not }}
     {{- $default_kubeovn_version = append $default_kubeovn_version "v1.15.0" }}
+    {{- end }}
+  {{- else if slice (. | splitList ".") 0 2 | join "." | eq "v1.35" }}
+    {{- if $default_helm_version | has "v3.18.5" | not }}
+    {{- $default_helm_version = append $default_helm_version "v3.18.5" }}
+    {{- end }}
+    {{- if $default_etcd_version | has "v3.6.6" | not }}
+    {{- $default_etcd_version = append $default_etcd_version "v3.6.6" }}
+    {{- end }}
+    {{- if $default_crictl_version | has "v1.35.0" | not }}
+    {{- $default_crictl_version = append $default_crictl_version "v1.35.0" }}
+    {{- end }}
+    {{- if $default_docker_version | has "25.0.5" | not }}
+    {{- $default_docker_version = append $default_docker_version "25.0.5" }}
+    {{- end }}
+    {{- if $default_cridockerd_version | has "v0.3.21" | not }}
+    {{- $default_cridockerd_version = append $default_cridockerd_version "v0.3.21" }}
+    {{- end }}
+    {{- if $default_containerd_version | has "v1.7.13" | not }}
+    {{- $default_containerd_version = append $default_containerd_version "v1.7.13" }}
+    {{- end }}
+    {{- if $default_runc_version | has "v1.1.12" | not }}
+    {{- $default_runc_version = append $default_runc_version "v1.1.12" }}
+    {{- end }}
+    {{- if $default_calico_version | has "v3.32.2" | not }}
+    {{- $default_calico_version = append $default_calico_version "v3.32.2" }}
+    {{- end }}
+    {{- if $default_cilium_version | has "1.20.1" | not }}
+    {{- $default_cilium_version = append $default_cilium_version "1.20.1" }}
+    {{- end }}
+    {{- if $default_flannel_version | has "v0.28.9" | not }}
+    {{- $default_flannel_version = append $default_flannel_version "v0.28.9" }}
+    {{- end }}
+    {{- if $default_hybridnet_version | has "0.6.8" | not }}
+    {{- $default_hybridnet_version = append $default_hybridnet_version "0.6.8" }}
+    {{- end }}
+    {{- if $default_kubeovn_version | has "v1.16.2" | not }}
+    {{- $default_kubeovn_version = append $default_kubeovn_version "v1.16.2" }}
+    {{- end }}
+  {{- else if slice (. | splitList ".") 0 2 | join "." | eq "v1.36" }}
+    {{- if $default_helm_version | has "v3.18.5" | not }}
+    {{- $default_helm_version = append $default_helm_version "v3.18.5" }}
+    {{- end }}
+    {{- if $default_etcd_version | has "v3.6.8" | not }}
+    {{- $default_etcd_version = append $default_etcd_version "v3.6.8" }}
+    {{- end }}
+    {{- if $default_crictl_version | has "v1.36.0" | not }}
+    {{- $default_crictl_version = append $default_crictl_version "v1.36.0" }}
+    {{- end }}
+    {{- if $default_docker_version | has "25.0.5" | not }}
+    {{- $default_docker_version = append $default_docker_version "25.0.5" }}
+    {{- end }}
+    {{- if $default_cridockerd_version | has "v0.3.21" | not }}
+    {{- $default_cridockerd_version = append $default_cridockerd_version "v0.3.21" }}
+    {{- end }}
+    {{- if $default_containerd_version | has "v1.7.13" | not }}
+    {{- $default_containerd_version = append $default_containerd_version "v1.7.13" }}
+    {{- end }}
+    {{- if $default_runc_version | has "v1.1.12" | not }}
+    {{- $default_runc_version = append $default_runc_version "v1.1.12" }}
+    {{- end }}
+    {{- if $default_calico_version | has "v3.32.2" | not }}
+    {{- $default_calico_version = append $default_calico_version "v3.32.2" }}
+    {{- end }}
+    {{- if $default_cilium_version | has "1.20.1" | not }}
+    {{- $default_cilium_version = append $default_cilium_version "1.20.1" }}
+    {{- end }}
+    {{- if $default_flannel_version | has "v0.28.9" | not }}
+    {{- $default_flannel_version = append $default_flannel_version "v0.28.9" }}
+    {{- end }}
+    {{- if $default_hybridnet_version | has "0.6.8" | not }}
+    {{- $default_hybridnet_version = append $default_hybridnet_version "0.6.8" }}
+    {{- end }}
+    {{- if $default_kubeovn_version | has "v1.16.2" | not }}
+    {{- $default_kubeovn_version = append $default_kubeovn_version "v1.16.2" }}
     {{- end }}
   {{- end }}    
 {{- end }}
@@ -663,6 +737,16 @@ download:
       ## kubernetes/dns v1.34
       - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/coredns/coredns:v1.12.1{{ else }}registry.k8s.io/coredns/coredns:v1.12.1{{ end }}
       - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/dns/k8s-dns-node-cache:1.26.4{{ else }}registry.k8s.io/dns/k8s-dns-node-cache:1.26.4{{ end }}
+  {{- else if slice (. | splitList ".") 0 2 | join "." | eq "v1.35" }}
+      - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/kubernetes/pause:3.10.1{{ else }}registry.k8s.io/pause:3.10.1{{ end }}
+      ## kubernetes/dns v1.35
+      - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/coredns/coredns:v1.13.1{{ else }}registry.k8s.io/coredns/coredns:v1.13.1{{ end }}
+      - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/dns/k8s-dns-node-cache:1.26.4{{ else }}registry.k8s.io/dns/k8s-dns-node-cache:1.26.4{{ end }}
+  {{- else if slice (. | splitList ".") 0 2 | join "." | eq "v1.36" }}
+      - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/kubernetes/pause:3.10.2{{ else }}registry.k8s.io/pause:3.10.2{{ end }}
+      ## kubernetes/dns v1.36
+      - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/coredns/coredns:v1.14.2{{ else }}registry.k8s.io/coredns/coredns:v1.14.2{{ end }}
+      - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/dns/k8s-dns-node-cache:1.26.7{{ else }}registry.k8s.io/dns/k8s-dns-node-cache:1.26.7{{ end }}
   {{- end }}
 {{- end }}
       ## kubernetes/etcd

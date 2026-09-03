@@ -72,9 +72,11 @@ Recommended etcd versions for each Kubernetes version:
 | 1.32.0\~1.32.9 | 3.5.16 | 3.5.11-0 | https://github.com/kubernetes/kubernetes/blob/v1.32.0/cmd/kubeadm/app/constants/constants.go |
 | 1.32.10\~1.32.13 | 3.5.24 | 3.5.24-0 | https://github.com/kubernetes/kubernetes/blob/v1.32.10/cmd/kubeadm/app/constants/constants.go |
 | 1.33.0\~1.33.5 | 3.5.21 | 3.5.11-0 | https://github.com/kubernetes/kubernetes/blob/v1.33.0/cmd/kubeadm/app/constants/constants.go |
-| 1.33.6\~1.33.7 | 3.5.24 | 3.5.24-0 | https://github.com/kubernetes/kubernetes/blob/v1.33.6/cmd/kubeadm/app/constants/constants.go |
+| 1.33.6\~1.33.13 | 3.5.24 | 3.5.24-0 | https://github.com/kubernetes/kubernetes/blob/v1.33.6/cmd/kubeadm/app/constants/constants.go |
 | 1.34.0\~1.34.1 | 3.6.4 | 3.5.21-0 | https://github.com/kubernetes/kubernetes/blob/v1.34.0/cmd/kubeadm/app/constants/constants.go |
-| 1.34.2\~1.34.3 | 3.6.5 | 3.5.24-0 | https://github.com/kubernetes/kubernetes/blob/v1.34.2/cmd/kubeadm/app/constants/constants.go |
+| 1.34.2\~1.34.11 | 3.6.5 | 3.5.24-0 | https://github.com/kubernetes/kubernetes/blob/v1.34.2/cmd/kubeadm/app/constants/constants.go |
+| 1.35.0\~1.35.8 | 3.6.6 | 3.5.24-0 | https://github.com/kubernetes/kubernetes/blob/v1.35.0/cmd/kubeadm/app/constants/constants.go |
+| 1.36.0\~1.36.4 | 3.6.8 | 3.5.24-0 | https://github.com/kubernetes/kubernetes/blob/v1.36.0/cmd/kubeadm/app/constants/constants.go |
 
 **etcd default values in kubekey config**:
 
@@ -96,6 +98,8 @@ Recommended etcd versions for each Kubernetes version:
 | 1.32 | v3.5.24 |
 | 1.33 | v3.5.24 |
 | 1.34 | v3.6.5 |
+| 1.35 | v3.6.6 |
+| 1.36 | v3.6.8 |
 
 > **About the etcd minimum required version column**:
 > Kubernetes 1.23~1.27 keep the historical `MinExternalEtcdVersion` (`3.2.18`) in the minimum column; starting at 1.28, the minimum column reflects each release's own `MinExternalEtcdVersion` (e.g. `3.4.13-4` for 1.28~1.30, `3.5.11-0` then `3.5.24-0` for 1.31~1.33, `3.5.21-0` then `3.5.24-0` for 1.34). KubeKey mirrors this in `etcd_min_versions` and rejects etcd that is **too old** in **precheck, before kubeadm runs** — e.g. `etcd 3.5.6` cannot be upgraded together with Kubernetes 1.31.14+ (minimum `3.5.24-0`). KubeKey intentionally does **not** enforce an upper bound on external etcd: kubeadm itself only hard-rejects an etcd that is too old (`preflight/checks.go` errors only when `etcdVersion < minExternalEtcdVersion`), and its `SupportedEtcdVersion` map is used solely to pick the stacked (local) etcd version with a graceful warning fallback — never to reject a newer external etcd.
@@ -130,7 +134,7 @@ Recommended etcd versions for each Kubernetes version:
 
 | kubernetes version | kubekey default version | CNI Spec |
 |---|---|---|
-| 1.23~1.34 | v1.9.1 | 1.0.0 |
+| 1.23~1.36 | v1.9.1 | 1.0.0 |
 
 #### [calico](https://github.com/projectcalico/calico)
 
@@ -138,7 +142,7 @@ Recommended etcd versions for each Kubernetes version:
 
 > **Installation**:
 > - Use `--set cni.type="calico"` to specify Calico as the container network plugin
-> - Use `--set cni.calico_version="v3.31.3"` to specify the Calico version to install (if not specified, the default version will be used)
+> - Use `--set cni.calico_version="v3.32.2"` to specify the Calico version to install (if not specified, the default version will be used)
 
 | kubernetes version | recommended calico version | kubekey default version | source |
 |---|---|---|---|
@@ -150,10 +154,14 @@ Recommended etcd versions for each Kubernetes version:
 | 1.28 | 3.25, 3.26, 3.27, 3.28 | v3.28.5 | https://archive-os-3-25.netlify.app/calico/3.25/getting-started/kubernetes/requirements/#kubernetes-requirements<br>https://archive-os-3-26.netlify.app/calico/3.26/getting-started/kubernetes/requirements/#kubernetes-requirements<br>https://archive-os-3-27.netlify.app/calico/3.27/getting-started/kubernetes/requirements/#kubernetes-requirements<br>https://archive-os-3-28.netlify.app/calico/3.28/getting-started/kubernetes/requirements/#kubernetes-requirements |
 | 1.29 | 3.27, 3.28, 3.29 | v3.29.7 | https://archive-os-3-27.netlify.app/calico/3.27/getting-started/kubernetes/requirements/#kubernetes-requirements<br>https://archive-os-3-28.netlify.app/calico/3.28/getting-started/kubernetes/requirements/#kubernetes-requirements<br>https://docs.tigera.io/calico/3.29/getting-started/kubernetes/requirements#kubernetes-requirements |
 | 1.30 | 3.28, 3.29 | v3.29.7 | https://archive-os-3-28.netlify.app/calico/3.28/getting-started/kubernetes/requirements/#kubernetes-requirements<br>https://docs.tigera.io/calico/3.29/getting-started/kubernetes/requirements#kubernetes-requirements |
-| 1.31 | 3.29, 3.30 | v3.30.5 | https://docs.tigera.io/calico/3.29/getting-started/kubernetes/requirements#kubernetes-requirements<br>https://docs.tigera.io/calico/3.30/getting-started/kubernetes/requirements#kubernetes-requirements |
-| 1.32 | 3.29, 3.30, 3.31 | v3.31.3 | https://docs.tigera.io/calico/3.29/getting-started/kubernetes/requirements#kubernetes-requirements<br>https://docs.tigera.io/calico/3.30/getting-started/kubernetes/requirements#kubernetes-requirements<br>https://docs.tigera.io/calico/latest/getting-started/kubernetes/requirements#kubernetes-requirements |
-| 1.33 | 3.30, 3.31 | v3.31.3 | https://docs.tigera.io/calico/3.30/getting-started/kubernetes/requirements#kubernetes-requirements<br>https://docs.tigera.io/calico/latest/getting-started/kubernetes/requirements#kubernetes-requirements |
-| 1.34 | 3.31 | v3.31.3 | https://docs.tigera.io/calico/latest/getting-started/kubernetes/requirements#kubernetes-requirements |
+| 1.31 | 3.29, 3.30 | v3.30.7 | https://docs.tigera.io/calico/3.29/getting-started/kubernetes/requirements#kubernetes-requirements<br>https://docs.tigera.io/calico/3.30/getting-started/kubernetes/requirements#kubernetes-requirements |
+| 1.32 | 3.29, 3.30, 3.31 | v3.31.7 | https://docs.tigera.io/calico/3.29/getting-started/kubernetes/requirements#kubernetes-requirements<br>https://docs.tigera.io/calico/3.30/getting-started/kubernetes/requirements#kubernetes-requirements<br>https://docs.tigera.io/calico/3.31/getting-started/kubernetes/requirements#kubernetes-requirements |
+| 1.33 | 3.30, 3.31 | v3.31.7 | https://docs.tigera.io/calico/3.30/getting-started/kubernetes/requirements#kubernetes-requirements<br>https://docs.tigera.io/calico/3.31/getting-started/kubernetes/requirements#kubernetes-requirements |
+| 1.34 | 3.31, 3.32 | v3.32.2 | https://docs.tigera.io/calico/3.31/getting-started/kubernetes/requirements#kubernetes-requirements<br>https://docs.tigera.io/calico/latest/getting-started/kubernetes/requirements#kubernetes-requirements |
+| 1.35 | 3.31, 3.32 | v3.32.2 | https://docs.tigera.io/calico/3.31/getting-started/kubernetes/requirements#kubernetes-requirements<br>https://docs.tigera.io/calico/latest/getting-started/kubernetes/requirements#kubernetes-requirements |
+| 1.36 | 3.32 | v3.32.2 | https://docs.tigera.io/calico/latest/getting-started/kubernetes/requirements#kubernetes-requirements |
+
+> **Note**: Calico v3.32 is tested against Kubernetes 1.34~1.36, v3.31 against 1.32~1.35 and v3.30 against 1.31~1.35; Cilium 1.20 is tested against 1.33~1.36 and Cilium 1.19 against 1.32~1.35. KubeKey keeps each CNI on the newest minor series that still covers the target Kubernetes minor, pinned to that series' latest patch release. So for Calico, 1.34~1.36 default to `v3.32.2` (v3.32 latest), 1.32/1.33 to `v3.31.7` (v3.31 latest) and 1.31 to `v3.30.7` (v3.30 latest); for Cilium, 1.33~1.36 default to `1.20.1` (v1.20 latest) while 1.31/1.32 stay on `1.19.7` (v1.19 latest; v1.20 does not cover those minors).
 
 
 #### [cilium](https://github.com/cilium/cilium)
@@ -162,7 +170,7 @@ Recommended etcd versions for each Kubernetes version:
 
 > **Installation**:
 > - Use `--set cni.type="cilium"` to specify Cilium as the container network plugin
-> - Use `--set cni.cilium_version="1.18.5"` to specify the Cilium version to install (if not specified, the default version will be used)
+> - Use `--set cni.cilium_version="1.19.7"` to specify the Cilium version to install (if not specified, the default version will be used)
 
 > **Key Features**: High-performance eBPF-based data plane, network policies, service mesh integration, observability, multi-cluster support
 
@@ -172,14 +180,15 @@ Recommended etcd versions for each Kubernetes version:
 | 1.24 | 1.14 | 1.14.19  | https://docs.cilium.io/en/v1.14/network/kubernetes/compatibility/ |
 | 1.25 | 1.14 | 1.14.19 | https://docs.cilium.io/en/v1.14/network/kubernetes/compatibility/ |
 | 1.26 | 1.14, 1.15 | 1.15.19 | https://docs.cilium.io/en/v1.14/network/kubernetes/compatibility/<br>https://docs.cilium.io/en/v1.15/network/kubernetes/compatibility/ |
-| 1.27 | 1.14, 1.15, 1.16 | 1.16.18 | https://docs.cilium.io/en/v1.14/network/kubernetes/compatibility/<br>https://docs.cilium.io/en/v1.15/network/kubernetes/compatibility/<br>https://docs.cilium.io/en/v1.16/network/kubernetes/compatibility/ |
-| 1.28 | 1.15, 1.16 | 1.16.18 | https://docs.cilium.io/en/v1.15/network/kubernetes/compatibility/<br>https://docs.cilium.io/en/v1.16/network/kubernetes/compatibility/ |
-| 1.29 | 1.15, 1.16, 1.17 | 1.17.11 | https://docs.cilium.io/en/v1.15/network/kubernetes/compatibility/<br>https://docs.cilium.io/en/v1.16/network/kubernetes/compatibility/<br>https://docs.cilium.io/en/v1.17/network/kubernetes/compatibility/ |
-| 1.30 | 1.16, 1.17, 1.18 | 1.18.5 | https://docs.cilium.io/en/v1.16/network/kubernetes/compatibility/<br>https://docs.cilium.io/en/v1.17/network/kubernetes/compatibility/<br>https://docs.cilium.io/en/v1.18/network/kubernetes/compatibility/ |
-| 1.31 | 1.17, 1.18 | 1.18.5 | https://docs.cilium.io/en/v1.17/network/kubernetes/compatibility/<br>https://docs.cilium.io/en/v1.18/network/kubernetes/compatibility/ |
-| 1.32 | 1.17, 1.18 | 1.18.5 | https://docs.cilium.io/en/v1.17/network/kubernetes/compatibility/<br>https://docs.cilium.io/en/v1.18/network/kubernetes/compatibility/ |
-| 1.33 | 1.18 | 1.18.5 | https://docs.cilium.io/en/v1.18/network/kubernetes/compatibility/ |
-| 1.34 | - | 1.18.5 | - |
+| 1.27 | 1.14, 1.15, 1.16 | 1.16.19 | https://docs.cilium.io/en/v1.14/network/kubernetes/compatibility/<br>https://docs.cilium.io/en/v1.15/network/kubernetes/compatibility/<br>https://docs.cilium.io/en/v1.16/network/kubernetes/compatibility/ |
+| 1.28 | 1.15, 1.16 | 1.16.19 | https://docs.cilium.io/en/v1.15/network/kubernetes/compatibility/<br>https://docs.cilium.io/en/v1.16/network/kubernetes/compatibility/ |
+| 1.29 | 1.15, 1.16, 1.17 | 1.17.18 | https://docs.cilium.io/en/v1.15/network/kubernetes/compatibility/<br>https://docs.cilium.io/en/v1.16/network/kubernetes/compatibility/<br>https://docs.cilium.io/en/v1.17/network/kubernetes/compatibility/ |
+| 1.30 | 1.16, 1.17, 1.18 | 1.18.13 | https://docs.cilium.io/en/v1.16/network/kubernetes/compatibility/<br>https://docs.cilium.io/en/v1.17/network/kubernetes/compatibility/<br>https://docs.cilium.io/en/v1.18/network/kubernetes/compatibility/ |
+| 1.31 | 1.17, 1.18 | 1.19.7 | https://docs.cilium.io/en/v1.17/network/kubernetes/compatibility/<br>https://docs.cilium.io/en/v1.18/network/kubernetes/compatibility/ |
+| 1.32 | 1.17, 1.18, 1.19 | 1.19.7 | https://docs.cilium.io/en/v1.17/network/kubernetes/compatibility/<br>https://docs.cilium.io/en/v1.18/network/kubernetes/compatibility/<br>https://docs.cilium.io/en/v1.19/network/kubernetes/compatibility/ |
+| 1.33 | 1.18, 1.19, 1.20 | 1.20.1 | https://docs.cilium.io/en/v1.18/network/kubernetes/compatibility/<br>https://docs.cilium.io/en/v1.19/network/kubernetes/compatibility/<br>https://docs.cilium.io/en/v1.20/network/kubernetes/compatibility/ |
+| 1.34 | 1.19, 1.20 | 1.20.1 | https://docs.cilium.io/en/v1.19/network/kubernetes/compatibility/<br>https://docs.cilium.io/en/v1.20/network/kubernetes/compatibility/ |
+| 1.35\~1.36 | 1.20 | 1.20.1 | https://docs.cilium.io/en/v1.20/network/kubernetes/compatibility/ |
 
 #### [flannel](https://github.com/flannel-io/flannel)
 
@@ -187,13 +196,13 @@ Recommended etcd versions for each Kubernetes version:
 
 > **Installation**:
 > - Use `--set cni.type="flannel"` to specify Flannel as the container network plugin
-> - Use `--set cni.flannel_version="0.27.4"` to specify the Flannel version to install (if not specified, the default version will be used)
+> - Use `--set cni.flannel_version="v0.28.9"` to specify the Flannel version to install (if not specified, the default version will be used)
 
 > **Key Features**: Simple and easy to use, lightweight, supports multiple backends (VXLAN, host-gw, UDP), cross-node communication
 
 | kubernetes version | recommended flannel version | kubekey default version | source |
 |---|---|---|---|
-| 1.23\~1.34 | 0.19.0+ | 0.27.4 | https://github.com/flannel-io/flannel/blob/master/Documentation/kubernetes.md | 
+| 1.23\~1.36 | 0.19.0+ | v0.28.9 | https://github.com/flannel-io/flannel/blob/master/Documentation/kubernetes.md | 
 
 
 #### [hybridnet](https://github.com/alibaba/hybridnet)
@@ -202,9 +211,9 @@ Recommended etcd versions for each Kubernetes version:
 
 > **Installation**:
 > - Use `--set cni.type="hybridnet"` to specify HybridNet as the container network plugin
-> - Use `--set cni.hybridnet_version="0.6.8"` to specify the HybridNet version to install (if not specified, the default version will be used)
+> - Use `--set cni.hybridnet_version="v0.8.8"` to specify the HybridNet version to install (if not specified, the default version will be used)
 
-> **Note**: HybridNet official documentation does not clearly specify the supported Kubernetes version range. The default version in the KubeKey project is 0.6.8. It is recommended to fully test before using in production environments.
+> **Note**: HybridNet official documentation does not clearly specify the supported Kubernetes version range. The default version in the KubeKey project is v0.8.8. It is recommended to fully test before using in production environments.
 
 > **Key Features**: Multi-network plane support, Underlay/Overlay hybrid deployment, flexible IP address management, network isolation
 
@@ -214,14 +223,14 @@ Recommended etcd versions for each Kubernetes version:
 
 > **Installation**:
 > - Use `--set cni.type="kubeovn"` to specify Kube-OVN as the container network plugin
-> - Use `--set cni.kubeovn_version="v1.15.0"` to specify the Kube-OVN version to install (if not specified, the default version will be used)
+> - Use `--set cni.kubeovn_version="v1.16.2"` to specify the Kube-OVN version to install (if not specified, the default version will be used)
 
 > **Key Features**: Subnet management, QoS traffic control, network policies, static IP allocation, multi-tenant support, VPC network
 
 | kubernetes version | recommended kubeovn version | kubekey default version | source |
 |---|---|---|---|
 | 1.23\~1.28 | 1.12, 1.13 | v1.13.15 | https://kubeovn.github.io/docs/v1.12.x/en/start/prepare/<br>https://kubeovn.github.io/docs/v1.13.x/en/start/prepare/ |
-| 1.29\~1.34 | 1.14, 1.15 | v1.15.0 | https://kubeovn.github.io/docs/v1.14.x/en/start/prepare/<br>https://kubeovn.github.io/docs/v1.15.x/en/start/prepare/ |
+| 1.29\~1.36 | 1.15, 1.16 | v1.16.2 | https://kubeovn.github.io/docs/v1.14.x/en/start/prepare/<br>https://kubeovn.github.io/docs/v1.15.x/en/start/prepare/ |
 
 ### Multi Container Network Plugin
 
@@ -246,7 +255,7 @@ Recommended etcd versions for each Kubernetes version:
 
 | kubernetes version | recommended multus version | kubekey default version | source |
 |---|---|---|---|
-| 1.23\~1.34 | v4.0.0+ | v4.2.4 | https://github.com/k8snetworkplumbingwg/multus-cni/releases |
+| 1.23\~1.36 | v4.0.0+ | v4.3.0 | https://github.com/k8snetworkplumbingwg/multus-cni/releases |
 
 #### [spiderpool](https://github.com/spidernet-io/spiderpool)
 
@@ -254,7 +263,7 @@ Recommended etcd versions for each Kubernetes version:
 
 > **Installation**:
 > - Use `--set cni.multi_cni="spiderpool"` to enable Spiderpool as the multi-CNI plugin
-> - Use `--set cni.spiderpool_version="v1.1.x"` to specify the Spiderpool version (if not specified, the default version will be used)
+> - Use `--set cni.spiderpool_version="v1.2.2"` to specify the Spiderpool version (if not specified, the default version will be used)
 
 > **Prerequisites**: Spiderpool requires a primary CNI plugin to be installed first (Spiderpool will be deployed as an additional CNI alongside the primary CNI).
 
@@ -262,7 +271,7 @@ Recommended etcd versions for each Kubernetes version:
 
 | kubernetes version | recommended spiderpool version | kubekey default version | source |
 |---|---|---|---|
-| 1.23\~1.34 | v1.0.x, v1.1.x | v1.1.x | https://spidernet-io.github.io/spiderpool/v1.1/usage/install/system-requirements/#node-requirements |
+| 1.23\~1.36 | v1.0.x, v1.1.x, v1.2.x | v1.2.2 | https://spidernet-io.github.io/spiderpool/v1.1/usage/install/system-requirements/#node-requirements |
 
 ### Storage
 
@@ -301,7 +310,7 @@ Recommended etcd versions for each Kubernetes version:
 
 | kubernetes version | recommended nfs version | kubekey default version | source |
 |---|---|---|---|
-| 1.23\~1.33 | v4.0.0+ | 4.0.18 | https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner/blob/nfs-subdir-external-provisioner-4.0.0/charts/nfs-subdir-external-provisioner/README.md#prerequisites |
+| 1.23\~1.36 | v4.0.0+ | 4.0.18 | https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner/blob/nfs-subdir-external-provisioner-4.0.0/charts/nfs-subdir-external-provisioner/README.md#prerequisites |
 
 ### DNS Service
 
@@ -326,8 +335,10 @@ Recommended etcd versions for each Kubernetes version:
 | 1.31.0 | v1.11.1 | v1.11.3 | https://github.com/kubernetes/kubernetes/blob/v1.31.0/cluster/addons/dns/coredns/coredns.yaml.base#L136 |
 | 1.31.1\~1.31.14 | v1.11.3 | v1.11.3 | https://github.com/kubernetes/kubernetes/blob/v1.31.1/cluster/addons/dns/coredns/coredns.yaml.base#L136 |
 | 1.32.0\~1.32.13 | v1.11.3 | v1.11.3 | https://github.com/kubernetes/kubernetes/blob/v1.32.0/cluster/addons/dns/coredns/coredns.yaml.base#L136 |
-| 1.33.0\~1.33.7 | v1.12.0 | v1.12.0 | https://github.com/kubernetes/kubernetes/blob/v1.33.0/cluster/addons/dns/coredns/coredns.yaml.base#L136 |
-| 1.34.0\~1.34.3 | v1.12.1 | v1.12.1 | https://github.com/kubernetes/kubernetes/blob/v1.34.0/cluster/addons/dns/coredns/coredns.yaml.base#L136 |
+| 1.33.0\~1.33.13 | v1.12.0 | v1.12.0 | https://github.com/kubernetes/kubernetes/blob/v1.33.0/cluster/addons/dns/coredns/coredns.yaml.base#L136 |
+| 1.34.0\~1.34.11 | v1.12.1 | v1.12.1 | https://github.com/kubernetes/kubernetes/blob/v1.34.0/cluster/addons/dns/coredns/coredns.yaml.base#L136 |
+| 1.35.0\~1.35.8 | v1.13.1 | v1.13.1 | https://github.com/kubernetes/kubernetes/blob/v1.35.0/cluster/addons/dns/coredns/coredns.yaml.base#L136 |
+| 1.36.0\~1.36.4 | v1.14.2 | v1.14.2 | https://github.com/kubernetes/kubernetes/blob/v1.36.0/cluster/addons/dns/coredns/coredns.yaml.base#L136 |
 
 #### nodelocaldns
 
@@ -350,6 +361,8 @@ Recommended etcd versions for each Kubernetes version:
 | 1.31\~1.32 | 1.23.1 | v1.23.1 | https://github.com/kubernetes/kubernetes/blob/v1.31.0/cluster/addons/dns/nodelocaldns/nodelocaldns.yaml#L141<br>https://github.com/kubernetes/kubernetes/blob/v1.32.0/cluster/addons/dns/nodelocaldns/nodelocaldns.yaml#L141 |
 | 1.33 | 1.25.0 | v1.25.0 | https://github.com/kubernetes/kubernetes/blob/v1.33.0/cluster/addons/dns/nodelocaldns/nodelocaldns.yaml#L141 |
 | 1.34 | 1.26.4 | v1.26.4 | https://github.com/kubernetes/kubernetes/blob/v1.34.0/cluster/addons/dns/nodelocaldns/nodelocaldns.yaml#L141 |
+| 1.35 | 1.26.4 | v1.26.4 | https://github.com/kubernetes/kubernetes/blob/v1.35.0/cluster/addons/dns/nodelocaldns/nodelocaldns.yaml#L141 |
+| 1.36 | 1.26.7 | v1.26.7 | https://github.com/kubernetes/kubernetes/blob/v1.36.0/cluster/addons/dns/nodelocaldns/nodelocaldns.yaml#L141 |
 
 ### pause Image
 
@@ -370,4 +383,6 @@ Recommended etcd versions for each Kubernetes version:
 | 1.26\~1.30 | 3.9 | 3.9 | https://github.com/kubernetes/kubernetes/blob/v1.26.0/cmd/kubeadm/app/constants/constants.go#L420<br>https://github.com/kubernetes/kubernetes/blob/v1.27.0/cmd/kubeadm/app/constants/constants.go#L420<br>https://github.com/kubernetes/kubernetes/blob/v1.28.0/cmd/kubeadm/app/constants/constants.go#L419<br>https://github.com/kubernetes/kubernetes/blob/v1.29.0/cmd/kubeadm/app/constants/constants.go#L423<br>https://github.com/kubernetes/kubernetes/blob/v1.30.0/cmd/kubeadm/app/constants/constants.go#L436 |
 | 1.31\~1.33 | 3.10 | 3.10 | https://github.com/kubernetes/kubernetes/blob/v1.31.0/cmd/kubeadm/app/constants/constants.go#L438<br>https://github.com/kubernetes/kubernetes/blob/v1.32.0/cmd/kubeadm/app/constants/constants.go#L445<br>https://github.com/kubernetes/kubernetes/blob/v1.33.0/cmd/kubeadm/app/constants/constants.go#L445 |
 | 1.34 | 3.10.1 | 3.10.1 | https://github.com/kubernetes/kubernetes/blob/v1.34.0/cmd/kubeadm/app/constants/constants.go#L445 |
+| 1.35 | 3.10.1 | 3.10.1 | https://github.com/kubernetes/kubernetes/blob/v1.35.0/cmd/kubeadm/app/constants/constants.go#L445 |
+| 1.36 | 3.10.2 | 3.10.2 | https://github.com/kubernetes/kubernetes/blob/v1.36.0/cmd/kubeadm/app/constants/constants.go#L445 |
 

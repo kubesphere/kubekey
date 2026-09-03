@@ -198,8 +198,10 @@ nodeRegistration:
   kubeletExtraArgs:
     - name: cgroup-driver
       value: {{ .cri.cgroup_driver }}
+{{- if semverCompare "<1.28.0" .kubernetes.kube_version }}
     - name: pod-infra-container-image
       value: "{{ .kubernetes.sandbox_image.registry }}/{{ .kubernetes.sandbox_image.repository }}:{{ .kubernetes.sandbox_image.tag }}"
+{{- end }}
 {{- if .kubernetes.kubelet.extra_args | empty | not }}
 {{ mapToNamedStringArgs .kubernetes.kubelet.extra_args | toYaml | indent 4 }}
 {{- end }}

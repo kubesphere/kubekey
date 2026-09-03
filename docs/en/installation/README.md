@@ -3,7 +3,7 @@
 This document explains how to install a Kubernetes cluster using KubeKey.
 
 - Supported deployment environments: Linux distributions
-- Supported Kubernetes versions: v1.23.x ~ v1.34.x
+- Supported Kubernetes versions: v1.23.x ~ v1.36.x
 
 ## System Requirements
 
@@ -104,6 +104,8 @@ Default config references for different Kubernetes versions:
 - [Config for installing Kubernetes v1.32.x](../../../builtin/core/defaults/config/v1.32.yaml)
 - [Config for installing Kubernetes v1.33.x](../../../builtin/core/defaults/config/v1.33.yaml)
 - [Config for installing Kubernetes v1.34.x](../../../builtin/core/defaults/config/v1.34.yaml)
+- [Config for installing Kubernetes v1.35.x](../../../builtin/core/defaults/config/v1.35.yaml)
+- [Config for installing Kubernetes v1.36.x](../../../builtin/core/defaults/config/v1.36.yaml)
 
 For the complete configuration reference, see [Configuration Reference](../reference/config.md).
 

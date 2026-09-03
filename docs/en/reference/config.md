@@ -144,7 +144,8 @@ cluster_require:
     v3.28: ["v1.23", "v1.24", "v1.25", "v1.26", "v1.27", "v1.28", "v1.29", "v1.30"]
     v3.29: ["v1.23", "v1.24", "v1.25", "v1.26", "v1.27", "v1.28", "v1.29", "v1.30", "v1.31", "v1.32"]
     v3.30: ["v1.23", "v1.24", "v1.25", "v1.26", "v1.27", "v1.28", "v1.29", "v1.30", "v1.31", "v1.32", "v1.33"]
-    v3.31: ["v1.23", "v1.24", "v1.25", "v1.26", "v1.27", "v1.28", "v1.29", "v1.30", "v1.31", "v1.32", "v1.33", "v1.34"]
+    v3.31: ["v1.23", "v1.24", "v1.25", "v1.26", "v1.27", "v1.28", "v1.29", "v1.30", "v1.31", "v1.32", "v1.33", "v1.34", "v1.35"]
+    v3.32: ["v1.34", "v1.35", "v1.36"]
 
   # Compatible Kubernetes version matrix by Cilium version
   cilium_allowed_versions:
@@ -154,13 +155,15 @@ cluster_require:
     "1.17": ["v1.23", "v1.24", "v1.25", "v1.26", "v1.27", "v1.28", "v1.29", "v1.30", "v1.31", "v1.32"]
     "1.18": ["v1.23", "v1.24", "v1.25", "v1.26", "v1.27", "v1.28", "v1.29", "v1.30", "v1.31", "v1.32", "v1.33"]
     "1.19": ["v1.23", "v1.24", "v1.25", "v1.26", "v1.27", "v1.28", "v1.29", "v1.30", "v1.31", "v1.32", "v1.33", "v1.34"]
+    "1.20": ["v1.33", "v1.34", "v1.35", "v1.36"]
 
   # Compatible Kubernetes version matrix by kube-ovn version
   kubeovn_allowed_versions:
     v1.12: ["v1.23", "v1.24", "v1.25", "v1.26", "v1.27", "v1.28"]
     v1.13: ["v1.23", "v1.24", "v1.25", "v1.26", "v1.27", "v1.28"]
-    v1.14: ["v1.23", "v1.24", "v1.25", "v1.26", "v1.27", "v1.28", "v1.29", "v1.30", "v1.31", "v1.32", "v1.33", "v1.34"]
-    v1.15: ["v1.23", "v1.24", "v1.25", "v1.26", "v1.27", "v1.28", "v1.29", "v1.30", "v1.31", "v1.32", "v1.33", "v1.34"]
+    v1.14: ["v1.23", "v1.24", "v1.25", "v1.26", "v1.27", "v1.28", "v1.29", "v1.30", "v1.31", "v1.32", "v1.33", "v1.34", "v1.35", "v1.36"]
+    v1.15: ["v1.23", "v1.24", "v1.25", "v1.26", "v1.27", "v1.28", "v1.29", "v1.30", "v1.31", "v1.32", "v1.33", "v1.34", "v1.35", "v1.36"]
+    v1.16: ["v1.29", "v1.30", "v1.31", "v1.32", "v1.33", "v1.34", "v1.35", "v1.36"]
 
   # Minimum compatible etcd version matrix by Kubernetes version
   etcd_min_versions:
@@ -183,10 +186,12 @@ cluster_require:
     v1.33.3: v3.5.11-0
     v1.33.4: v3.5.11-0
     v1.33.5: v3.5.11-0
-    v1.33: v3.5.21-0
+    v1.33: v3.5.24-0
     v1.34.0: v3.5.21-0
     v1.34.1: v3.5.21-0
     v1.34: v3.5.24-0
+    v1.35: v3.5.24-0
+    v1.36: v3.5.24-0
 ```
 
 ### Parameter Descriptions
@@ -1419,54 +1424,54 @@ download:
         - docker.io/calico/dikastes:v3.29.7
         - docker.io/calico/node-driver-registrar:v3.29.7
         - quay.io/calico/pod2daemon-flexvol:v3.29.7
-      v3.30.5:
+      v3.30.7:
         - quay.io/tigera/operator:v1.38.9
-        - docker.io/calico/ctl:v3.30.5
-        - docker.io/calico/typha:v3.30.5
-        - quay.io/calico/node:v3.30.5
-        # - docker.io/calico/node-windows:v3.30.5
-        - docker.io/calico/cni:v3.30.5
-        # - docker.io/calico/cni-windows:v3.30.5
-        - docker.io/calico/csi:v3.30.5
-        - docker.io/calico/apiserver:v3.30.5
-        - docker.io/calico/kube-controllers:v3.30.5
-        - docker.io/calico/envoy-gateway:v3.30.5
-        - docker.io/calico/envoy-proxy:v3.30.5
-        - docker.io/calico/envoy-ratelimit:v3.30.5
-        - docker.io/calico/flannel-migration-controller:v3.30.5
+        - docker.io/calico/ctl:v3.30.7
+        - docker.io/calico/typha:v3.30.7
+        - quay.io/calico/node:v3.30.7
+        # - docker.io/calico/node-windows:v3.30.7
+        - docker.io/calico/cni:v3.30.7
+        # - docker.io/calico/cni-windows:v3.30.7
+        - docker.io/calico/csi:v3.30.7
+        - docker.io/calico/apiserver:v3.30.7
+        - docker.io/calico/kube-controllers:v3.30.7
+        - docker.io/calico/envoy-gateway:v3.30.7
+        - docker.io/calico/envoy-proxy:v3.30.7
+        - docker.io/calico/envoy-ratelimit:v3.30.7
+        - docker.io/calico/flannel-migration-controller:v3.30.7
         - docker.io/flannel/flannel:v0.24.4
-        - docker.io/calico/dikastes:v3.30.5
-        - docker.io/calico/node-driver-registrar:v3.30.5
-        - quay.io/calico/pod2daemon-flexvol:v3.30.5
-        - docker.io/calico/csi:v3.30.5
-        - docker.io/calico/key-cert-provisioner:v3.30.5
-        - docker.io/calico/goldmane:v3.30.5
-        - docker.io/calico/whisker:v3.30.5
-        - docker.io/calico/whisker-backend:v3.30.5
-      v3.31.3:
+        - docker.io/calico/dikastes:v3.30.7
+        - docker.io/calico/node-driver-registrar:v3.30.7
+        - quay.io/calico/pod2daemon-flexvol:v3.30.7
+        - docker.io/calico/csi:v3.30.7
+        - docker.io/calico/key-cert-provisioner:v3.30.7
+        - docker.io/calico/goldmane:v3.30.7
+        - docker.io/calico/whisker:v3.30.7
+        - docker.io/calico/whisker-backend:v3.30.7
+      v3.31.7:
         - quay.io/tigera/operator:v1.40.3
-        - quay.io/calico/ctl:v3.31.3
-        - docker.io/calico/typha:v3.31.3
-        - quay.io/calico/node:v3.31.3
-        # - docker.io/calico/node-windows:v3.31.3
-        - docker.io/calico/cni:v3.31.3
-        # - docker.io/calico/cni-windows:v3.31.3
-        - docker.io/calico/csi:v3.31.3
-        - docker.io/calico/apiserver:v3.31.3
-        - docker.io/calico/kube-controllers:v3.31.3
-        - docker.io/calico/envoy-gateway:v3.31.3
-        - docker.io/calico/envoy-proxy:v3.31.3
-        - docker.io/calico/envoy-ratelimit:v3.31.3
-        - docker.io/calico/flannel-migration-controller:v3.31.3
+        - quay.io/calico/ctl:v3.31.7
+        - docker.io/calico/typha:v3.31.7
+        - quay.io/calico/node:v3.31.7
+        # - docker.io/calico/node-windows:v3.31.7
+        - docker.io/calico/cni:v3.31.7
+        # - docker.io/calico/cni-windows:v3.31.7
+        - docker.io/calico/csi:v3.31.7
+        - docker.io/calico/apiserver:v3.31.7
+        - docker.io/calico/kube-controllers:v3.31.7
+        - docker.io/calico/envoy-gateway:v3.31.7
+        - docker.io/calico/envoy-proxy:v3.31.7
+        - docker.io/calico/envoy-ratelimit:v3.31.7
+        - docker.io/calico/flannel-migration-controller:v3.31.7
         - docker.io/flannel/flannel:v0.24.4
-        - docker.io/calico/dikastes:v3.31.3
-        - docker.io/calico/node-driver-registrar:v3.31.3
-        - quay.io/calico/pod2daemon-flexvol:v3.31.3
-        - docker.io/calico/csi:v3.31.3
-        - docker.io/calico/key-cert-provisioner:v3.31.3
-        - docker.io/calico/goldmane:v3.31.3
-        - docker.io/calico/whisker:v3.31.3
-        - docker.io/calico/whisker-backend:v3.31.3
+        - docker.io/calico/dikastes:v3.31.7
+        - docker.io/calico/node-driver-registrar:v3.31.7
+        - quay.io/calico/pod2daemon-flexvol:v3.31.7
+        - docker.io/calico/csi:v3.31.7
+        - docker.io/calico/key-cert-provisioner:v3.31.7
+        - docker.io/calico/goldmane:v3.31.7
+        - docker.io/calico/whisker:v3.31.7
+        - docker.io/calico/whisker-backend:v3.31.7
     cilium/cilium:
       "1.14.19":
         - quay.io/cilium/cilium:v1.14.19

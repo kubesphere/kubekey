@@ -42,3 +42,25 @@
     that: .os.kernel_version | splitList "-" | first | semverCompare (printf ">=%s" .cluster_require.min_kernel_version)
     fail_msg: >-
       The kernel version "{{ .os.kernel_version }}" is too old. Minimum required version: {{ .cluster_require.min_kernel_version }}.
+
+# Kubernetes v1.35 removed cgroup v1 support (KEP-5573). On nodes running the
+# legacy cgroup v1 hierarchy the kubelet refuses to start, so fail the precheck
+# early instead of leaving the cluster with a broken node.
+- name: OS | Fail if cgroup v2 is unavailable for Kubernetes v1.35 or later
+  when:
+    - .groups.k8s_cluster | default list | has .inventory_hostname
+    - .kubernetes.kube_version | semverCompare ">=1.35.0"
+  block:
+    - name: OS | Detect the active cgroup hierarchy
+      command: stat -fc %T /sys/fs/cgroup
+      register: cgroup_hierarchy_type
+
+    - name: OS | Assert cgroup v2 is enabled
+      assert:
+        that: .cgroup_hierarchy_type.stdout | trim | eq "cgroup2fs"
+        fail_msg: >-
+          Kubernetes {{ .kubernetes.kube_version }} requires cgroup v2, but this node reports
+          "{{ .cgroup_hierarchy_type.stdout | trim }}" for /sys/fs/cgroup, which is the legacy
+          cgroup v1 hierarchy. Kubernetes v1.35 removed cgroup v1 support, so the kubelet will
+          fail to start. Migrate the node to a distribution with the cgroup v2 unified hierarchy
+          enabled before installing or upgrading to Kubernetes v1.35 or later.

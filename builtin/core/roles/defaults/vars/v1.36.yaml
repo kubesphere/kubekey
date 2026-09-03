@@ -1,8 +1,8 @@
 kubernetes:
   # helm binary
-  helm_version: v3.13.3
+  helm_version: v3.18.5
   sandbox_image:
-    tag: "3.9"
+    tag: "3.10.2"
   control_plane_endpoint:
     kube_vip:
       image:
@@ -10,9 +10,15 @@ kubernetes:
     haproxy:
       image:
         tag: 2.9.6-alpine
+  # kube-proxy proxy mode. Kubernetes v1.34 deprecates ipvs (it is removed in
+  # v1.36) and recommends nftables, which has been GA since v1.33. The nftables
+  # backend defaults match the iptables tuning values in the kube_proxy config,
+  # so switching the mode needs no extra config block.
+  kube_proxy:
+    mode: "nftables"
 etcd:
   # etcd binary
-  etcd_version: v3.5.15
+  etcd_version: v3.6.8
 image_registry:
   # ========== image registry ==========
   # keepalived image tag. Used for load balancing when there are multiple image registry nodes.
@@ -30,17 +36,18 @@ cri:
   container_manager: containerd
   # ========== cri ==========
   # crictl binary
-  crictl_version: v1.30.0
+  crictl_version: v1.36.0
   # ========== cri: docker ==========
   # docker binary
   docker_version: 25.0.5
   # cridockerd. Required when kube_version is greater than 1.24
   cridockerd_version: v0.3.21
   # ========== cri: containerd ==========
-  # containerd binary
-  containerd_version: v1.7.13
+  # containerd binary. Kubernetes v1.36 requires containerd v2.x
+  # (v1.x fallback compatibility is removed).
+  containerd_version: v2.3.4
   # runc binary
-  runc_version: v1.1.12
+  runc_version: v1.2.6
 cni:
   # ========== cni ==========
   # cni_plugins binary provides standard CNI plugins (loopback, bridge, macvlan, host-local, etc.).
@@ -49,24 +56,24 @@ cni:
   cni_plugins_version: v1.9.1
   # ========== cni: calico ==========
   # calicoctl binary
-  calico_version: v3.29.7
+  calico_version: v3.32.2
   # ========== cni: cilium ==========
   # cilium helm
-  cilium_version: 1.18.13
+  cilium_version: 1.20.1
   # ========== cni: flannel ==========
-  flannel_version: v0.27.4
+  flannel_version: v0.28.9
   # ========== cni: kubeovn ==========
   # kubeovn helm
-  kubeovn_version: v1.15.0
+  kubeovn_version: v1.16.2
   # ========== cni: hybridnet ==========
   # hybridnet helm
   hybridnet_version: 0.6.8
   # ========== multi-cni: multus ==========
   multus:
     image:
-      tag: v4.2.4
+      tag: v4.3.0
   # ========== multi-cni: spiderpool ==========
-  spiderpool_version: v1.1.1
+  spiderpool_version: v1.2.2
 storage_class:
   # ========== storageclass ==========
   # ========== storageclass: local ==========
@@ -79,8 +86,8 @@ dns:
   # CoreDNS settings.
   coredns:
     image:
-      tag: v1.11.3
+      tag: v1.14.2
   # NodeLocalDNS settings.
   nodelocaldns:
     image:
-      tag: 1.22.28
+      tag: 1.26.7

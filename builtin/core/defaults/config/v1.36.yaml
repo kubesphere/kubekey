@@ -10,7 +10,7 @@ spec:
     helm_version: v3.18.5
     # Tag for the sandbox (pause) image used by pods.
     sandbox_image:
-      tag: "3.10"
+      tag: "3.10.2"
     control_plane_endpoint:
       # Supported HA types: local, kube-vip, haproxy.
       # If set to local, configure local hostname resolution as follows:
@@ -27,7 +27,7 @@ spec:
           tag: 2.9.6-alpine
   etcd:
     # Specify the etcd version to be installed.
-    etcd_version: v3.5.24
+    etcd_version: v3.6.8
   image_registry:
     # Image registry type to install. Supported: harbor, docker-registry.
     # Leave empty to skip installation (assuming an existing registry is available).
@@ -63,7 +63,7 @@ spec:
     container_manager: containerd
     # ========== CRI Tool ==========
     # crictl binary version.
-    crictl_version: v1.33.0
+    crictl_version: v1.36.0
     # ========== Docker Runtime ==========
     # Docker binary version.
     #docker_version: 25.0.5
@@ -84,25 +84,25 @@ spec:
     # Image tag for Multus (configure if needed).
     # multus:
     #   image:
-    #    tag: v4.2.4
+    #    tag: v4.3.0
     # ========== Multi-CNI - Spiderpool ==========
     # Spiderpool version (configure if needed).
-    # spiderpool_version: v1.1.1
+    # spiderpool_version: v1.2.2
     # ========== Calico CNI ==========
     # Calico version (effective only when type is calico).
-    calico_version: v3.31.7
+    calico_version: v3.32.2
     # ========== Cilium CNI ==========
     # Cilium version (effective only when type is cilium).
     #cilium_version: 1.20.1
     # ========== Flannel CNI ==========
     # Flannel version (effective only when type is flannel).
-    #flannel_version: v0.27.4
+    #flannel_version: v0.28.9
     # ========== Kube-OVN CNI ==========
     # Kube-OVN version (effective only when type is kubeovn).
-    #kubeovn_version: v1.15.0
+    #kubeovn_version: v1.16.2
     # ========== Hybridnet CNI ==========
     # Hybridnet version (effective only when type is hybridnet).
-    #hybridnet_version: 0.6.8
+    #hybridnet_version: v0.8.8
   storage_class:
     # ========== Storage Class Configuration ==========
     # ========== Local/OpenEBS Storage Class ==========
@@ -121,11 +121,11 @@ spec:
     # CoreDNS settings.
     coredns:
       image:
-        tag: v1.12.0
+        tag: v1.14.2
     # NodeLocalDNS settings.
     nodelocaldns:
       enabled: true
       image:
-        tag: 1.25.0
+        tag: 1.26.7
   # the external images will to add in packages
   image_manifests: []

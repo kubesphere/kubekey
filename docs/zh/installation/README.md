@@ -3,7 +3,7 @@
 本文档介绍如何使用 KubeKey 安装 Kubernetes 集群。
 
 - 支持部署环境：Linux 发行版
-- 支持的 Kubernetes 版本：v1.23.x ~ v1.34.x
+- 支持的 Kubernetes 版本：v1.23.x ~ v1.36.x
 
 ## 系统要求
 
@@ -103,6 +103,8 @@ KubeKey 使用 `Config` 资源来定义集群的关键配置信息。
 - [安装 v1.32.x 版本的 Kubernetes 配置](../../../builtin/core/defaults/config/v1.32.yaml)
 - [安装 v1.33.x 版本的 Kubernetes 配置](../../../builtin/core/defaults/config/v1.33.yaml)
 - [安装 v1.34.x 版本的 Kubernetes 配置](../../../builtin/core/defaults/config/v1.34.yaml)
+- [安装 v1.35.x 版本的 Kubernetes 配置](../../../builtin/core/defaults/config/v1.35.yaml)
+- [安装 v1.36.x 版本的 Kubernetes 配置](../../../builtin/core/defaults/config/v1.36.yaml)
 
 完整配置参考[配置参考](../reference/config.md)。
 

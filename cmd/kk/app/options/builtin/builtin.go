@@ -33,7 +33,7 @@ import (
 )
 
 const (
-	defaultKubeVersion = "v1.34.3"
+	defaultKubeVersion = "v1.36.4"
 )
 
 const (
