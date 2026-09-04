@@ -327,7 +327,13 @@ func (f *project) dealVarsFiles(p *kkprojectv1.Play, basePlaybook string) error 
 		if err := yaml.Unmarshal(data, &node); err != nil {
 			return errors.Wrap(err, "failed to failed to unmarshal YAML")
 		}
-		if node.Kind != yaml.DocumentNode || len(node.Content) != 1 {
+		// An empty YAML document (only comments / blank lines) decodes to a node
+		// with Kind=0 (not DocumentNode) and len(Content)==0. Treat it as a no-op
+		// so placeholder files like a comment-only defaults/main.yaml don't error.
+		if node.Kind != yaml.DocumentNode || len(node.Content) == 0 {
+			return nil
+		}
+		if len(node.Content) != 1 {
 			return errors.Errorf("unsupport vars_files format. it should be single map file")
 		}
 		// combine map node
@@ -406,7 +412,13 @@ func (f *project) combineRoleVars(role *kkprojectv1.Role, content []byte) error 
 	if err := yaml.Unmarshal(content, &node); err != nil {
 		return errors.Wrap(err, "failed to unmarshal YAML")
 	}
-	if node.Kind != yaml.DocumentNode || len(node.Content) != 1 {
+	// An empty YAML document (only comments / blank lines) decodes to a node
+	// with Kind=0 (not DocumentNode) and len(Content)==0. Treat it as a no-op
+	// so placeholder files like a comment-only defaults/main.yaml don't error.
+	if node.Kind != yaml.DocumentNode || len(node.Content) == 0 {
+		return nil
+	}
+	if len(node.Content) != 1 {
 		return errors.Errorf("unsupport vars_files format. it should be single map file")
 	}
 	// combine map node
