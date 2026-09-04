@@ -84,8 +84,8 @@ spec:
       registry: hub.kubesphere.com.cn
     kubernetes:
       kube_version:
-        - v1.36.4
-        # Other versions from v1.23~v1.36 can also be listed
+        - v1.37.0
+        # Other versions from v1.23~v1.37 can also be listed
     cni:
       type:
         - calico
@@ -315,17 +315,17 @@ spec:
 
 > **Note**: The configuration file generated in this step is used for **installing the cluster**, and is not the same file as the `config.yaml` used for **packaging** in the "Build the Offline Package" section above.
 
-Execute the following command to create the installation configuration file. The following example uses `v1.36.4`, which is already included in the offline resource list of the `config.yaml` example above:
+Execute the following command to create the installation configuration file. The following example uses `v1.37.0`, which is already included in the offline resource list of the `config.yaml` example above:
 
 ```bash
-./kk create config --with-kubernetes v1.36.4 -o .
+./kk create config --with-kubernetes v1.37.0 -o .
 ```
 
-Replace `v1.36.4` with the actual Kubernetes version you need. Make sure the replaced version is included in the `spec.download.kubernetes.kube_version` list used when building the offline package.
+Replace `v1.37.0` with the actual Kubernetes version you need. Make sure the replaced version is included in the `spec.download.kubernetes.kube_version` list used when building the offline package.
 
-After execution, the installation configuration file `config-v1.36.4.yaml` will be generated.
+After execution, the installation configuration file `config-v1.37.0.yaml` will be generated.
 
-If you choose to install the image registry together with the cluster, you need to add the image registry configuration in `config-v1.36.4.yaml`:
+If you choose to install the image registry together with the cluster, you need to add the image registry configuration in `config-v1.37.0.yaml`:
 
 ```yaml
 apiVersion: kubekey.kubesphere.io/v1
@@ -349,7 +349,7 @@ spec:
 #### 5. Install the Cluster
 
 ```bash
-./kk create cluster -a kubekey-artifact.tgz -i inventory.yaml -c config-v1.36.4.yaml
+./kk create cluster -a kubekey-artifact.tgz -i inventory.yaml -c config-v1.37.0.yaml
 ```
 
 After the installation is complete, you can check the cluster node status with `kubectl get nodes`:

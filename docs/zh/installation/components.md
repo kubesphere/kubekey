@@ -76,6 +76,7 @@
 | 1.34.2\~1.34.11 | 3.6.5 | 3.5.24-0 | https://github.com/kubernetes/kubernetes/blob/v1.34.2/cmd/kubeadm/app/constants/constants.go |
 | 1.35.0\~1.35.8 | 3.6.6 | 3.5.24-0 | https://github.com/kubernetes/kubernetes/blob/v1.35.0/cmd/kubeadm/app/constants/constants.go |
 | 1.36.0\~1.36.4 | 3.6.8 | 3.5.24-0 | https://github.com/kubernetes/kubernetes/blob/v1.36.0/cmd/kubeadm/app/constants/constants.go |
+| 1.37.0 | 3.7.0 | 3.5.24-0 | https://github.com/kubernetes/kubernetes/blob/v1.37.0/cmd/kubeadm/app/constants/constants.go |
 
 **kubekey config 中 etcd 默认值**：
 
@@ -99,9 +100,12 @@
 | 1.34 | v3.6.5 |
 | 1.35 | v3.6.6 |
 | 1.36 | v3.6.8 |
+| 1.37 | v3.7.0 |
 
 > **关于 etcd 最小要求版本列**：
-> Kubernetes 1.23~1.27 在最小列保留历史 `MinExternalEtcdVersion`（`3.2.18`）；从 1.28 起，最小列反映各版本自身的 `MinExternalEtcdVersion`（1.28~1.30 为 `3.4.13-4`，1.31~1.33 为 `3.5.11-0` 及 `3.5.24-0`，1.34 为 `3.5.21-0` 及 `3.5.24-0`）。KubeKey 在 `etcd_min_versions` 中镜像该值，在 **precheck 阶段、kubeadm 运行之前** 拒绝**过旧**的 etcd——例如 `etcd 3.5.6` 无法随 Kubernetes 1.31.14+（最小 `3.5.24-0`）升级。KubeKey 刻意**不**对外部 etcd 施加上限：kubeadm 本身只硬性拒绝过旧的 etcd（`preflight/checks.go` 仅在 `etcdVersion < minExternalEtcdVersion` 时报错），其 `SupportedEtcdVersion` map 仅用于选择堆叠式（本地）etcd 版本（缺失时仅告警兜底），从不会拒绝过新的外部 etcd。
+> Kubernetes 1.23~1.27 在最小列保留历史 `MinExternalEtcdVersion`（`3.2.18`）；从 1.28 起，最小列反映各版本自身的 `MinExternalEtcdVersion`（1.28~1.30 为 `3.4.13-4`，1.31~1.33 为 `3.5.11-0` 及 `3.5.24-0`，1.34 为 `3.5.21-0` 及 `3.5.24-0`，1.35~1.37 为 `3.5.24-0`）。KubeKey 在 `etcd_min_versions` 中镜像该值，在 **precheck 阶段、kubeadm 运行之前** 拒绝**过旧**的 etcd——例如 `etcd 3.5.6` 无法随 Kubernetes 1.31.14+（最小 `3.5.24-0`）升级。KubeKey 刻意**不**对外部 etcd 施加上限：kubeadm 本身只硬性拒绝过旧的 etcd（`preflight/checks.go` 仅在 `etcdVersion < minExternalEtcdVersion` 时报错），其 `SupportedEtcdVersion` map 仅用于选择堆叠式（本地）etcd 版本（缺失时仅告警兜底），从不会拒绝过新的外部 etcd。
+
+> **关于 Kubernetes 1.37**：kubeadm 1.37 **没有**向 `SupportedEtcdVersion` 增加 `37` 键（仅将 `34`/`35`/`36` 映射到 `3.7.0-0`）。因此 `EtcdSupportedVersion` 会回退到最近的小版本（`max` = 36），并输出 `could not find officially supported version of etcd for Kubernetes ..., falling back to the nearest etcd version` 告警。KubeKey 对此做了显式区分：1.37 部署的堆叠式 etcd 为 `v3.7.0`（镜像该回退行为），而外部 etcd 的下限仍取 `MinExternalEtcdVersion`（`3.5.24-0`）——这是一个独立常量，在 1.37 中并未变化。
 
 ### 容器运行时
 
@@ -134,7 +138,7 @@
 
 | kubernetes 版本 | kubekey 默认版本 | CNI Spec |
 |---|---|---|
-| 1.23~1.36 | v1.9.1 | 1.0.0 |
+| 1.23~1.37 | v1.9.1 | 1.0.0 |
 
 #### [calico](https://github.com/projectcalico/calico)
 > **说明**：Calico 是一个功能强大的网络和网络安全解决方案，支持 BGP 路由、网络策略、IP 地址管理等功能。适合需要细粒度网络控制和策略管理的生产环境。
@@ -159,8 +163,10 @@
 | 1.34 | 3.31, 3.32 | v3.32.2 | https://docs.tigera.io/calico/3.31/getting-started/kubernetes/requirements#kubernetes-requirements<br>https://docs.tigera.io/calico/latest/getting-started/kubernetes/requirements#kubernetes-requirements |
 | 1.35 | 3.31, 3.32 | v3.32.2 | https://docs.tigera.io/calico/3.31/getting-started/kubernetes/requirements#kubernetes-requirements<br>https://docs.tigera.io/calico/latest/getting-started/kubernetes/requirements#kubernetes-requirements |
 | 1.36 | 3.32 | v3.32.2 | https://docs.tigera.io/calico/latest/getting-started/kubernetes/requirements#kubernetes-requirements |
+| 1.37 | 3.32 | v3.32.2 | https://docs.tigera.io/calico/latest/getting-started/kubernetes/requirements#kubernetes-requirements |
 
 > **注意**：Tigera 对 Calico v3.32 的测试覆盖 Kubernetes 1.34~1.36，v3.31 覆盖 1.32~1.35，v3.30 覆盖 1.31~1.35；Cilium 1.20 的测试覆盖 1.33~1.36，Cilium 1.19 覆盖 1.32~1.35。KubeKey 会为每个 CNI 保留**仍覆盖目标 Kubernetes 小版本的小版本系列中的最新 patch**。因此 Calico 默认版本：1.34~1.36 使用 `v3.32.2`（v3.32 最新），1.32/1.33 使用 `v3.31.7`（v3.31 最新），1.31 使用 `v3.30.7`（v3.30 最新）；Cilium 默认版本：1.33~1.36 使用 `1.20.1`（v1.20 最新），1.31/1.32 使用 `1.19.7`（v1.19 最新，v1.20 不覆盖这两个小版本）。
+> **关于 Kubernetes 1.37**：两个 CNI 都尚未发布针对 Kubernetes 1.37 的官方矩阵——Calico v3.32 的测试覆盖 1.34~1.36（计划于 2026 年 9 月下旬发布的 v3.33 将是首个明示支持 1.37 的小版本）；Cilium 1.20 的测试覆盖 1.33~1.36（Kubernetes 1.37.0 发布时 Cilium 1.21 仍在开发分支上）。因此 KubeKey 让 1.37 沿用与 1.36 相同的前向兼容默认值——Calico `v3.32.2` 与 Cilium `1.20.1`，而不是绑定尚未发布的 CNI 小版本。待 Calico v3.33 与 Cilium 1.21.0 正式可用后，可再上调这些默认值。
 
 
 #### [cilium](https://github.com/cilium/cilium)
@@ -187,7 +193,7 @@
 | 1.32 | 1.17, 1.18, 1.19 | 1.19.7 | https://docs.cilium.io/en/v1.17/network/kubernetes/compatibility/<br>https://docs.cilium.io/en/v1.18/network/kubernetes/compatibility/<br>https://docs.cilium.io/en/v1.19/network/kubernetes/compatibility/ |
 | 1.33 | 1.18, 1.19, 1.20 | 1.20.1 | https://docs.cilium.io/en/v1.18/network/kubernetes/compatibility/<br>https://docs.cilium.io/en/v1.19/network/kubernetes/compatibility/<br>https://docs.cilium.io/en/v1.20/network/kubernetes/compatibility/ |
 | 1.34 | 1.19, 1.20 | 1.20.1 | https://docs.cilium.io/en/v1.19/network/kubernetes/compatibility/<br>https://docs.cilium.io/en/v1.20/network/kubernetes/compatibility/ |
-| 1.35\~1.36 | 1.20 | 1.20.1 | https://docs.cilium.io/en/v1.20/network/kubernetes/compatibility/ |
+| 1.35\~1.37 | 1.20 | 1.20.1 | https://docs.cilium.io/en/v1.20/network/kubernetes/compatibility/ |
 
 #### [flannel](https://github.com/flannel-io/flannel)
 
@@ -201,7 +207,7 @@
 
 | kubernetes 版本 | 推荐 flannel 版本 | kubekey 默认版本 | 来源 |
 |---|---|---|---|
-| 1.23\~1.36 | 0.19.0+ | v0.28.9 | https://github.com/flannel-io/flannel/blob/master/Documentation/kubernetes.md | 
+| 1.23\~1.37 | 0.19.0+ | v0.28.9 | https://github.com/flannel-io/flannel/blob/master/Documentation/kubernetes.md | 
 
 
 #### [hybridnet](https://github.com/alibaba/hybridnet)
@@ -229,7 +235,7 @@
 | kubernetes 版本 | 推荐 kubeovn 版本 | kubekey 默认版本 | 来源 |
 |---|---|---|---|
 | 1.23\~1.28 | 1.12, 1.13 | v1.13.15 | https://kubeovn.github.io/docs/v1.12.x/en/start/prepare/<br>https://kubeovn.github.io/docs/v1.13.x/en/start/prepare/ |
-| 1.29\~1.36 | 1.15, 1.16 | v1.16.2 | https://kubeovn.github.io/docs/v1.14.x/en/start/prepare/<br>https://kubeovn.github.io/docs/v1.15.x/en/start/prepare/ |
+| 1.29\~1.37 | 1.15, 1.16 | v1.16.2 | https://kubeovn.github.io/docs/v1.14.x/en/start/prepare/<br>https://kubeovn.github.io/docs/v1.15.x/en/start/prepare/ |
 
 
 ### 多容器网络插件
@@ -255,7 +261,7 @@
 
 | kubernetes 版本 | 推荐 multus 版本 | kubekey 默认版本 | 来源 |
 |---|---|---|---|
-| 1.23\~1.36 | v4.0.0+ | v4.3.0 | https://github.com/k8snetworkplumbingwg/multus-cni/releases |
+| 1.23\~1.37 | v4.0.0+ | v4.3.0 | https://github.com/k8snetworkplumbingwg/multus-cni/releases |
 
 #### [spiderpool](https://github.com/spidernet-io/spiderpool)
 
@@ -271,7 +277,7 @@
 
 | kubernetes 版本 | 推荐 spiderpool 版本 | kubekey 默认版本 | 来源 |
 |---|---|---|---|
-| 1.23\~1.36 | v1.0.x, v1.1.x, v1.2.x | v1.2.2 | https://spidernet-io.github.io/spiderpool/v1.1/usage/install/system-requirements/#node-requirements |
+| 1.23\~1.37 | v1.0.x, v1.1.x, v1.2.x | v1.2.2 | https://spidernet-io.github.io/spiderpool/v1.1/usage/install/system-requirements/#node-requirements |
 
 ### 存储
 
@@ -310,7 +316,7 @@
 
 | kubernetes 版本 | 推荐 nfs 版本 | kubekey 默认版本 | 来源 |
 |---|---|---|---|
-| 1.23\~1.36 | v4.0.0+ | 4.0.18 | https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner/blob/nfs-subdir-external-provisioner-4.0.0/charts/nfs-subdir-external-provisioner/README.md#prerequisites |
+| 1.23\~1.37 | v4.0.0+ | 4.0.18 | https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner/blob/nfs-subdir-external-provisioner-4.0.0/charts/nfs-subdir-external-provisioner/README.md#prerequisites |
 
 ### 域名服务
 
@@ -339,6 +345,7 @@
 | 1.34.0\~1.34.11 | v1.12.1 | v1.12.1 | https://github.com/kubernetes/kubernetes/blob/v1.34.0/cluster/addons/dns/coredns/coredns.yaml.base#L136 |
 | 1.35.0\~1.35.8 | v1.13.1 | v1.13.1 | https://github.com/kubernetes/kubernetes/blob/v1.35.0/cluster/addons/dns/coredns/coredns.yaml.base#L136 |
 | 1.36.0\~1.36.4 | v1.14.2 | v1.14.2 | https://github.com/kubernetes/kubernetes/blob/v1.36.0/cluster/addons/dns/coredns/coredns.yaml.base#L136 |
+| 1.37.0 | v1.14.6 | v1.14.6 | https://github.com/kubernetes/kubernetes/blob/v1.37.0/cluster/addons/dns/coredns/coredns.yaml.base#L136 |
 
 #### nodelocaldns
 
@@ -363,6 +370,7 @@
 | 1.34 | 1.26.4 | v1.26.4 | https://github.com/kubernetes/kubernetes/blob/v1.34.0/cluster/addons/dns/nodelocaldns/nodelocaldns.yaml#L141 |
 | 1.35 | 1.26.4 | v1.26.4 | https://github.com/kubernetes/kubernetes/blob/v1.35.0/cluster/addons/dns/nodelocaldns/nodelocaldns.yaml#L141 |
 | 1.36 | 1.26.7 | v1.26.7 | https://github.com/kubernetes/kubernetes/blob/v1.36.0/cluster/addons/dns/nodelocaldns/nodelocaldns.yaml#L141 |
+| 1.37 | 1.26.7 | v1.26.7 | https://github.com/kubernetes/kubernetes/blob/v1.37.0/cluster/addons/dns/nodelocaldns/nodelocaldns.yaml#L141 |
 
 ### pause 镜像
 
@@ -385,4 +393,5 @@
 | 1.34 | 3.10.1 | 3.10.1 | https://github.com/kubernetes/kubernetes/blob/v1.34.0/cmd/kubeadm/app/constants/constants.go#L445 |
 | 1.35 | 3.10.1 | 3.10.1 | https://github.com/kubernetes/kubernetes/blob/v1.35.0/cmd/kubeadm/app/constants/constants.go#L445 |
 | 1.36 | 3.10.2 | 3.10.2 | https://github.com/kubernetes/kubernetes/blob/v1.36.0/cmd/kubeadm/app/constants/constants.go#L445 |
+| 1.37 | 3.10.2 | 3.10.2 | https://github.com/kubernetes/kubernetes/blob/v1.37.0/cmd/kubeadm/app/constants/constants.go#L445 |
 
