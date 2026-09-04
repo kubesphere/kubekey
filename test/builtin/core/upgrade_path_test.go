@@ -39,7 +39,7 @@ var defaultPath = core.KubeUpgradePath{
 	23: "v1.23.17", 24: "v1.24.17", 25: "v1.25.16", 26: "v1.26.15",
 	27: "v1.27.16", 28: "v1.28.15", 29: "v1.29.15", 30: "v1.30.14",
 	31: "v1.31.14", 32: "v1.32.13", 33: "v1.33.13", 34: "v1.34.11",
-	35: "v1.35.8", 36: "v1.36.4",
+	35: "v1.35.8", 36: "v1.36.4", 37: "v1.37.0",
 }
 
 // TestMergeAndEffectiveKubeUpgradePath locks in the "Go default into config"
@@ -56,6 +56,7 @@ func TestMergeAndEffectiveKubeUpgradePath(t *testing.T) {
 	assert.Equal(t, "v1.24.17", eff[24], "v1.24 default should be seeded")
 	assert.Equal(t, "v1.34.11", eff[34], "v1.34 default should be seeded")
 	assert.Equal(t, "v1.36.4", eff[36], "v1.36 default should be seeded")
+	assert.Equal(t, "v1.37.0", eff[37], "v1.37 default should be seeded")
 	assert.Len(t, eff, len(defaultPath), "empty config should carry the full default path")
 
 	// 2. Partial override set in config -> merge keeps it, fills the rest.

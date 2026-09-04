@@ -527,7 +527,44 @@
     {{- if $default_kubeovn_version | has "v1.16.2" | not }}
     {{- $default_kubeovn_version = append $default_kubeovn_version "v1.16.2" }}
     {{- end }}
-  {{- end }}    
+  {{- else if slice (. | splitList ".") 0 2 | join "." | eq "v1.37" }}
+    {{- if $default_helm_version | has "v3.18.5" | not }}
+    {{- $default_helm_version = append $default_helm_version "v3.18.5" }}
+    {{- end }}
+    {{- if $default_etcd_version | has "v3.7.0" | not }}
+    {{- $default_etcd_version = append $default_etcd_version "v3.7.0" }}
+    {{- end }}
+    {{- if $default_crictl_version | has "v1.37.0" | not }}
+    {{- $default_crictl_version = append $default_crictl_version "v1.37.0" }}
+    {{- end }}
+    {{- if $default_docker_version | has "25.0.5" | not }}
+    {{- $default_docker_version = append $default_docker_version "25.0.5" }}
+    {{- end }}
+    {{- if $default_cridockerd_version | has "v0.3.21" | not }}
+    {{- $default_cridockerd_version = append $default_cridockerd_version "v0.3.21" }}
+    {{- end }}
+    {{- if $default_containerd_version | has "v2.3.4" | not }}
+    {{- $default_containerd_version = append $default_containerd_version "v2.3.4" }}
+    {{- end }}
+    {{- if $default_runc_version | has "v1.2.6" | not }}
+    {{- $default_runc_version = append $default_runc_version "v1.2.6" }}
+    {{- end }}
+    {{- if $default_calico_version | has "v3.32.2" | not }}
+    {{- $default_calico_version = append $default_calico_version "v3.32.2" }}
+    {{- end }}
+    {{- if $default_cilium_version | has "1.20.1" | not }}
+    {{- $default_cilium_version = append $default_cilium_version "1.20.1" }}
+    {{- end }}
+    {{- if $default_flannel_version | has "v0.28.9" | not }}
+    {{- $default_flannel_version = append $default_flannel_version "v0.28.9" }}
+    {{- end }}
+    {{- if $default_hybridnet_version | has "0.6.8" | not }}
+    {{- $default_hybridnet_version = append $default_hybridnet_version "0.6.8" }}
+    {{- end }}
+    {{- if $default_kubeovn_version | has "v1.16.2" | not }}
+    {{- $default_kubeovn_version = append $default_kubeovn_version "v1.16.2" }}
+    {{- end }}
+  {{- end }}
 {{- end }}
 download:
   kubernetes:
@@ -746,6 +783,11 @@ download:
       - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/kubernetes/pause:3.10.2{{ else }}registry.k8s.io/pause:3.10.2{{ end }}
       ## kubernetes/dns v1.36
       - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/coredns/coredns:v1.14.2{{ else }}registry.k8s.io/coredns/coredns:v1.14.2{{ end }}
+      - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/dns/k8s-dns-node-cache:1.26.7{{ else }}registry.k8s.io/dns/k8s-dns-node-cache:1.26.7{{ end }}
+  {{- else if slice (. | splitList ".") 0 2 | join "." | eq "v1.37" }}
+      - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/kubernetes/pause:3.10.2{{ else }}registry.k8s.io/pause:3.10.2{{ end }}
+      ## kubernetes/dns v1.37
+      - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/coredns/coredns:v1.14.6{{ else }}registry.k8s.io/coredns/coredns:v1.14.6{{ end }}
       - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/dns/k8s-dns-node-cache:1.26.7{{ else }}registry.k8s.io/dns/k8s-dns-node-cache:1.26.7{{ end }}
   {{- end }}
 {{- end }}

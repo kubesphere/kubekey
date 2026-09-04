@@ -1,0 +1,140 @@
+apiVersion: kubekey.kubesphere.io/v1
+kind: Config
+spec:
+  # If set to "cn", online downloads will prioritize domestic sources when available.
+  zone: ""
+  kubernetes:
+    # Specify the Kubernetes version to be installed.
+    kube_version: {{ .kubernetes.kube_version }}
+    # Specify the Helm version to be installed.
+    helm_version: v3.18.5
+    # Tag for the sandbox (pause) image used by pods.
+    sandbox_image:
+      tag: "3.10.2"
+    control_plane_endpoint:
+      # Supported HA types: local, kube-vip, haproxy.
+      # If set to local, configure local hostname resolution as follows:
+      #   - Control-plane nodes: 127.0.0.1  .kubernetes.control_plane_endpoint.host
+      #   - Worker nodes:  .init_kubernetes_node  .kubernetes.control_plane_endpoint.host
+      type: local
+      # Kube-vip image tag used for static pod deployment (when type is kube-vip).
+      kube_vip:
+        image:
+          tag: v0.7.2
+      # HAProxy image tag used for static pod deployment (when type is haproxy).
+      haproxy:
+        image:
+          tag: 2.9.6-alpine
+  etcd:
+    # Specify the etcd version to be installed.
+    # K8s 1.37 defaults etcd to v3.7.0 (see kubernetes/kubernetes #140333); kubeadm's
+    # SupportedEtcdVersion maps 1.32~1.36 to "3.7.0-0" and 1.37 falls back to the same.
+    etcd_version: v3.7.0
+  image_registry:
+    # Image registry type to install. Supported: harbor, docker-registry.
+    # Leave empty to skip installation (assuming an existing registry is available).
+    type: ""
+    # auth:
+    #   # Address of the private image registry. Format: host:port/project
+    #   # The port (if present) is used as http_port when plain_http=true,
+    #   # or as https_port when plain_http=false.
+    #   # registry: "dockerhub.kubekey.local"
+    #   # Use plain HTTP (no TLS). Default is false.
+    #   # plain_http: false
+    #   # username: admin
+    #   # password: Harbor12345
+    # Specify a VIP for image registry high availability. If set, enables HA.
+    ha_vip: ""
+    # ========== Image Registry - High Availability ==========
+    # keepalived image tag for load balancing when multiple registry nodes exist.
+    # keepalived_version: 2.3.4
+    # ========== Image Registry - Harbor ==========
+    # Image registry port settings. Usually you do not need to set them manually;
+    # they are derived from image_registry.auth.registry and plain_http.
+    # http_port: 80
+    # https_port: 443
+    # Harbor image tag (only valid if type is harbor).
+    #harbor_version: v2.10.2
+    # docker-compose binary
+    #dockercompose_version: v2.20.3
+    # ========== Image Registry - Docker Registry ==========
+    # Docker Registry image tag (only valid if type is docker-registry).
+    # docker_registry_version: 2.8.3
+  cri:
+    # Container runtime type. Supported: containerd, docker.
+    container_manager: containerd
+    # ========== CRI Tool ==========
+    # crictl binary version, follows kube_version minor.
+    crictl_version: v1.37.0
+    # ========== Docker Runtime ==========
+    # Docker binary version.
+    #docker_version: 25.0.5
+    # cridockerd version (required for Kubernetes 1.24+).
+    # cridockerd_version: v0.3.21
+    # ========== Containerd Runtime ==========
+    # containerd binary version (active only when container_manager is containerd).
+    # K8s 1.36+ requires containerd 2.x; the v1.x fallback path has been removed.
+    # containerd_version: v2.3.4
+    # runc binary version (active only when container_manager is containerd).
+    # runc_version: v1.2.6
+  cni:
+    # CNI plugin type. Supported: calico, cilium, flannel, hybridnet, kubeovn, other
+    type: calico
+    # ========== Multi-CNI ==========
+    # Multi-CNI type. Supported: multus, spiderpool, none.
+    multi_cni: none
+    # ========== Multi-CNI - Multus ==========
+    # Image tag for Multus (configure if needed).
+    # multus:
+    #   image:
+    #    tag: v4.3.0
+    # ========== Multi-CNI - Spiderpool ==========
+    # Spiderpool version (configure if needed).
+    # spiderpool_version: v1.2.2
+    # ========== Calico CNI ==========
+    # Calico version (effective only when type is calico).
+    # Calico v3.32's e2e matrix stops at K8s 1.36; v3.33 (planned late Sep 2026) will
+    # add K8s 1.37. Until v3.33 ships, Calico v3.32.2 is the default for 1.37 via
+    # forward-compatibility.
+    calico_version: v3.32.2
+    # ========== Cilium CNI ==========
+    # Cilium version (effective only when type is cilium).
+    # Cilium 1.21 is still in the dev branch at the time K8s 1.37.0 ships; 1.20.1 is
+    # the latest stable and its forward-compat is the default for 1.37.
+    #cilium_version: 1.20.1
+    # ========== Flannel CNI ==========
+    # Flannel version (effective only when type is flannel).
+    #flannel_version: v0.28.9
+    # ========== Kube-OVN CNI ==========
+    # Kube-OVN version (effective only when type is kubeovn).
+    #kubeovn_version: v1.16.2
+    # ========== Hybridnet CNI ==========
+    # Hybridnet version (effective only when type is hybridnet).
+    #hybridnet_version: v0.8.8
+  storage_class:
+    # ========== Storage Class Configuration ==========
+    # ========== Local/OpenEBS Storage Class ==========
+    # Local storage class settings.
+    local:
+      enabled: true   # Enable the local storage class.
+      default: true   # Set as the default storage class.
+    # openebs/dynamic-localpv-provisioner helm chart version.
+    localpv_provisioner_version: 4.4.0
+    # ========== NFS Storage Class ==========
+    nfs:
+      enabled: false  # Enable the NFS storage class.
+    # nfs-provisioner Helm chart version.
+    #nfs_provisioner_version: 4.0.18
+  dns:
+    # CoreDNS settings.
+    # K8s 1.37 sets CoreDNSVersion to v1.14.6 in kubeadm constants.
+    coredns:
+      image:
+        tag: v1.14.6
+    # NodeLocalDNS settings.
+    nodelocaldns:
+      enabled: true
+      image:
+        tag: 1.26.7
+  # the external images will to add in packages
+  image_manifests: []
