@@ -23,7 +23,7 @@ import (
 	"embed"
 )
 
-//go:embed playbooks roles
+//go:embed playbooks roles tpls
 var BuiltinPlaybook embed.FS
 
 //go:embed defaults
