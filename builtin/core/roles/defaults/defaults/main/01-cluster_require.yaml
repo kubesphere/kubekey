@@ -60,15 +60,15 @@ cluster_require:
     "1.17": ["v1.23", "v1.24", "v1.25", "v1.26", "v1.27", "v1.28", "v1.29", "v1.30", "v1.31", "v1.32"]
     "1.18": ["v1.23", "v1.24", "v1.25", "v1.26", "v1.27", "v1.28", "v1.29", "v1.30", "v1.31", "v1.32", "v1.33"]
     "1.19": ["v1.23", "v1.24", "v1.25", "v1.26", "v1.27", "v1.28", "v1.29", "v1.30", "v1.31", "v1.32", "v1.33", "v1.34"]
-    "1.20": ["v1.33", "v1.34", "v1.35", "v1.36"]
+    "1.20": ["v1.33", "v1.34", "v1.35", "v1.36", "v1.37"]
 
   # Allowed kube-ovn versions for each kubernetes version
   kubeovn_allowed_versions:
     v1.12: ["v1.23", "v1.24", "v1.25", "v1.26", "v1.27", "v1.28"]
     v1.13: ["v1.23", "v1.24", "v1.25", "v1.26", "v1.27", "v1.28"]
     v1.14: ["v1.23", "v1.24", "v1.25", "v1.26", "v1.27", "v1.28", "v1.29", "v1.30", "v1.31", "v1.32", "v1.33", "v1.34", "v1.35", "v1.36"]
-    v1.15: ["v1.23", "v1.24", "v1.25", "v1.26", "v1.27", "v1.28", "v1.29", "v1.30", "v1.31", "v1.32", "v1.33", "v1.34", "v1.35", "v1.36"]
-    v1.16: ["v1.29", "v1.30", "v1.31", "v1.32", "v1.33", "v1.34", "v1.35", "v1.36"]
+    v1.15: ["v1.23", "v1.24", "v1.25", "v1.26", "v1.27", "v1.28", "v1.29", "v1.30", "v1.31", "v1.32", "v1.33", "v1.34", "v1.35", "v1.36", "v1.37"]
+    v1.16: ["v1.29", "v1.30", "v1.31", "v1.32", "v1.33", "v1.34", "v1.35", "v1.36", "v1.37"]
 
   # ETCD MIN Version: minimum etcd allowed per Kubernetes version. Matching is
   # exact-patch-first, then minor fallback (see precheck/etcd tasks).
@@ -101,4 +101,10 @@ cluster_require:
     v1.34: v3.5.24-0
     v1.35: v3.5.24-0
     v1.36: v3.5.24-0
-    v1.37: v3.7.0-0
+    # K8s 1.37 kubeadm drops the 1.37 key from SupportedEtcdVersion (it only maps
+    # 34/35/36 to "3.7.0-0"), so 1.37 falls back to the nearest (max=36) entry and
+    # logs a warning. That table only selects the STACKED etcd to deploy, however:
+    # the floor for an EXTERNAL etcd is the separate MinExternalEtcdVersion
+    # constant, which stays at 3.5.24-0 in K8s 1.37. Do not raise this to 3.7.0-0,
+    # or precheck would reject external etcd 3.5.24/3.6.x that kubeadm accepts.
+    v1.37: v3.5.24-0

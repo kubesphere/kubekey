@@ -621,7 +621,7 @@ download:
     # containerd binary
     containerd_version: {{ .download.cri.containerd_version | default $default_containerd_version | toJson }}
     # runc binary
-    runc_version: {{ .download.cri.runc_versioin | default $default_runc_version | toJson }}
+    runc_version: {{ .download.cri.runc_version | default $default_runc_version | toJson }}
 {{- else }}
     # containerd binary
     containerd_version: []
