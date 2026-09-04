@@ -1,0 +1,95 @@
+kubernetes:
+  # helm binary
+  helm_version: v3.18.5
+  sandbox_image:
+    tag: "3.10.2"
+  control_plane_endpoint:
+    kube_vip:
+      image:
+        tag: v0.7.2
+    haproxy:
+      image:
+        tag: 2.9.6-alpine
+  # kube-proxy proxy mode. Kubernetes v1.34 deprecates ipvs (it is removed in
+  # v1.36) and recommends nftables, which has been GA since v1.33. K8s 1.37 keeps
+  # iptables as the warn-only default and signals a future switch to nftables; we
+  # keep nftables here because kubeadm 1.36+ already expects it for new defaults.
+  kube_proxy:
+    mode: "nftables"
+etcd:
+  # etcd binary. K8s 1.37 defaults etcd to v3.7.0 (kubernetes/kubernetes #140333);
+  # kubeadm's SupportedEtcdVersion maps 1.32~1.36 to "3.7.0-0" and 1.37 inherits it.
+  etcd_version: v3.7.0
+image_registry:
+  # ========== image registry ==========
+  # keepalived image tag. Used for load balancing when there are multiple image registry nodes.
+  keepalived_version: 2.3.4
+  # ========== image registry: harbor ==========
+  # harbor image tag
+  harbor_version: v2.10.2
+  # docker-compose binary
+  dockercompose_version: v2.20.3
+  # ========== image registry: docker-registry ==========
+  # docker-registry image tag
+  docker_registry_version: 2.8.3
+cri:
+  # support: containerd,docker
+  container_manager: containerd
+  # ========== cri ==========
+  # crictl binary, follows kube_version minor.
+  crictl_version: v1.37.0
+  # ========== cri: docker ==========
+  # docker binary
+  docker_version: 25.0.5
+  # cridockerd. Required when kube_version is greater than 1.24
+  cridockerd_version: v0.3.21
+  # ========== cri: containerd ==========
+  # containerd binary. Kubernetes v1.36 requires containerd v2.x (the v1.x fallback
+  # path has been removed); v1.37 keeps the same requirement.
+  containerd_version: v2.3.4
+  # runc binary
+  runc_version: v1.2.6
+cni:
+  # ========== cni ==========
+  # cni_plugins binary provides standard CNI plugins (loopback, bridge, macvlan, host-local, etc.).
+  # Multus delegates network setup to these plugins, and Kubelet requires loopback to create the
+  # pod loopback interface. Without them in /opt/cni/bin/, multi-CNI deployments will fail.
+  cni_plugins_version: v1.9.1
+  # ========== cni: calico ==========
+  # calicoctl binary. Calico v3.32's published e2e matrix covers K8s 1.34~1.36; the
+  # forward-compat default for K8s 1.37 stays on v3.32.2 until Tigera's v3.33 (late
+  # Sep 2026) lands an explicit 1.37 row.
+  calico_version: v3.32.2
+  # ========== cni: cilium ==========
+  # cilium helm. Cilium 1.21 is still on the dev branch; 1.20.1 is the latest stable
+  # whose e2e matrix reaches K8s 1.36 and is the forward-compat default for 1.37.
+  cilium_version: 1.20.1
+  # ========== cni: flannel ==========
+  flannel_version: v0.28.9
+  # ========== cni: kubeovn ==========
+  kubeovn_version: v1.16.2
+  # ========== cni: hybridnet ==========
+  hybridnet_version: 0.6.8
+  # ========== multi-cni: multus ==========
+  multus:
+    image:
+      tag: v4.3.0
+  # ========== multi-cni: spiderpool ==========
+  spiderpool_version: v1.2.2
+storage_class:
+  # ========== storageclass ==========
+  # ========== storageclass: local ==========
+  # openebs/dynamic-localpv-provisioner helm chart version.
+  localpv_provisioner_version: 4.4.0
+  # ========== storageclass: nfs ==========
+  # nfs provisioner helm version
+  nfs_provisioner_version: 4.0.18
+dns:
+  # CoreDNS settings. K8s 1.37 sets CoreDNSVersion to v1.14.6 in kubeadm constants.
+  coredns:
+    image:
+      tag: v1.14.6
+  # NodeLocalDNS settings.
+  nodelocaldns:
+    image:
+      tag: 1.26.7

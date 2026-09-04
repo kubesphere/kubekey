@@ -160,7 +160,7 @@ spec:
 ./kk create config --with-kubernetes <Kubernetes version> -o .
 ```
 
-将 `<Kubernetes version>` 替换为实际需要的版本，例如 `v1.36.4`。Kubernetes 默认支持 `v1.23` ~ `v1.36`。
+将 `<Kubernetes version>` 替换为实际需要的版本，例如 `v1.37.0`。Kubernetes 默认支持 `v1.23` ~ `v1.37`。
 
 命令执行完毕后将生成安装配置文件 `config-<Kubernetes version>.yaml`。
 
