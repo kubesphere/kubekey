@@ -76,7 +76,7 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: dist
-          path: .
+          path: ./dist
 
       - name: Synchronize artifacts to OSS
         run: |
