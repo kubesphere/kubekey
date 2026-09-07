@@ -212,7 +212,7 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: harbor
-          path: .
+          path: ./config/harbor
 
       - name: Synchronize harbor packages to OSS
         shell: bash
