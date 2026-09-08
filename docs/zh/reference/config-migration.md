@@ -73,7 +73,7 @@ v3 的 `HostCfg` 本身不带 role/taint 信息；角色仅来自 `roleGroups`�
 | `port` | `port` | |
 | `internalLoadbalancer` = `""` / `none` | `type: local` | `address` → `local.address` |
 | `internalLoadbalancer` = `kubevip` | `type: kube-vip` | `address` → `kube_vip.address`；`kubevip.mode` → `kube_vip.mode` |
-| `internalLoadbalancer` = `haproxy` | `type: haproxy` | `address` → **告警**（v4 haproxy 监听 `127.0.0.1`） |
+| `internalLoadbalancer` = `haproxy` | `type: haproxy` | `address` → `haproxy.address` |
 | `internalLoadbalancer` = 其他 | `type: local` | **告警** |
 
 ### kubernetes → config.yaml kubernetes
@@ -97,6 +97,10 @@ v3 的 `HostCfg` 本身不带 role/taint 信息；角色仅来自 `roleGroups`�
 | `nodeCidrMaskSizeIPv6` | `cni.ipv6_mask_size` | 见 CNI |
 | `dnsDomain` | `dns.domain` | 见 DNS |
 | `nodelocaldns` | `dns.nodelocaldns.enabled` | 见 DNS |
+| `kubeletArgs`（`K=V`） | `kubelet.extra_args` | map 形式（被 kubeadm `kubelet.extraArgs` 消费） |
+| `kubeProxyConfiguration` | `kube_proxy.config` | map 形式（被 kubeadm `kubeProxy.config` 消费） |
+| `kubeletConfiguration` | `kubelet.<标量>` + `kubelet.extra_config` | `maxPods`/`podPidsLimit` 映射到标量；其余键 → `extra_config` |
+| `containerRuntimeEndpoint` | `cri.cri_socket` | 被 kubeadm `nodeRegistration.criSocket` 消费 |
 
 ### network → config.yaml cni
 
@@ -113,6 +117,7 @@ v3 的 `HostCfg` 本身不带 role/taint 信息；角色仅来自 `roleGroups`�
 |---|---|---|
 | `kubernetes.dnsDomain` | `domain` | |
 | `kubernetes.nodelocaldns` | `nodelocaldns.enabled` | |
+| `dns.dnsEtcHosts` | `coredns.dns_etc_hosts` | |
 
 ### etcd → config.yaml etcd
 
@@ -135,6 +140,7 @@ v3 的 `HostCfg` 本身不带 role/taint 信息；角色仅来自 `roleGroups`�
 | `logLevel` | `env.log_level` | |
 | `backupDir` | `backup.backup_dir` | |
 | `keepBackupNumber` | `backup.keep_backup_number` | |
+| `backupScript` | `backup.etcd_backup_script` | |
 
 ### registry → config.yaml cri.registry + image_registry
 
@@ -168,10 +174,6 @@ v3 的 `HostCfg` 本身不带 role/taint 信息；角色仅来自 `roleGroups`�
 | v3 字段 | 处理结果 | 建议 |
 |---|---|---|
 | `kubernetes.kubeProxyArgs` | 丢弃 | — |
-| `kubernetes.kubeProxyConfiguration` | 手工 | 迁移到 `kubernetes.kube_proxy.config` |
-| `kubernetes.kubeletArgs` | 丢弃 | — |
-| `kubernetes.kubeletConfiguration` | 手工 | 迁移到 `kubernetes.kubelet` |
-| `kubernetes.containerRuntimeEndpoint` | 丢弃 | — |
 | `kubernetes.nodeFeatureDiscovery` | 丢弃 | — |
 | `kubernetes.kata` | 丢弃 | — |
 | `kubernetes.nvidiaRuntime` | 丢弃 | — |
@@ -185,9 +187,7 @@ v3 的 `HostCfg` 本身不带 role/taint 信息；角色仅来自 `roleGroups`�
 | `network.flannel` / `kubeovn` / `hybridnet` | 手工 | v4 未暴露各插件细节 |
 | `dns.coredns` | 手工 | 迁移到 `dns.coredns.zone_configs` |
 | `dns.nodelocaldns.externalZones` | 手工 | — |
-| `dns.dnsEtcHosts` / `dns.nodeEtcHosts` | 手工 | 参考 `dns.coredns.dns_etc_hosts` |
 | `etcd.backupPeriod` | 手工 | v4 使用 `etcd.backup.on_calendar` |
-| `etcd.backupScript` | 手工 | 使用 `etcd.backup.etcd_backup_script` |
 | `etcd.extraArgs` | 丢弃 | — |
 | `etcd.external`（端点/证书） | 手工 | 配置 etcd 主机组与证书 |
 | `registry.bridgeIP` | 丢弃 | — |

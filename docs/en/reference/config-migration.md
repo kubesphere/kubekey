@@ -75,7 +75,7 @@ including the `node[i:j]` range shorthand (e.g. `node[1:3]` → `node1`,`node2`,
 | `port` | `port` | |
 | `internalLoadbalancer` = `""` / `none` | `type: local` | `address` → `local.address` |
 | `internalLoadbalancer` = `kubevip` | `type: kube-vip` | `address` → `kube_vip.address`; `kubevip.mode` → `kube_vip.mode` |
-| `internalLoadbalancer` = `haproxy` | `type: haproxy` | `address` → **warning** (v4 haproxy listens on `127.0.0.1`) |
+| `internalLoadbalancer` = `haproxy` | `type: haproxy` | `address` → `haproxy.address` |
 | `internalLoadbalancer` = other | `type: local` | **warning** |
 
 ### kubernetes → config.yaml kubernetes
@@ -99,6 +99,10 @@ including the `node[i:j]` range shorthand (e.g. `node[1:3]` → `node1`,`node2`,
 | `nodeCidrMaskSizeIPv6` | `cni.ipv6_mask_size` | see CNI |
 | `dnsDomain` | `dns.domain` | see DNS |
 | `nodelocaldns` | `dns.nodelocaldns.enabled` | see DNS |
+| `kubeletArgs` (`K=V`) | `kubelet.extra_args` | map form (consumed by kubeadm `kubelet.extraArgs`) |
+| `kubeProxyConfiguration` | `kube_proxy.config` | map form (consumed by kubeadm `kubeProxy.config`) |
+| `kubeletConfiguration` | `kubelet.<scalar>` + `kubelet.extra_config` | `maxPods`/`podPidsLimit` map to scalars; remaining keys → `extra_config` |
+| `containerRuntimeEndpoint` | `cri.cri_socket` | consumed by kubeadm `nodeRegistration.criSocket` |
 
 ### network → config.yaml cni
 
@@ -115,6 +119,7 @@ including the `node[i:j]` range shorthand (e.g. `node[1:3]` → `node1`,`node2`,
 |---|---|---|
 | `kubernetes.dnsDomain` | `domain` | |
 | `kubernetes.nodelocaldns` | `nodelocaldns.enabled` | |
+| `dns.dnsEtcHosts` | `coredns.dns_etc_hosts` | |
 
 ### etcd → config.yaml etcd
 
@@ -137,6 +142,7 @@ including the `node[i:j]` range shorthand (e.g. `node[1:3]` → `node1`,`node2`,
 | `logLevel` | `env.log_level` | |
 | `backupDir` | `backup.backup_dir` | |
 | `keepBackupNumber` | `backup.keep_backup_number` | |
+| `backupScript` | `backup.etcd_backup_script` | |
 
 ### registry → config.yaml cri.registry + image_registry
 
@@ -170,10 +176,6 @@ prints a warning for each so you can adjust `config.yaml` by hand.
 | v3 field | Outcome | Suggestion |
 |---|---|---|
 | `kubernetes.kubeProxyArgs` | dropped | — |
-| `kubernetes.kubeProxyConfiguration` | manual | migrate to `kubernetes.kube_proxy.config` |
-| `kubernetes.kubeletArgs` | dropped | — |
-| `kubernetes.kubeletConfiguration` | manual | migrate to `kubernetes.kubelet` |
-| `kubernetes.containerRuntimeEndpoint` | dropped | — |
 | `kubernetes.nodeFeatureDiscovery` | dropped | — |
 | `kubernetes.kata` | dropped | — |
 | `kubernetes.nvidiaRuntime` | dropped | — |
@@ -187,9 +189,7 @@ prints a warning for each so you can adjust `config.yaml` by hand.
 | `network.flannel` / `kubeovn` / `hybridnet` | manual | v4 does not expose per-plugin details |
 | `dns.coredns` | manual | migrate to `dns.coredns.zone_configs` |
 | `dns.nodelocaldns.externalZones` | manual | — |
-| `dns.dnsEtcHosts` / `dns.nodeEtcHosts` | manual | review `dns.coredns.dns_etc_hosts` |
 | `etcd.backupPeriod` | manual | v4 uses `etcd.backup.on_calendar` |
-| `etcd.backupScript` | manual | use `etcd.backup.etcd_backup_script` |
 | `etcd.extraArgs` | dropped | — |
 | `etcd.external` (endpoints/certs) | manual | configure the etcd group + certs |
 | `registry.bridgeIP` | dropped | — |
