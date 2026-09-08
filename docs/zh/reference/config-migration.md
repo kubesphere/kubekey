@@ -99,6 +99,7 @@ v3 的 `HostCfg` 本身不带 role/taint 信息；角色仅来自 `roleGroups`�
 | `nodelocaldns` | `dns.nodelocaldns.enabled` | 见 DNS |
 | `kubeletArgs`（`K=V`） | `kubelet.extra_args` | map 形式（被 kubeadm `kubelet.extraArgs` 消费） |
 | `kubeProxyConfiguration` | `kube_proxy.config` | map 形式（被 kubeadm `kubeProxy.config` 消费） |
+| `kubeProxyArgs`（`--flag`） | `kube_proxy.mode`（--proxy-mode）+ `kube_proxy.config`（KubeProxyConfiguration） | 不支持的 flag → **告警**；布尔 flag 转为 `true`，逗号分隔的切片转为 `[]string` |
 | `kubeletConfiguration` | `kubelet.<标量>` + `kubelet.extra_config` | `maxPods`/`podPidsLimit` 映射到标量；其余键 → `extra_config` |
 | `containerRuntimeEndpoint` | `cri.cri_socket` | 被 kubeadm `nodeRegistration.criSocket` 消费 |
 
@@ -141,6 +142,8 @@ v3 的 `HostCfg` 本身不带 role/taint 信息；角色仅来自 `roleGroups`�
 | `backupDir` | `backup.backup_dir` | |
 | `keepBackupNumber` | `backup.keep_backup_number` | |
 | `backupScript` | `backup.etcd_backup_script` | |
+| `backupPeriod` | `backup.on_calendar` | 分钟 → `*/N * * * *`（systemd timer，每 N 分钟执行一次）；**告警**会说明该转换 |
+| `extraArgs`（`--flag`） | `env.<snake_key>` | 支持的 flag 映射到 `etcd.env.*`（如 `--data-dir`→`env.data_dir`）；不支持的 flag（含 listen/advertise 类 URL，v4 会据 inventory 自动生成）→ **告警** |
 
 ### registry → config.yaml cri.registry + image_registry
 
@@ -171,24 +174,28 @@ v3 的 `HostCfg` 本身不带 role/taint 信息；角色仅来自 `roleGroups`�
 以下 v3 字段要么被丢弃，要么需要手工迁移。转换器会针对每一项打印告警，
 方便你手工调整 `config.yaml`。
 
+部分原先需要手工迁移的字段现已自动转换（`kubernetes.kubeProxyArgs`、
+`etcd.backupPeriod`、`etcd.extraArgs`，见上方映射表），其**不支持的子 flag**
+仍会输出告警。
+
 | v3 字段 | 处理结果 | 建议 |
 |---|---|---|
-| `kubernetes.kubeProxyArgs` | 丢弃 | — |
+| `kubernetes.kubeProxyArgs` | 自动映射 → `kube_proxy.mode` / `kube_proxy.config` | 见 kubernetes 映射表；不支持的 flag → 告警 |
 | `kubernetes.nodeFeatureDiscovery` | 丢弃 | — |
 | `kubernetes.kata` | 丢弃 | — |
 | `kubernetes.nvidiaRuntime` | 丢弃 | — |
 | `kubernetes.type` | 忽略 | v4 无集群类型概念 |
-| `network.calico.ipipMode`（非 Always） | 手工 | 配置 calico values |
-| `network.calico.vxlanMode`（非 Never） | 手工 | 配置 calico values |
-| `network.calico.vethMTU` | 手工 | 配置 calico values |
-| `network.calico.ipAutoDetectionMethod` | 手工 | 配置 calico values |
-| `network.calico.ipv4NatOutgoing=false` | 手工 | 配置 calico values |
-| `network.calico.typha` / `controller` | 手工 | 配置 calico values |
+| `network.calico.ipipMode`（非 Always） | 手工 | 通过 `cni.calico.values`（Calico helm 自定义 values 文件，对应 Calico Installation spec）配置 |
+| `network.calico.vxlanMode`（非 Never） | 手工 | 通过 `cni.calico.values`（Calico helm 自定义 values 文件，对应 Calico Installation spec）配置 |
+| `network.calico.vethMTU` | 手工 | 通过 `cni.calico.values`（Calico helm 自定义 values 文件，对应 Calico Installation spec）配置 |
+| `network.calico.ipAutoDetectionMethod` | 手工 | 通过 `cni.calico.values`（Calico helm 自定义 values 文件，对应 Calico Installation spec）配置 |
+| `network.calico.ipv4NatOutgoing=false` | 手工 | 通过 `cni.calico.values`（Calico helm 自定义 values 文件，对应 Calico Installation spec）配置 |
+| `network.calico.typha` / `controller` | 手工 | 通过 `cni.calico.values`（Calico helm 自定义 values 文件，对应 Calico Installation spec）配置 |
 | `network.flannel` / `kubeovn` / `hybridnet` | 手工 | v4 未暴露各插件细节 |
 | `dns.coredns` | 手工 | 迁移到 `dns.coredns.zone_configs` |
 | `dns.nodelocaldns.externalZones` | 手工 | — |
-| `etcd.backupPeriod` | 手工 | v4 使用 `etcd.backup.on_calendar` |
-| `etcd.extraArgs` | 丢弃 | — |
+| `etcd.backupPeriod` | 自动映射 → `etcd.backup.on_calendar` | 见 etcd 映射表 |
+| `etcd.extraArgs` | 自动映射 → `etcd.env.<snake_key>` | 见 etcd 映射表；不支持的 flag → 告警 |
 | `etcd.external`（端点/证书） | 手工 | 配置 etcd 主机组与证书 |
 | `registry.bridgeIP` | 丢弃 | — |
 | `registry.namespaceOverride` | 手工 | 复核镜像命名 |

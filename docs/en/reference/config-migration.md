@@ -101,6 +101,7 @@ including the `node[i:j]` range shorthand (e.g. `node[1:3]` → `node1`,`node2`,
 | `nodelocaldns` | `dns.nodelocaldns.enabled` | see DNS |
 | `kubeletArgs` (`K=V`) | `kubelet.extra_args` | map form (consumed by kubeadm `kubelet.extraArgs`) |
 | `kubeProxyConfiguration` | `kube_proxy.config` | map form (consumed by kubeadm `kubeProxy.config`) |
+| `kubeProxyArgs` (`--flag`) | `kube_proxy.mode` (--proxy-mode) + `kube_proxy.config` (KubeProxyConfiguration) | unsupported flags → **warning**; boolean flags become `true`, comma-separated slices become `[]string` |
 | `kubeletConfiguration` | `kubelet.<scalar>` + `kubelet.extra_config` | `maxPods`/`podPidsLimit` map to scalars; remaining keys → `extra_config` |
 | `containerRuntimeEndpoint` | `cri.cri_socket` | consumed by kubeadm `nodeRegistration.criSocket` |
 
@@ -143,6 +144,8 @@ including the `node[i:j]` range shorthand (e.g. `node[1:3]` → `node1`,`node2`,
 | `backupDir` | `backup.backup_dir` | |
 | `keepBackupNumber` | `backup.keep_backup_number` | |
 | `backupScript` | `backup.etcd_backup_script` | |
+| `backupPeriod` | `backup.on_calendar` | minutes → `*/N * * * *` (systemd timer, runs every N minutes); **warning** notes the conversion |
+| `extraArgs` (`--flag`) | `env.<snake_key>` | supported flags map to `etcd.env.*` (e.g. `--data-dir`→`env.data_dir`); unsupported flags (incl. listen/advertise URLs, which v4 computes from the inventory) → **warning** |
 
 ### registry → config.yaml cri.registry + image_registry
 
@@ -173,24 +176,28 @@ including the `node[i:j]` range shorthand (e.g. `node[1:3]` → `node1`,`node2`,
 These v3 fields are either dropped or require manual migration. The converter
 prints a warning for each so you can adjust `config.yaml` by hand.
 
+Some fields that previously required manual migration are now auto-mapped
+(`kubernetes.kubeProxyArgs`, `etcd.backupPeriod`, `etcd.extraArgs`; see the
+mapping tables above). Their **unsupported sub-flags** still produce a warning.
+
 | v3 field | Outcome | Suggestion |
 |---|---|---|
-| `kubernetes.kubeProxyArgs` | dropped | — |
+| `kubernetes.kubeProxyArgs` | auto-mapped → `kube_proxy.mode` / `kube_proxy.config` | see kubernetes mapping table; unsupported flags → warning |
 | `kubernetes.nodeFeatureDiscovery` | dropped | — |
 | `kubernetes.kata` | dropped | — |
 | `kubernetes.nvidiaRuntime` | dropped | — |
 | `kubernetes.type` | ignored | v4 has no cluster type |
-| `network.calico.ipipMode` (non-Always) | manual | configure calico values |
-| `network.calico.vxlanMode` (non-Never) | manual | configure calico values |
-| `network.calico.vethMTU` | manual | configure calico values |
-| `network.calico.ipAutoDetectionMethod` | manual | configure calico values |
-| `network.calico.ipv4NatOutgoing=false` | manual | configure calico values |
-| `network.calico.typha` / `controller` | manual | configure calico values |
+| `network.calico.ipipMode` (non-Always) | manual | configure via `cni.calico.values` (Calico helm custom values file, targeting the Calico Installation spec) |
+| `network.calico.vxlanMode` (non-Never) | manual | configure via `cni.calico.values` (Calico helm custom values file, targeting the Calico Installation spec) |
+| `network.calico.vethMTU` | manual | configure via `cni.calico.values` (Calico helm custom values file, targeting the Calico Installation spec) |
+| `network.calico.ipAutoDetectionMethod` | manual | configure via `cni.calico.values` (Calico helm custom values file, targeting the Calico Installation spec) |
+| `network.calico.ipv4NatOutgoing=false` | manual | configure via `cni.calico.values` (Calico helm custom values file, targeting the Calico Installation spec) |
+| `network.calico.typha` / `controller` | manual | configure via `cni.calico.values` (Calico helm custom values file, targeting the Calico Installation spec) |
 | `network.flannel` / `kubeovn` / `hybridnet` | manual | v4 does not expose per-plugin details |
 | `dns.coredns` | manual | migrate to `dns.coredns.zone_configs` |
 | `dns.nodelocaldns.externalZones` | manual | — |
-| `etcd.backupPeriod` | manual | v4 uses `etcd.backup.on_calendar` |
-| `etcd.extraArgs` | dropped | — |
+| `etcd.backupPeriod` | auto-mapped → `etcd.backup.on_calendar` | see etcd mapping table |
+| `etcd.extraArgs` | auto-mapped → `etcd.env.<snake_key>` | see etcd mapping table; unsupported flags → warning |
 | `etcd.external` (endpoints/certs) | manual | configure the etcd group + certs |
 | `registry.bridgeIP` | dropped | — |
 | `registry.namespaceOverride` | manual | review image naming |

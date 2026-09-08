@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/cockroachdb/errors"
@@ -315,14 +316,19 @@ func (r *Result) convertKubernetes(cluster *Cluster) map[string]any {
 		setNested(kp, false, "manage", "enabled")
 		r.warnf("kubernetes.disableKubeProxy is mapped to kube_proxy.manage.enabled=false; verify kube-proxy deployment ownership")
 	}
-	if len(kp) > 0 {
-		k["kube_proxy"] = kp
-	}
+	// kubernetes.kubeProxyArgs are kube-proxy component flags; they map onto
+	// kube_proxy.mode (--proxy-mode) and the kube_proxy.config KubeProxyConfiguration
+	// (every other flag). Unsupported flags are reported and dropped.
 	if len(k3.KubeProxyArgs) > 0 {
-		r.warnf("kubernetes.kubeProxyArgs has no v4 equivalent and is dropped")
+		r.convertKubeProxyArgs(k3.KubeProxyArgs, kp)
 	}
 	if len(k3.KubeProxyConfiguration) > 0 {
-		setNested(k, k3.KubeProxyConfiguration, "kube_proxy", "config")
+		// Merge the structured KubeProxyConfiguration on top of any args-derived
+		// config; an explicit kubeProxyConfiguration wins over kubeProxyArgs.
+		mergeMap(getOrCreateMap(kp, "config"), k3.KubeProxyConfiguration)
+	}
+	if len(kp) > 0 {
+		k["kube_proxy"] = kp
 	}
 
 	// kubelet
@@ -390,26 +396,40 @@ func (r *Result) convertCNI(cluster *Cluster) map[string]any {
 		cni["ipv6_mask_size"] = cluster.Spec.Kubernetes.NodeCidrMaskSizeIPv6
 	}
 
-	// Per-plugin details are largely not exposed by v4 defaults.
+	// Per-plugin details: v4 does not expose Calico (or other CNI plugins) through
+	// structured config keys. Instead it renders the plugin from a helm chart and lets
+	// the user override it via cni.<plugin>.values (a Calico/Cilium helm custom values
+	// file). Collect the non-default calico fields and point the user at that values
+	// file, which targets the Calico Installation spec.
 	if !calicoEmpty(n.Calico) {
 		c := n.Calico
-		if c.IPIPMode != "" && c.IPIPMode != "Always" {
-			r.warnf("network.calico.ipipMode %q has no v4 equivalent; configure calico values manually", c.IPIPMode)
+		var fields []string
+		if c.IPIPMode != "" {
+			fields = append(fields, "ipipMode="+c.IPIPMode)
 		}
-		if c.VXLANMode != "" && c.VXLANMode != "Never" {
-			r.warnf("network.calico.vxlanMode %q has no v4 equivalent; configure calico values manually", c.VXLANMode)
+		if c.VXLANMode != "" {
+			fields = append(fields, "vxlanMode="+c.VXLANMode)
 		}
 		if c.VethMTU != 0 {
-			r.warnf("network.calico.vethMTU %d has no v4 equivalent; configure calico values manually", c.VethMTU)
+			fields = append(fields, fmt.Sprintf("vethMTU=%d", c.VethMTU))
 		}
 		if c.IPAutoDetectionMethod != "" {
-			r.warnf("network.calico.ipAutoDetectionMethod %q has no v4 equivalent; configure calico values manually", c.IPAutoDetectionMethod)
+			fields = append(fields, "ipAutoDetectionMethod="+c.IPAutoDetectionMethod)
 		}
-		if c.Ipv4NatOutgoing != nil && !*c.Ipv4NatOutgoing {
-			r.warnf("network.calico.ipv4NatOutgoing=false has no v4 equivalent; configure calico values manually")
+		if c.Ipv4NatOutgoing != nil {
+			fields = append(fields, fmt.Sprintf("ipv4NatOutgoing=%t", *c.Ipv4NatOutgoing))
 		}
-		if len(c.Typha) > 0 || len(c.Controller) > 0 {
-			r.warnf("network.calico.typha/controller have no v4 equivalent; configure calico values manually")
+		if c.Ipv6NatOutgoing != nil {
+			fields = append(fields, fmt.Sprintf("ipv6NatOutgoing=%t", *c.Ipv6NatOutgoing))
+		}
+		if len(c.Typha) > 0 {
+			fields = append(fields, "typha")
+		}
+		if len(c.Controller) > 0 {
+			fields = append(fields, "controller")
+		}
+		if len(fields) > 0 {
+			r.warnf("network.calico fields [%s] have no direct v4 config keys; migrate them via cni.calico.values (Calico helm custom values file, see cni/calico/tasks) targeting the Calico Installation spec", strings.Join(fields, ", "))
 		}
 	}
 	for _, p := range []struct {
@@ -531,14 +551,24 @@ func (r *Result) convertEtcd(cluster *Cluster) map[string]any {
 	if e3.BackupScriptDir != "" {
 		backup["etcd_backup_script"] = e3.BackupScriptDir
 	}
+	if e3.BackupPeriod != 0 {
+		// v4 schedules backups with a systemd OnCalendar expression. A 3.x
+		// backupPeriod is an interval in minutes, which maps to "every N minutes".
+		cal := fmt.Sprintf("*/%d * * * *", e3.BackupPeriod)
+		backup["on_calendar"] = cal
+		r.warnf("etcd.backupPeriod %d (minutes) auto-converted to etcd.backup.on_calendar=%q (systemd timer, runs every %d minutes); verify the schedule matches your expectation", e3.BackupPeriod, cal, e3.BackupPeriod)
+	}
 	if len(backup) > 0 {
 		etcd["backup"] = backup
 	}
-	if e3.BackupPeriod != 0 {
-		r.warnf("etcd.backupPeriod %d uses a different scheduling model in v4 (etcd.backup.on_calendar); review it manually", e3.BackupPeriod)
-	}
+
+	// etcd.extraArgs are etcd component flags ("--flag=value"). v4 feeds etcd via
+	// the etcd.env template, which exposes a fixed set of ETCD_* env keys through
+	// etcd.env.<snake_key>. Map the supported flags there; unsupported flags (e.g.
+	// listen/advertise URLs, which v4 computes from the inventory) are reported and
+	// dropped.
 	if len(e3.ExtraArgs) > 0 {
-		r.warnf("etcd.extraArgs has no v4 equivalent and is dropped")
+		r.convertEtcdExtraArgs(e3.ExtraArgs, etcd)
 	}
 
 	return etcd
@@ -818,6 +848,163 @@ func setNested(obj map[string]any, value any, fields ...string) {
 		}
 		obj = next
 	}
+}
+
+// getOrCreateMap returns m[key] as a map[string]any, creating and storing an
+// empty map if it is absent or not already a map.
+func getOrCreateMap(m map[string]any, key string) map[string]any {
+	if sub, ok := m[key].(map[string]any); ok {
+		return sub
+	}
+	sub := map[string]any{}
+	m[key] = sub
+	return sub
+}
+
+// mergeMap deep-merges src into dst; on conflict src values win. Both are
+// map[string]any trees (mirrors how kube_proxy.config is built).
+func mergeMap(dst, src map[string]any) {
+	for k, v := range src {
+		if sm, ok := v.(map[string]any); ok {
+			if dm, ok := dst[k].(map[string]any); ok {
+				mergeMap(dm, sm)
+				continue
+			}
+		}
+		dst[k] = v
+	}
+}
+
+// kubeProxyArgPaths maps a kube-proxy component flag (without leading "--") to
+// its path inside kube_proxy. The top-level "mode" maps to kube_proxy.mode;
+// every other flag maps into the kube_proxy.config KubeProxyConfiguration.
+// Field names follow the upstream KubeProxyConfiguration API.
+var kubeProxyArgPaths = map[string][]string{
+	"proxy-mode":                        {"mode"},
+	"bind-address":                      {"config", "bindAddress"},
+	"cluster-cidr":                      {"config", "clusterCIDR"},
+	"healthz-bind-address":              {"config", "healthzBindAddress"},
+	"metrics-bind-address":              {"config", "metricsBindAddress"},
+	"hostname-override":                 {"config", "hostnameOverride"},
+	"nodeport-addresses":                {"config", "nodePortAddresses"},
+	"oom-score-adj":                     {"config", "oomScoreAdj"},
+	"profiling":                         {"config", "profiling"},
+	"sync-period":                       {"config", "syncPeriod"},
+	"masquerade-all":                    {"config", "iptables", "masqueradeAll"},
+	"masquerade-bit":                    {"config", "iptables", "masqueradeBit"},
+	"iptables-min-sync-period":          {"config", "iptables", "minSyncPeriod"},
+	"iptables-sync-period":              {"config", "iptables", "syncPeriod"},
+	"ipvs-scheduler":                    {"config", "ipvs", "scheduler"},
+	"ipvs-exclude-cidrs":                {"config", "ipvs", "excludeCIDRs"},
+	"ipvs-strict-arp":                   {"config", "ipvs", "strictARP"},
+	"ipvs-min-sync-period":              {"config", "ipvs", "minSyncPeriod"},
+	"ipvs-sync-period":                  {"config", "ipvs", "syncPeriod"},
+	"ipvs-tcp-timeout":                  {"config", "ipvs", "tcpTimeout"},
+	"ipvs-udp-timeout":                  {"config", "ipvs", "udpTimeout"},
+	"conntrack-max":                     {"config", "conntrack", "max"},
+	"conntrack-max-per-core":            {"config", "conntrack", "maxPerCore"},
+	"conntrack-min":                     {"config", "conntrack", "min"},
+	"conntrack-tcp-timeout-close-wait":  {"config", "conntrack", "tcpTimeoutCloseWait"},
+	"conntrack-tcp-timeout-established": {"config", "conntrack", "tcpTimeoutEstablished"},
+	"conntrack-tcp-timeout-syn-sent":    {"config", "conntrack", "tcpTimeoutSynSent"},
+	"conntrack-udp-timeout-established": {"config", "conntrack", "udpTimeoutEstablished"},
+	"conntrack-udp-timeout":             {"config", "conntrack", "udpTimeout"},
+}
+
+// kubeProxyArgSliceLeaves marks KubeProxyConfiguration leaf fields that take a
+// comma-separated string slice on the CLI (e.g. --nodeport-addresses) so the
+// value is stored as a []any instead of a bare string.
+var kubeProxyArgSliceLeaves = map[string]bool{
+	"nodePortAddresses": true,
+	"excludeCIDRs":      true,
+}
+
+// convertKubeProxyArgs maps kube-proxy component args into kp (the v4
+// kube_proxy section). Boolean flags (no "=value") become true; pure-integer
+// values are coerced to int; comma-separated values targeting a known slice
+// field become []string. Unsupported flags are reported and skipped.
+func (r *Result) convertKubeProxyArgs(args []string, kp map[string]any) {
+	for _, arg := range args {
+		flag, val, found := strings.Cut(strings.TrimPrefix(arg, "--"), "=")
+		if flag == "" {
+			r.warnf("kubernetes.kubeProxyArgs %q is malformed and dropped", arg)
+			continue
+		}
+		path, ok := kubeProxyArgPaths[flag]
+		if !ok {
+			r.warnf("kubernetes.kubeProxyArgs %q has no automatic v4 mapping (kube_proxy.config is a KubeProxyConfiguration); set it manually in kube_proxy.config", arg)
+			continue
+		}
+		var value any
+		switch {
+		case !found:
+			value = true
+		case kubeProxyArgSliceLeaves[path[len(path)-1]] && strings.Contains(val, ","):
+			parts := strings.Split(val, ",")
+			slice := make([]any, len(parts))
+			for i, p := range parts {
+				slice[i] = p
+			}
+			value = slice
+		case isInt(val):
+			value, _ = strconv.Atoi(val)
+		default:
+			value = val
+		}
+		setNested(kp, value, path...)
+	}
+}
+
+// etcdEnvArgKeys maps an etcd component flag (without leading "--") to the
+// etcd.env.<snake_key> consumed by the etcd.env template. Only the flags the
+// template actually renders are listed; everything else is reported and dropped.
+var etcdEnvArgKeys = map[string]string{
+	"data-dir":                  "data_dir",
+	"heartbeat-interval":        "heartbeat_interval",
+	"election-timeout":          "election_timeout",
+	"snapshot-count":            "snapshot_count",
+	"auto-compaction-retention": "compaction_retention",
+	"metrics":                   "metrics",
+	"quota-backend-bytes":       "quota_backend_bytes",
+	"max-request-bytes":         "max_request_bytes",
+	"max-snapshots":             "max_snapshots",
+	"max-wals":                  "max_wals",
+	"log-level":                 "log_level",
+	"initial-cluster-token":     "token",
+	"unsupported-arch":          "unsupported_arch",
+}
+
+// convertEtcdExtraArgs maps etcd component args into the etcd.env section of
+// the v4 config. Supported flags become etcd.env.<snake_key> (numeric values
+// coerced to int); unsupported flags are reported and dropped.
+func (r *Result) convertEtcdExtraArgs(args []string, etcd map[string]any) {
+	env := getOrCreateMap(etcd, "env")
+	for _, arg := range args {
+		flag, val, found := strings.Cut(strings.TrimPrefix(arg, "--"), "=")
+		snake, ok := etcdEnvArgKeys[flag]
+		if !ok {
+			r.warnf("etcd.extraArgs %q has no v4 etcd.env equivalent and is dropped", arg)
+			continue
+		}
+		if !found {
+			r.warnf("etcd.extraArgs %q has no value and is dropped", arg)
+			continue
+		}
+		if isInt(val) {
+			env[snake], _ = strconv.Atoi(val)
+			continue
+		}
+		env[snake] = val
+	}
+}
+
+// isInt reports whether s is a plain base-10 integer (no sign, no exponent).
+func isInt(s string) bool {
+	if s == "" {
+		return false
+	}
+	_, err := strconv.Atoi(s)
+	return err == nil
 }
 
 // ConvertInventoryAndConfig converts v3 configuration YAML bytes into v4

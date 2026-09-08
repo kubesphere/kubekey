@@ -550,4 +550,164 @@ func TestSplitInternalAddress(t *testing.T) {
 	}
 }
 
+func TestConvertKubeProxyArgs(t *testing.T) {
+	data := `
+apiVersion: kubekey.kubesphere.io/v1alpha2
+kind: Cluster
+metadata:
+  name: kp
+spec:
+  hosts:
+  - {name: node1, address: 172.16.0.2}
+  roleGroups:
+    master: [node1]
+    worker: [node1]
+    etcd: [node1]
+  controlPlaneEndpoint:
+    internalLoadbalancer: local
+    domain: lb.local
+  kubernetes:
+    version: v1.28.5
+    containerManager: containerd
+    kubeProxyArgs:
+      - "proxy-mode=iptables"
+      - "masquerade-all"
+      - "ipvs-scheduler=rr"
+      - "nodeport-addresses=10.0.0.0/16,10.1.0.0/16"
+      - "conntrack-max-per-core=2"
+      - "bogus-flag=1"
+`
+	c, err := parse(t, data)
+	if err != nil {
+		t.Fatalf("parse failed: %v", err)
+	}
+	r, err := Convert(c)
+	if err != nil {
+		t.Fatalf("convert failed: %v", err)
+	}
+	cfg := r.Config
+
+	if got := getNested(t, cfg, "kubernetes", "kube_proxy", "mode"); got != "iptables" {
+		t.Errorf("kube_proxy.mode = %v, want iptables", got)
+	}
+	if got := getNested(t, cfg, "kubernetes", "kube_proxy", "config", "iptables", "masqueradeAll"); got != true {
+		t.Errorf("kube_proxy.config.iptables.masqueradeAll = %v, want true", got)
+	}
+	if got := getNested(t, cfg, "kubernetes", "kube_proxy", "config", "ipvs", "scheduler"); got != "rr" {
+		t.Errorf("kube_proxy.config.ipvs.scheduler = %v, want rr", got)
+	}
+	if got := getNested(t, cfg, "kubernetes", "kube_proxy", "config", "conntrack", "maxPerCore"); got != 2 {
+		t.Errorf("kube_proxy.config.conntrack.maxPerCore = %v, want 2", got)
+	}
+	// nodeport-addresses is a comma-separated slice -> []any
+	npRaw := getNested(t, cfg, "kubernetes", "kube_proxy", "config", "nodePortAddresses")
+	np, ok := npRaw.([]any)
+	if !ok {
+		t.Fatalf("kube_proxy.config.nodePortAddresses = %#v, want []any", npRaw)
+	}
+	if len(np) != 2 || np[0] != "10.0.0.0/16" || np[1] != "10.1.0.0/16" {
+		t.Errorf("kube_proxy.config.nodePortAddresses = %#v, want [10.0.0.0/16 10.1.0.0/16]", np)
+	}
+	// unsupported flag reported
+	joined := strings.Join(r.Warnings, "\n")
+	if !strings.Contains(joined, "bogus-flag") {
+		t.Errorf("expected warning for bogus-flag, got:\n%s", joined)
+	}
+}
+
+func TestConvertEtcdExtras(t *testing.T) {
+	data := `
+apiVersion: kubekey.kubesphere.io/v1alpha2
+kind: Cluster
+metadata:
+  name: etcd
+spec:
+  hosts:
+  - {name: node1, address: 172.16.0.2}
+  roleGroups:
+    master: [node1]
+    worker: [node1]
+    etcd: [node1]
+  controlPlaneEndpoint:
+    internalLoadbalancer: local
+    domain: lb.local
+  kubernetes:
+    version: v1.28.5
+    containerManager: containerd
+  etcd:
+    type: kubekey
+    extraArgs:
+      - "data-dir=/data/etcd"
+      - "heartbeat-interval=300"
+      - "quota-backend-bytes=8589934592"
+      - "listen-client-urls=https://0.0.0.0:2379"
+      - "bogus-flag=1"
+`
+	c, err := parse(t, data)
+	if err != nil {
+		t.Fatalf("parse failed: %v", err)
+	}
+	r, err := Convert(c)
+	if err != nil {
+		t.Fatalf("convert failed: %v", err)
+	}
+	cfg := r.Config
+	if got := getNested(t, cfg, "etcd", "env", "data_dir"); got != "/data/etcd" {
+		t.Errorf("etcd.env.data_dir = %v, want /data/etcd", got)
+	}
+	if got := getNested(t, cfg, "etcd", "env", "heartbeat_interval"); got != 300 {
+		t.Errorf("etcd.env.heartbeat_interval = %v, want 300", got)
+	}
+	if got := getNested(t, cfg, "etcd", "env", "quota_backend_bytes"); got != 8589934592 {
+		t.Errorf("etcd.env.quota_backend_bytes = %v, want 8589934592", got)
+	}
+	joined := strings.Join(r.Warnings, "\n")
+	for _, want := range []string{"listen-client-urls", "bogus-flag"} {
+		if !strings.Contains(joined, want) {
+			t.Errorf("expected warning for %q, got:\n%s", want, joined)
+		}
+	}
+}
+
+func TestConvertEtcdBackupPeriod(t *testing.T) {
+	data := `
+apiVersion: kubekey.kubesphere.io/v1alpha2
+kind: Cluster
+metadata:
+  name: bp
+spec:
+  hosts:
+  - {name: node1, address: 172.16.0.2}
+  roleGroups:
+    master: [node1]
+    worker: [node1]
+    etcd: [node1]
+  controlPlaneEndpoint:
+    internalLoadbalancer: local
+    domain: lb.local
+  kubernetes:
+    version: v1.28.5
+    containerManager: containerd
+  etcd:
+    type: kubekey
+    backupPeriod: 30
+`
+	c, err := parse(t, data)
+	if err != nil {
+		t.Fatalf("parse failed: %v", err)
+	}
+	r, err := Convert(c)
+	if err != nil {
+		t.Fatalf("convert failed: %v", err)
+	}
+	cfg := r.Config
+	if got := getNested(t, cfg, "etcd", "backup", "on_calendar"); got != "*/30 * * * *" {
+		t.Errorf("etcd.backup.on_calendar = %v, want */30 * * * *", got)
+	}
+	joined := strings.Join(r.Warnings, "\n")
+	if !strings.Contains(joined, "auto-converted") || !strings.Contains(joined, "*/30 * * * *") {
+		t.Errorf("expected auto-convert warning, got:\n%s", joined)
+	}
+}
+
 var _ = errors.New // keep errors import for future assertions
