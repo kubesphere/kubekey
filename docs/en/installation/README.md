@@ -85,6 +85,8 @@ spec:
 
 For disk formatting and multipath settings, see [Storage and Multipath Configuration](../reference/storage.md).
 
+If you have an existing v3 (v1alpha2) cluster configuration, use `kk create convert` to migrate it to v4 `inventory.yaml` and `config.yaml`. See [Migrate a v3 Configuration to v4](../reference/config-migration.md) for the full field mapping.
+
 ## Define Key Configuration
 
 KubeKey uses the `Config` resource to define key cluster configuration.
