@@ -198,7 +198,6 @@ v3 的 `HostCfg` 本身不带 role/taint 信息；角色仅来自 `roleGroups`�
 | `system.rpms` / `system.debs` | 手工 | 通过 hook playbook 安装 |
 | `system.preInstall` / `postClusterInstall` / `postInstall` | 手工 | 迁移到 hook playbook |
 | `system.skipConfigureOS` | 丢弃 | — |
-| `controlPlaneEndpoint.address`（haproxy） | 告警 | v4 haproxy 监听 `127.0.0.1` |
 
 ## 已解析但尚未转换
 

@@ -433,6 +433,112 @@ func TestConvertInventoryAndConfigOutput(t *testing.T) {
 	}
 }
 
+func TestConvertMappedFields(t *testing.T) {
+	data := `
+apiVersion: kubekey.kubesphere.io/v1alpha2
+kind: Cluster
+metadata:
+  name: mapped
+spec:
+  hosts:
+  - {name: node1, address: 172.16.0.2}
+  roleGroups:
+    master: [node1]
+    worker: [node1]
+    etcd: [node1]
+  controlPlaneEndpoint:
+    internalLoadbalancer: haproxy
+    domain: lb.local
+    address: 127.0.0.2
+    port: 6443
+  kubernetes:
+    version: v1.28.5
+    containerManager: containerd
+    containerRuntimeEndpoint: "unix:///run/containerd/containerd.sock"
+    kubeletArgs: ["max-pods=250", "read-only-port=0"]
+    kubeProxyConfiguration:
+      iptables:
+        masqueradeAll: true
+        masqueradeBit: 14
+      mode: ipvs
+    kubeletConfiguration:
+      maxPods: 300
+      podPidsLimit: 12000
+      clusterDomain: cluster.local
+      featureGates:
+        CSIVolumeHealth: true
+      evictionHard:
+        memory.available: 5%
+  etcd:
+    type: kubekey
+    backupScript: /opt/etcd-backup.sh
+  dns:
+    dnsEtcHosts: "10.0.0.1 example.com"
+`
+	c, err := parse(t, data)
+	if err != nil {
+		t.Fatalf("parse failed: %v", err)
+	}
+	r, err := Convert(c)
+	if err != nil {
+		t.Fatalf("convert failed: %v", err)
+	}
+	cfg := r.Config
+
+	// kubernetes.kubeletArgs -> kubernetes.kubelet.extra_args (consumed by kubeadm template)
+	if got := getNested(t, cfg, "kubernetes", "kubelet", "extra_args", "max-pods"); got != "250" {
+		t.Errorf("kubelet.extra_args[max-pods] = %v, want 250", got)
+	}
+	if got := getNested(t, cfg, "kubernetes", "kubelet", "extra_args", "read-only-port"); got != "0" {
+		t.Errorf("kubelet.extra_args[read-only-port] = %v, want 0", got)
+	}
+
+	// kubernetes.kubeProxyConfiguration -> kubernetes.kube_proxy.config
+	if got := getNested(t, cfg, "kubernetes", "kube_proxy", "config", "mode"); got != "ipvs" {
+		t.Errorf("kube_proxy.config.mode = %v, want ipvs", got)
+	}
+	if got := getNested(t, cfg, "kubernetes", "kube_proxy", "config", "iptables", "masqueradeAll"); got != true {
+		t.Errorf("kube_proxy.config.iptables.masqueradeAll = %v, want true", got)
+	}
+
+	// kubernetes.kubeletConfiguration -> kubernetes.kubelet scalars + extra_config
+	if got := getNested(t, cfg, "kubernetes", "kubelet", "max_pods"); got != 300 {
+		t.Errorf("kubelet.max_pods = %v, want 300", got)
+	}
+	if got := getNested(t, cfg, "kubernetes", "kubelet", "pod_pids_limit"); got != 12000 {
+		t.Errorf("kubelet.pod_pids_limit = %v, want 12000", got)
+	}
+	if got := getNested(t, cfg, "kubernetes", "kubelet", "extra_config", "clusterDomain"); got != "cluster.local" {
+		t.Errorf("kubelet.extra_config.clusterDomain = %v, want cluster.local", got)
+	}
+	if got := getNested(t, cfg, "kubernetes", "kubelet", "extra_config", "evictionHard", "memory.available"); got != "5%" {
+		t.Errorf("kubelet.extra_config.evictionHard.memory.available = %v, want 5%%", got)
+	}
+	if got := getNested(t, cfg, "kubernetes", "kubelet", "feature_gates", "CSIVolumeHealth"); got != true {
+		t.Errorf("kubelet.feature_gates.CSIVolumeHealth = %v, want true", got)
+	}
+
+	// kubernetes.containerRuntimeEndpoint -> cri.cri_socket (consumed by kubeadm template)
+	if got := getNested(t, cfg, "cri", "cri_socket"); got != "unix:///run/containerd/containerd.sock" {
+		t.Errorf("cri.cri_socket = %v", got)
+	}
+
+	// controlPlaneEndpoint.address (haproxy) -> control_plane_endpoint.haproxy.address
+	if got := getNested(t, cfg, "kubernetes", "control_plane_endpoint", "haproxy", "address"); got != "127.0.0.2" {
+		t.Errorf("cpe.haproxy.address = %v, want 127.0.0.2", got)
+	}
+
+	// etcd.backupScript -> etcd.backup.etcd_backup_script
+	if got := getNested(t, cfg, "etcd", "backup", "etcd_backup_script"); got != "/opt/etcd-backup.sh" {
+		t.Errorf("etcd.backup.etcd_backup_script = %v", got)
+	}
+
+	// dns.dnsEtcHosts -> dns.coredns.dns_etc_hosts
+	if got := getNested(t, cfg, "dns", "coredns", "dns_etc_hosts"); got != "10.0.0.1 example.com" {
+		t.Errorf("dns.coredns.dns_etc_hosts = %v", got)
+	}
+}
+
 func TestSplitInternalAddress(t *testing.T) {
 	ipv4, ipv6 := splitInternalAddress("10.0.0.1,fd00::1")
 	if ipv4 != "10.0.0.1" || ipv6 != "fd00::1" {

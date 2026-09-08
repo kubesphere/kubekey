@@ -260,7 +260,7 @@ func (r *Result) convertKubernetes(cluster *Cluster) map[string]any {
 	case "haproxy":
 		cpe["type"] = "haproxy"
 		if cluster.Spec.ControlPlaneEndpoint.Address != "" {
-			r.warnf("controlPlaneEndpoint.address %q has no direct equivalent when type is haproxy (v4 haproxy listens on 127.0.0.1); review kubernetes.control_plane_endpoint", cluster.Spec.ControlPlaneEndpoint.Address)
+			cpe["haproxy"] = map[string]any{"address": cluster.Spec.ControlPlaneEndpoint.Address}
 		}
 	default:
 		r.warnf("unsupported controlPlaneEndpoint.internalLoadbalancer %q, converted to type local", cluster.Spec.ControlPlaneEndpoint.InternalLoadbalancer)
@@ -322,7 +322,7 @@ func (r *Result) convertKubernetes(cluster *Cluster) map[string]any {
 		r.warnf("kubernetes.kubeProxyArgs has no v4 equivalent and is dropped")
 	}
 	if len(k3.KubeProxyConfiguration) > 0 {
-		r.warnf("kubernetes.kubeProxyConfiguration has no direct v4 equivalent; migrate entries to kubernetes.kube_proxy.config manually")
+		setNested(k, k3.KubeProxyConfiguration, "kube_proxy", "config")
 	}
 
 	// kubelet
@@ -336,16 +336,18 @@ func (r *Result) convertKubernetes(cluster *Cluster) map[string]any {
 	if len(kubelet) > 0 {
 		k["kubelet"] = kubelet
 	}
-	if len(k3.KubeletArgs) > 0 {
-		r.warnf("kubernetes.kubeletArgs has no v4 equivalent and is dropped")
+	if args := argsToMap(k3.KubeletArgs); len(args) > 0 {
+		setNested(k, args, "kubelet", "extra_args")
 	}
 	if len(k3.KubeletConfiguration) > 0 {
-		r.warnf("kubernetes.kubeletConfiguration has no direct v4 equivalent; migrate entries to kubernetes.kubelet manually")
+		child, ok := k["kubelet"].(map[string]any)
+		if !ok {
+			child = map[string]any{}
+			k["kubelet"] = child
+		}
+		r.convertKubeletConfiguration(k3.KubeletConfiguration, child)
 	}
 
-	if k3.ContainerRuntimeEndpoint != "" {
-		r.warnf("kubernetes.containerRuntimeEndpoint has no v4 equivalent and is dropped")
-	}
 	if len(k3.NodeFeatureDiscovery) > 0 {
 		r.warnf("kubernetes.nodeFeatureDiscovery has no v4 equivalent and is dropped")
 	}
@@ -445,8 +447,11 @@ func (r *Result) convertDNS(cluster *Cluster) map[string]any {
 	if len(d3.NodeLocalDNS) > 0 {
 		r.warnf("dns.nodelocaldns.externalZones have no direct v4 equivalent; migrate them manually")
 	}
-	if d3.DNSEtcHosts != "" || d3.NodeEtcHosts != "" {
-		r.warnf("dns.dnsEtcHosts/nodeEtcHosts have no direct v4 equivalent; review dns.coredns.dns_etc_hosts and node /etc/hosts handling manually")
+	if d3.DNSEtcHosts != "" {
+		setNested(dns, d3.DNSEtcHosts, "coredns", "dns_etc_hosts")
+	}
+	if d3.NodeEtcHosts != "" {
+		r.warnf("dns.nodeEtcHosts has no direct v4 equivalent; review node /etc/hosts handling manually")
 	}
 
 	if len(dns) == 0 {
@@ -523,14 +528,14 @@ func (r *Result) convertEtcd(cluster *Cluster) map[string]any {
 	if e3.KeepBackupNumber != 0 {
 		backup["keep_backup_number"] = e3.KeepBackupNumber
 	}
+	if e3.BackupScriptDir != "" {
+		backup["etcd_backup_script"] = e3.BackupScriptDir
+	}
 	if len(backup) > 0 {
 		etcd["backup"] = backup
 	}
 	if e3.BackupPeriod != 0 {
 		r.warnf("etcd.backupPeriod %d uses a different scheduling model in v4 (etcd.backup.on_calendar); review it manually", e3.BackupPeriod)
-	}
-	if e3.BackupScriptDir != "" {
-		r.warnf("etcd.backupScript %q has no direct v4 equivalent (etcd.backup.etcd_backup_script); review it manually", e3.BackupScriptDir)
 	}
 	if len(e3.ExtraArgs) > 0 {
 		r.warnf("etcd.extraArgs has no v4 equivalent and is dropped")
@@ -544,6 +549,9 @@ func (r *Result) convertCRI(cluster *Cluster) map[string]any {
 
 	if cm := cluster.Spec.Kubernetes.ContainerManager; cm != "" {
 		cri["container_manager"] = cm
+	}
+	if sock := cluster.Spec.Kubernetes.ContainerRuntimeEndpoint; sock != "" {
+		cri["cri_socket"] = sock
 	}
 
 	reg := cluster.Spec.Registry
@@ -724,6 +732,60 @@ func featureGatesArg(gates map[string]bool) string {
 		parts = append(parts, fmt.Sprintf("%s=%t", k, gates[k]))
 	}
 	return strings.Join(parts, ",")
+}
+
+// toInt coerces a YAML-decoded numeric value (int, int64, or float64) to int.
+// sigs.k8s.io/yaml decodes numbers as float64, so that case is the common one.
+func toInt(v any) (int, bool) {
+	switch n := v.(type) {
+	case int:
+		return n, true
+	case int64:
+		return int(n), true
+	case float64:
+		return int(n), true
+	case json.Number:
+		if i, err := n.Int64(); err == nil {
+			return int(i), true
+		}
+	}
+	return 0, false
+}
+
+// convertKubeletConfiguration maps the v3 kubeletConfiguration (a
+// KubeletConfiguration object) into the v4 kubernetes.kubelet section. Known
+// scalar and feature-gates keys are written directly; remaining keys are
+// merged into kubernetes.kubelet.extra_config, which the kubeadm template folds
+// back into the generated KubeletConfiguration (init-kubernetes/templates/kubeadm).
+func (r *Result) convertKubeletConfiguration(cfg map[string]any, kubelet map[string]any) {
+	extra := map[string]any{}
+	for key, val := range cfg {
+		switch key {
+		case "maxPods":
+			if n, ok := toInt(val); ok {
+				kubelet["max_pods"] = n
+			}
+		case "podPidsLimit":
+			if n, ok := toInt(val); ok {
+				kubelet["pod_pids_limit"] = n
+			}
+		case "containerLogMaxSize":
+			kubelet["container_log_max_size"] = val
+		case "containerLogMaxFiles":
+			if n, ok := toInt(val); ok {
+				kubelet["container_log_max_files"] = n
+			}
+		case "featureGates":
+			if fg, ok := val.(map[string]any); ok {
+				kubelet["feature_gates"] = fg
+			}
+		default:
+			extra[key] = val
+		}
+	}
+	if len(extra) > 0 {
+		setNested(kubelet, extra, "extra_config")
+	}
 }
 
 func mergeUnique(lists ...[]string) []string {

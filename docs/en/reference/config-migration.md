@@ -200,7 +200,6 @@ prints a warning for each so you can adjust `config.yaml` by hand.
 | `system.rpms` / `system.debs` | manual | install via hook playbooks |
 | `system.preInstall` / `postClusterInstall` / `postInstall` | manual | migrate to hook playbooks |
 | `system.skipConfigureOS` | dropped | — |
-| `controlPlaneEndpoint.address` (haproxy) | warning | v4 haproxy listens on `127.0.0.1` |
 
 ## Parsed but not yet converted
 
