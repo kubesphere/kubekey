@@ -35,6 +35,7 @@ func NewCreateCommand() *cobra.Command {
 	cmd.AddCommand(newCreateClusterCommand())
 	cmd.AddCommand(newCreateConfigCommand())
 	cmd.AddCommand(newCreateInventoryCommand())
+	cmd.AddCommand(newConvertCommand())
 
 	return cmd
 }
@@ -86,6 +87,24 @@ func newCreateInventoryCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "inventory",
 		Short: "Create a default inventory",
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return o.Run()
+		},
+	}
+	flags := cmd.Flags()
+	for _, f := range o.Flags().FlagSets {
+		flags.AddFlagSet(f)
+	}
+
+	return cmd
+}
+
+func newConvertCommand() *cobra.Command {
+	o := builtin.NewConvertOptions()
+
+	cmd := &cobra.Command{
+		Use:   "convert",
+		Short: "Convert a KubeKey v3 (v1alpha2) cluster configuration to v4 inventory and config files",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return o.Run()
 		},

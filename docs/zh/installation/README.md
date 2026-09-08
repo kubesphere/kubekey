@@ -84,6 +84,8 @@ spec:
 
 节点磁盘格式化与 multipath 配置见 [存储与 Multipath 配置](../reference/storage.md)。
 
+如果你已有 v3（v1alpha2）版本的集群配置，可使用 `kk create convert` 将其迁移为 v4 的 `inventory.yaml` 与 `config.yaml`。完整的字段映射见 [将 v3 配置迁移到 v4](../reference/config-migration.md)。
+
 ## 定义关键配置信息
 
 KubeKey 使用 `Config` 资源来定义集群的关键配置信息。
