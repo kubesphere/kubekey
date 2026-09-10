@@ -66,7 +66,7 @@ spec:
     crictl_version: v1.26.0
     # ========== Docker Runtime ==========
     # Docker binary version.
-    #docker_version: 23.0.6
+    #docker_version: 23.0.5
     # cridockerd version (required for Kubernetes 1.24+).
     # cridockerd_version: v0.3.7
     # ========== Containerd Runtime ==========

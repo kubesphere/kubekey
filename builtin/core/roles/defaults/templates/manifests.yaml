@@ -130,8 +130,8 @@
     {{- if $default_crictl_version | has "v1.26.0" | not }}
     {{- $default_crictl_version = append $default_crictl_version "v1.26.0" }}
     {{- end }}
-    {{- if $default_docker_version | has "23.0.6" | not }}
-    {{- $default_docker_version = append $default_docker_version "23.0.6" }}
+    {{- if $default_docker_version | has "23.0.5" | not }}
+    {{- $default_docker_version = append $default_docker_version "23.0.5" }}
     {{- end }}
     {{- if $default_cridockerd_version | has "v0.3.7" | not }}
     {{- $default_cridockerd_version = append $default_cridockerd_version "v0.3.7" }}
