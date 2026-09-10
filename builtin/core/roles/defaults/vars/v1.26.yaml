@@ -33,7 +33,7 @@ cri:
   crictl_version: v1.26.0
   # ========== cri: docker ==========
   # docker binary
-  docker_version: 23.0.6
+  docker_version: 23.0.5
   # cridockerd. Required when kube_version is greater than 1.24
   cridockerd_version: v0.3.7
   # ========== cri: containerd ==========
