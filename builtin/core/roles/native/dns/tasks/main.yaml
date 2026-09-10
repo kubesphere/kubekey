@@ -7,35 +7,14 @@
     cat >> {{ .item }} <<EOF
     # kubekey hosts BEGIN
     # Kubernetes cluster nodes
-    {{- range .groups.k8s_cluster | default list }}
-      {{- $hostname := index $.hostvars . "hostname" -}}
-      {{- $clusterName := $.kubernetes.cluster_name | default "kubekey" -}}
-      {{- $dnsDomain := $.kubernetes.networking.dns_domain | default "cluster.local" -}}
-      {{- if (index $.hostvars . "internal_ipv4") | empty | not }}
-    {{ index $.hostvars . "internal_ipv4" }} {{ $hostname }} {{ printf "%s.%s" $hostname $clusterName }} {{ printf "%s.%s.%s" $hostname $clusterName $dnsDomain }}
-      {{- end }}
-      {{- if (index $.hostvars . "internal_ipv6") | empty | not }}
-    {{ index $.hostvars . "internal_ipv6" }} {{ $hostname }} {{ printf "%s.%s" $hostname $clusterName }} {{ printf "%s.%s.%s" $hostname $clusterName $dnsDomain }}
-      {{- end }}
-    {{- end }}
+    {{- $clusterName := $.kubernetes.cluster_name | default "kubernetes" -}}
+    {{- $dnsDomain := $.kubernetes.networking.dns_domain | default "cluster.local" -}}
+    {{- $hostSuffixDomains := printf "%s.%s" $clusterName $dnsDomain|list $clusterName}}
+    {{- .groups.k8s_cluster    |dict "host_suffix_domains" $hostSuffixDomains "hostvars" .hostvars "nodes"|include "ip.host.dns.list" }}
     # etcd cluster nodes
-    {{- range .groups.etcd | default list }}
-      {{- if (index $.hostvars . "internal_ipv4") | empty | not }}
-    {{ index $.hostvars . "internal_ipv4" }} {{ index $.hostvars . "hostname" }}
-      {{- end }}
-      {{- if (index $.hostvars . "internal_ipv6") | empty | not }}
-    {{ index $.hostvars . "internal_ipv6" }} {{ index $.hostvars . "hostname" }}
-      {{- end }}
-    {{- end }}
+    {{- .groups.etcd           |dict "hostvars" .hostvars "nodes"|include "ip.host.dns.list" }}
     # Image registry nodes
-    {{- range .groups.image_registry | default list }}
-      {{- if (index $.hostvars . "internal_ipv4") | empty | not }}
-    {{ index $.hostvars . "internal_ipv4" }} {{ index $.hostvars . "hostname" }}
-      {{- end }}
-      {{- if (index $.hostvars . "internal_ipv6") | empty | not }}
-    {{ index $.hostvars . "internal_ipv6" }} {{ index $.hostvars . "hostname" }}
-      {{- end }}
-    {{- end }}
+    {{- .groups.image_registry |dict "hostvars" .hostvars "nodes"|include "ip.host.dns.list" }}
     # kubekey image_registry control_plane_endpoint BEGIN
     {{- $registryHost := .image_registry.auth.registry | splitList "/" | first | splitList ":" | first }}
     {{- if and ($registryHost | empty | not) ($registryHost | isIP | not) }}
@@ -43,25 +22,14 @@
     {{ .image_registry.ha_vip }} {{ $registryHost }}
       {{- else if or (.image_registry.type | eq "harbor") (.image_registry.type | eq "docker-registry") }}
         {{- if .groups.image_registry | empty | not }}
-          {{- if (index .hostvars (.groups.image_registry | first) "internal_ipv4") | empty | not }}
-    {{ index .hostvars (.groups.image_registry | first) "internal_ipv4" }} {{ $registryHost }}
-          {{- end }}
-          {{- if (index .hostvars (.groups.image_registry | first) "internal_ipv6") | empty | not }}
-    {{ index .hostvars (.groups.image_registry | first) "internal_ipv6" }} {{ $registryHost }}
-          {{- end }}
+          {{- $node := .groups.image_registry | first }}
+          {{- dict "hostvars" .hostvars "node" $node "domains" $registryHost| include "ip.host.dns" }}
         {{- end }}
       {{- end }}
     {{- end }}
     # kubekey image_registry control_plane_endpoint END
     # NFS server nodes
-    {{- range .groups.nfs | default list }}
-      {{- if (index $.hostvars . "internal_ipv4") | empty | not }}
-    {{ index $.hostvars . "internal_ipv4" }} {{ index $.hostvars . "hostname" }}
-      {{- end }}
-      {{- if (index $.hostvars . "internal_ipv6") | empty | not }}
-    {{ index $.hostvars . "internal_ipv6" }} {{ index $.hostvars . "hostname" }}
-      {{- end }}
-    {{- end }}
+    {{- .groups.nfs            |dict "hostvars" .hostvars "nodes"|include "ip.host.dns.list" }}
     # kubekey hosts END
     EOF
 
