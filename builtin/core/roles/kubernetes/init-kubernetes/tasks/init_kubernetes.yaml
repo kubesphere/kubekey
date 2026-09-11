@@ -31,7 +31,11 @@
         sed -i 's#path: /etc/kubernetes/super-admin.conf#path: /etc/kubernetes/admin.conf#' \
           /etc/kubernetes/manifests/kube-vip.yaml
 
-# Reset local DNS for control_plane_endpoint to 127.0.0.1 and ::1.
+# Reset local DNS for control_plane_endpoint to the loopback address of this node.
+# The loopback family must match the node's address family: an IPv4 node gets 127.0.0.1,
+# an IPv6-only node gets ::1. Writing the wrong family makes glibc resolve the endpoint
+# to a loopback address that the local apiserver/haproxy does not listen on, which
+# surfaces as a permanent "connect: connection refused" instead of a transient one.
 # This ensures the control_plane_endpoint resolves locally before kube-vip is running,
 # preventing failures for tasks that execute kubectl apply on the current node.
 - name: Init | Reset local DNS for control_plane_endpoint
@@ -41,8 +45,11 @@
     sed -i '/# kubekey kubernetes control_plane_endpoint BEGIN/,/# kubekey kubernetes control_plane_endpoint END/d' {{ .item }}
     cat >> {{ .item }} <<EOF
     # kubekey kubernetes control_plane_endpoint BEGIN
+    {{- if .internal_ipv4 | empty | not }}
     127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
+    {{- else }}
     ::1 {{ .kubernetes.control_plane_endpoint.host }}
+    {{- end }}
     # kubekey kubernetes control_plane_endpoint END
     EOF
     
