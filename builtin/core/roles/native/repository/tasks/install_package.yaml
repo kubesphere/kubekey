@@ -12,39 +12,17 @@
 - name: Repository | Initialize Debian-based repository and install required system packages
   command: |
     now=$(date +"%Y%m%d%H%M%S")
-    PKGS="socat conntrack ipset ebtables chrony ipvsadm{{ if .kubernetes.kube_proxy.mode | default "iptables" | eq "nftables" }} nftables{{ end }}{{ if .groups.nfs | default list | has .inventory_hostname }} nfs-kernel-server{{ end }}"
+    # nftables is appended when kube-proxy runs in nftables mode. When the inventory
+    # defines a non-empty "nfs" group, the NFS server package is installed on the
+    # nodes of that group and the NFS client package on all other nodes.
+    PKGS="{{ .native.packages.debs | default list | join " " }}{{ if .kubernetes.kube_proxy.mode | default "iptables" | eq "nftables" }} nftables{{ end }}{{ if .groups.nfs | default list | has .inventory_hostname }} nfs-kernel-server{{ else if .groups.nfs | default list | empty | not }} nfs-common{{ end }}"
     PKGS_TO_INSTALL=""
     for pkg in $PKGS; do
-      if [ -n "$pkg" ]; then
-        case "$pkg" in
-          socat)
-            command -v socat >/dev/null 2>&1 || PKGS_TO_INSTALL="$PKGS_TO_INSTALL socat"
-            ;;
-          conntrack)
-            command -v conntrack >/dev/null 2>&1 || PKGS_TO_INSTALL="$PKGS_TO_INSTALL conntrack"
-            ;;
-          ipset)
-            ipset list >/dev/null 2>&1 || PKGS_TO_INSTALL="$PKGS_TO_INSTALL ipset"
-            ;;
-          ebtables)
-            ebtables -L >/dev/null 2>&1 || PKGS_TO_INSTALL="$PKGS_TO_INSTALL ebtables"
-            ;;
-          chrony)
-            [ "$(systemctl show -p LoadState --value chrony.service 2>/dev/null)" = "loaded" ] \
-              || PKGS_TO_INSTALL="$PKGS_TO_INSTALL chrony"
-            ;;
-          ipvsadm)
-            ipvsadm -Ln >/dev/null 2>&1 || PKGS_TO_INSTALL="$PKGS_TO_INSTALL ipvsadm"
-            ;;
-          nftables)
-            nft --version >/dev/null 2>&1 || PKGS_TO_INSTALL="$PKGS_TO_INSTALL nftables"
-            ;;
-          nfs-kernel-server)
-            [ "$(systemctl show -p LoadState --value nfs-server.service 2>/dev/null)" = "loaded" ] \
-              || PKGS_TO_INSTALL="$PKGS_TO_INSTALL nfs-kernel-server"
-            ;;
-        esac
-      fi
+      [ -n "$pkg" ] || continue
+      # native.packages.debs holds real Debian package names, so the dpkg status
+      # database is authoritative and no binary-name probe is needed.
+      dpkg-query -W -f='${Status}' "$pkg" 2>/dev/null | grep -q "install ok installed" \
+        || PKGS_TO_INSTALL="$PKGS_TO_INSTALL $pkg"
     done
     if [ -f "{{ .tmp_dir }}/repository.iso" ]; then
       # Backup current APT sources
@@ -76,39 +54,17 @@
 - name: Repository | Initialize RHEL-based repository and install required system packages
   command: |
     BACKUP_FILE="/etc/yum.repos.d.kubekey.bak-$(date +%Y%m%d%H%M%S)"
-    PKGS="socat conntrack ipset ebtables chrony ipvsadm{{ if .kubernetes.kube_proxy.mode | default "iptables" | eq "nftables" }} nftables{{ end }}{{ if .groups.nfs | default list | has .inventory_hostname }} nfs-kernel-server{{ end }}"
+    # nftables is appended when kube-proxy runs in nftables mode. When the inventory
+    # defines a non-empty "nfs" group, nfs-utils is installed on every node: the RPM
+    # provides both the NFS server and the NFS client, so no per-node split is needed.
+    PKGS="{{ .native.packages.rpms | default list | join " " }}{{ if .kubernetes.kube_proxy.mode | default "iptables" | eq "nftables" }} nftables{{ end }}{{ if .groups.nfs | default list | empty | not }} nfs-utils{{ end }}"
     PKGS_TO_INSTALL=""
     for pkg in $PKGS; do
-      if [ -n "$pkg" ]; then
-        case "$pkg" in
-          socat)
-            command -v socat >/dev/null 2>&1 || PKGS_TO_INSTALL="$PKGS_TO_INSTALL socat"
-            ;;
-          conntrack)
-            command -v conntrack >/dev/null 2>&1 || PKGS_TO_INSTALL="$PKGS_TO_INSTALL conntrack"
-            ;;
-          ipset)
-            ipset list >/dev/null 2>&1 || PKGS_TO_INSTALL="$PKGS_TO_INSTALL ipset"
-            ;;
-          ebtables)
-            ebtables -L >/dev/null 2>&1 || PKGS_TO_INSTALL="$PKGS_TO_INSTALL ebtables"
-            ;;
-          chrony)
-            [ "$(systemctl show -p LoadState --value chronyd.service 2>/dev/null)" = "loaded" ] \
-              || PKGS_TO_INSTALL="$PKGS_TO_INSTALL chrony"
-            ;;
-          ipvsadm)
-            ipvsadm -Ln >/dev/null 2>&1 || PKGS_TO_INSTALL="$PKGS_TO_INSTALL ipvsadm"
-            ;;
-          nftables)
-            nft --version >/dev/null 2>&1 || PKGS_TO_INSTALL="$PKGS_TO_INSTALL nftables"
-            ;;
-          nfs-kernel-server)
-            [ "$(systemctl show -p LoadState --value nfs-server.service 2>/dev/null)" = "loaded" ] \
-              || PKGS_TO_INSTALL="$PKGS_TO_INSTALL nfs-kernel-server"
-            ;;
-        esac      
-      fi
+      [ -n "$pkg" ] || continue
+      # native.packages.rpms holds real RPM package names, so the rpm database is
+      # authoritative and no binary-name probe is needed.
+      rpm -q --quiet "$pkg" 2>/dev/null \
+        || PKGS_TO_INSTALL="$PKGS_TO_INSTALL $pkg"
     done
     if [ -f "{{ .tmp_dir }}/repository.iso" ]; then
       # Backup current YUM repositories
