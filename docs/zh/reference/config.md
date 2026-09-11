@@ -815,6 +815,10 @@ cri:
     # 已安装 containerd 时，更新配置文件（/etc/containerd/config.toml）与 systemd 服务的策略。
     # 空（默认）：跳过更新；"merge"：与现有配置合并（节点侧已有键优先）；"override"：覆盖。
     config_policy: ""
+    # 下载静态链接的 containerd 二进制包，而非默认的动态链接版本。
+    # 适用于 glibc 版本低于最新 containerd 发行版要求的旧发行版（如 Rocky Linux 8）。
+    # 仅当目标 containerd_version 确实发布了 "containerd-static-*" 产物时才应开启此项。
+    static_binary: false
     config:
       # containerd 数据根目录
       root: "{{ .cri.containerd.data_root | default \"/var/lib/containerd\" }}"
@@ -881,6 +885,7 @@ cri:
 | `cri.docker.daemon.exec-opts` | Docker exec 选项列表，例如 cgroup 驱动。 |
 | `cri.containerd.config` | containerd 配置，映射为 `/etc/containerd/config.toml`。 |
 | `cri.containerd.config_policy` | 已安装 containerd 时，更新配置文件（/etc/containerd/config.toml）与 systemd 服务的策略：空（默认）跳过更新；`merge` 与现有配置合并（节点侧已有键优先）；`override` 覆盖。该策略不影响二进制安装与证书同步。 |
+| `cri.containerd.static_binary` | 是否下载静态链接的 containerd 二进制包（`containerd-static-*`），而非默认的动态链接版本。适用于 glibc 版本低于最新 containerd 发行版要求的旧发行版。要求目标 containerd 版本确实发布了静态构建的产物。 |
 | `cri.docker.daemon_policy` | 与 `cri.containerd.config_policy` 相同，但作用于 Docker daemon（/etc/docker/daemon.json）及其 systemd 服务。 |
 | `cri.containerd.config.root` | containerd 数据持久化根目录。 |
 | `cri.containerd.config.version` | containerd 配置文件版本。 |
@@ -1228,7 +1233,9 @@ download:
     # containerd 二进制包
     containerd: >-
       {{- .zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
-      github.com/containerd/containerd/releases/download/{{ "{{ .version }}" }}/containerd-{{ "{{ .version | default \"\" | trimPrefix \"v\" }}" }}-linux-{{ "{{ .arch }}" }}.tar.gz
+      github.com/containerd/containerd/releases/download/{{ "{{ .version }}" }}/containerd-
+      {{- .cri.containerd.static_binary | default false | ternary "static-" "" -}}
+      {{ "{{ .version | default \"\" | trimPrefix \"v\" }}" }}-linux-{{ "{{ .arch }}" }}.tar.gz
     # runc 二进制
     runc: >-
       {{- .zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}

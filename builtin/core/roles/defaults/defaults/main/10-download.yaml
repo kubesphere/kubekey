@@ -44,7 +44,9 @@ download:
       github.com/Mirantis/cri-dockerd/releases/download/{{ "{{ .version }}" }}/cri-dockerd-{{ "{{ .version | default \"\" | trimPrefix \"v\" }}" }}.{{ "{{ .arch }}" }}.tgz
     containerd: >-
       {{- .zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
-      github.com/containerd/containerd/releases/download/{{ "{{ .version }}" }}/containerd-{{ "{{ .version | default \"\" | trimPrefix \"v\" }}" }}-linux-{{ "{{ .arch }}" }}.tar.gz
+      github.com/containerd/containerd/releases/download/{{ "{{ .version }}" }}/containerd-
+      {{- .cri.containerd.static_binary | default false | ternary "static-" "" -}}
+      {{ "{{ .version | default \"\" | trimPrefix \"v\" }}" }}-linux-{{ "{{ .arch }}" }}.tar.gz
     runc: >-
       {{- .zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
       github.com/opencontainers/runc/releases/download/{{ "{{ .version }}" }}/runc.{{ "{{ .arch }}" }}
