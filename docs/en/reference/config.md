@@ -445,6 +445,28 @@ native:
   #   [hostname of the node being installed] -> corresponding node IP
   localDNS:
     - /etc/hosts
+  # OS packages installed on every node during initialization, declared per package
+  # manager with their real distribution package names
+  # Additional packages are appended automatically when required:
+  #   - nftables when kubernetes.kube_proxy.mode is "nftables"
+  #   - when the inventory defines a non-empty "nfs" group: nfs-kernel-server (deb)
+  #     or nfs-utils (rpm) on the nodes of that group, and nfs-common (deb) or
+  #     nfs-utils (rpm) on all other nodes
+  packages:
+    debs:
+      - socat
+      - conntrack
+      - ipset
+      - ebtables
+      - chrony
+      - ipvsadm
+    rpms:
+      - socat
+      - conntrack-tools
+      - ipset
+      - ebtables
+      - chrony
+      - ipvsadm
 ```
 
 ### Parameter Descriptions
@@ -457,6 +479,8 @@ native:
 | `native.nfs.share_dir` | NFS shared directories, used by nodes marked with the `nfs` role. |
 | `native.set_hostname` | Whether to automatically set the node hostname according to the inventory definition during installation. |
 | `native.localDNS` | List of local DNS resolution files (e.g., `/etc/hosts`), used to provide temporary domain name resolution during installation. |
+| `native.packages.debs` | Debian/Ubuntu packages installed on every node during initialization, using real `.deb` package names. `nftables` is appended automatically when `kubernetes.kube_proxy.mode` is `nftables`. When the inventory defines a non-empty `nfs` group, `nfs-kernel-server` is appended on the nodes of that group and `nfs-common` on all other nodes. |
+| `native.packages.rpms` | RHEL/CentOS packages installed on every node during initialization, using real RPM package names (e.g. `conntrack-tools`). `nftables` is appended automatically when `kubernetes.kube_proxy.mode` is `nftables`. When the inventory defines a non-empty `nfs` group, `nfs-utils` is appended on every node, as it provides both the NFS server and the NFS client. |
 
 ---
 

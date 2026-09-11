@@ -16,7 +16,10 @@
 
 Kubernetes 要求操作系统预装以下依赖：
 
-`socat` `conntrack` `ipset` `ebtables` `chrony` `ipvsadm`
+- Debian/Ubuntu：`socat` `conntrack` `ipset` `ebtables` `chrony` `ipvsadm`
+- RHEL/CentOS：`socat` `conntrack-tools` `ipset` `ebtables` `chrony` `ipvsadm`
+
+KubeKey 会在节点初始化时自动安装上述软件包。如需自定义清单，可在配置文件中设置 `native.packages.debs` 或 `native.packages.rpms`，参见[配置参考](../reference/config.md)。
 
 KubeKey 已为部分 Linux 发行版制作了预编译的依赖包，可在 [iso-latest](https://github.com/kubesphere/kubekey/releases/tag/iso-latest) 获取。
 支持的具体发行版与构建方式详见 [依赖包管理](../dependency-packages/README.md)。

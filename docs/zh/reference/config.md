@@ -443,6 +443,26 @@ native:
   #   [当前安装节点的主机名] -> 对应节点 IP
   localDNS:
     - /etc/hosts
+  # 初始化时在每个节点安装的操作系统软件包，按包管理器分别声明，使用发行版真实包名
+  # 以下软件包会在满足条件时自动追加：
+  #   - kubernetes.kube_proxy.mode 为 "nftables" 时追加 nftables
+  #   - inventory 中定义了非空的 "nfs" 组时：该组节点追加 nfs-kernel-server（deb）
+  #     或 nfs-utils（rpm），其余节点追加 nfs-common（deb）或 nfs-utils（rpm）
+  packages:
+    debs:
+      - socat
+      - conntrack
+      - ipset
+      - ebtables
+      - chrony
+      - ipvsadm
+    rpms:
+      - socat
+      - conntrack-tools
+      - ipset
+      - ebtables
+      - chrony
+      - ipvsadm
 ```
 
 ### 参数说明
@@ -455,6 +475,8 @@ native:
 | `native.nfs.share_dir` | NFS 共享目录，供标记了 `nfs` 角色的节点使用。 |
 | `native.set_hostname` | 安装时是否根据 inventory 中的定义自动设置节点主机名。 |
 | `native.localDNS` | 本地 DNS 解析文件列表（如 `/etc/hosts`），用于在安装期间提供临时域名解析。 |
+| `native.packages.debs` | 初始化时在每个节点安装的 Debian/Ubuntu 软件包，使用真实 `.deb` 包名。当 `kubernetes.kube_proxy.mode` 为 `nftables` 时会自动追加 `nftables`；当 inventory 中定义了非空的 `nfs` 组时，该组节点追加 `nfs-kernel-server`，其余节点追加 `nfs-common`。 |
+| `native.packages.rpms` | 初始化时在每个节点安装的 RHEL/CentOS 软件包，使用真实 RPM 包名（如 `conntrack-tools`）。当 `kubernetes.kube_proxy.mode` 为 `nftables` 时会自动追加 `nftables`；当 inventory 中定义了非空的 `nfs` 组时，所有节点追加 `nfs-utils`（该包同时提供 NFS 服务端与客户端）。 |
 
 ---
 
