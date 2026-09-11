@@ -146,14 +146,13 @@ func TestKubeVipTemplatesRenderDefaults(t *testing.T) {
 	})
 }
 
-// TestDockerRegistryArtifactURLUsesMirrorHost renders the real docker_registry
-// artifact_url template the same way pkg/modules/http_get_file does: first as
-// the defaults file's own self-referential template, then through tpl with the
-// download item. docker-registry-*.tgz is a KubeKey-repackaged asset that only
-// exists on the cn_host mirror, so the resulting URL must route through
-// cn_host regardless of zone; falling back to a bare "https://docker.io/..."
-// host for non-cn zones 404s (docker.io redirects to www.docker.com).
-func TestDockerRegistryArtifactURLUsesMirrorHost(t *testing.T) {
+// downloadArtifactURLTemplate reads the real 10-download.yaml defaults file
+// and returns the raw artifact_url template string for the given key
+// (e.g. "docker_registry", "containerd"), along with the sibling
+// download.cn_host value templates commonly need.
+func downloadArtifactURLTemplate(t *testing.T, key string) (tmplStr string, cnHost any) {
+	t.Helper()
+
 	raw, err := os.ReadFile("../../../builtin/core/roles/defaults/defaults/main/10-download.yaml")
 	assert.NoError(t, err)
 
@@ -164,14 +163,27 @@ func TestDockerRegistryArtifactURLUsesMirrorHost(t *testing.T) {
 	assert.True(t, ok)
 	artifactURL, ok := download["artifact_url"].(map[string]any)
 	assert.True(t, ok)
-	tmplStr, ok := artifactURL["docker_registry"].(string)
+	tmplStr, ok = artifactURL[key].(string)
 	assert.True(t, ok)
+
+	return tmplStr, download["cn_host"]
+}
+
+// TestDockerRegistryArtifactURLUsesMirrorHost renders the real docker_registry
+// artifact_url template the same way pkg/modules/http_get_file does: first as
+// the defaults file's own self-referential template, then through tpl with the
+// download item. docker-registry-*.tgz is a KubeKey-repackaged asset that only
+// exists on the cn_host mirror, so the resulting URL must route through
+// cn_host regardless of zone; falling back to a bare "https://docker.io/..."
+// host for non-cn zones 404s (docker.io redirects to www.docker.com).
+func TestDockerRegistryArtifactURLUsesMirrorHost(t *testing.T) {
+	tmplStr, cnHost := downloadArtifactURLTemplate(t, "docker_registry")
 
 	for _, zone := range []string{"", "cn"} {
 		variable := map[string]any{
 			"zone": zone,
 			"download": map[string]any{
-				"cn_host": download["cn_host"],
+				"cn_host": cnHost,
 			},
 		}
 
@@ -194,18 +206,7 @@ func TestDockerRegistryArtifactURLUsesMirrorHost(t *testing.T) {
 // linked "containerd-*" asset, since the dynamic build requires a newer glibc
 // than some supported distros (e.g. Rocky Linux 8) ship.
 func TestContainerdArtifactURLStaticBinary(t *testing.T) {
-	raw, err := os.ReadFile("../../../builtin/core/roles/defaults/defaults/main/10-download.yaml")
-	assert.NoError(t, err)
-
-	var defaults map[string]any
-	assert.NoError(t, yaml.Unmarshal(raw, &defaults))
-
-	download, ok := defaults["download"].(map[string]any)
-	assert.True(t, ok)
-	artifactURL, ok := download["artifact_url"].(map[string]any)
-	assert.True(t, ok)
-	tmplStr, ok := artifactURL["containerd"].(string)
-	assert.True(t, ok)
+	tmplStr, cnHost := downloadArtifactURLTemplate(t, "containerd")
 
 	testcases := []struct {
 		name         string
@@ -229,7 +230,7 @@ func TestContainerdArtifactURLStaticBinary(t *testing.T) {
 			variable := map[string]any{
 				"zone": "",
 				"download": map[string]any{
-					"cn_host": download["cn_host"],
+					"cn_host": cnHost,
 				},
 				"cri": map[string]any{
 					"containerd": map[string]any{
