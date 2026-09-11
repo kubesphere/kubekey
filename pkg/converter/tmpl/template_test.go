@@ -185,6 +185,70 @@ func TestDockerRegistryArtifactURLUsesMirrorHost(t *testing.T) {
 	}
 }
 
+// TestContainerdArtifactURLStaticBinary renders the real containerd artifact_url
+// template the same way pkg/modules/http_get_file does: first as the defaults
+// file's own self-referential template (resolving cri.containerd.static_binary
+// and zone), then through tpl with the download item (version/arch). When
+// cri.containerd.static_binary is true the URL must point at the
+// "containerd-static-*" release asset instead of the default dynamically
+// linked "containerd-*" asset, since the dynamic build requires a newer glibc
+// than some supported distros (e.g. Rocky Linux 8) ship.
+func TestContainerdArtifactURLStaticBinary(t *testing.T) {
+	raw, err := os.ReadFile("../../../builtin/core/roles/defaults/defaults/main/10-download.yaml")
+	assert.NoError(t, err)
+
+	var defaults map[string]any
+	assert.NoError(t, yaml.Unmarshal(raw, &defaults))
+
+	download, ok := defaults["download"].(map[string]any)
+	assert.True(t, ok)
+	artifactURL, ok := download["artifact_url"].(map[string]any)
+	assert.True(t, ok)
+	tmplStr, ok := artifactURL["containerd"].(string)
+	assert.True(t, ok)
+
+	testcases := []struct {
+		name         string
+		staticBinary bool
+		expected     string
+	}{
+		{
+			name:         "dynamic binary by default",
+			staticBinary: false,
+			expected:     "https://github.com/containerd/containerd/releases/download/v2.3.4/containerd-2.3.4-linux-amd64.tar.gz",
+		},
+		{
+			name:         "static binary when opted in",
+			staticBinary: true,
+			expected:     "https://github.com/containerd/containerd/releases/download/v2.3.4/containerd-static-2.3.4-linux-amd64.tar.gz",
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			variable := map[string]any{
+				"zone": "",
+				"download": map[string]any{
+					"cn_host": download["cn_host"],
+				},
+				"cri": map[string]any{
+					"containerd": map[string]any{
+						"static_binary": tc.staticBinary,
+					},
+				},
+			}
+
+			rendered, err := Parse(variable, tmplStr)
+			assert.NoError(t, err)
+
+			final, err := Parse(map[string]any{"version": "v2.3.4", "arch": "amd64"}, string(rendered))
+			assert.NoError(t, err)
+
+			assert.Equal(t, tc.expected, string(final))
+		})
+	}
+}
+
 func TestParseBool(t *testing.T) {
 	testcases := []struct {
 		name      string
