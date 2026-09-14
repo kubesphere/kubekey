@@ -43,7 +43,7 @@ spec:
         image: {{ .dns.nodelocaldns.image.registry }}/{{ .dns.nodelocaldns.image.repository }}:{{ .dns.nodelocaldns.image.tag }}
         resources:
           limits:
-            memory: 200Mi
+            memory: 400Mi
           requests:
             cpu: 100m
             memory: 70Mi
