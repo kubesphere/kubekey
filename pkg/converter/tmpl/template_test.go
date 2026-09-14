@@ -1022,6 +1022,43 @@ a2:
 			variable: make(map[string]any),
 			excepted: "IPv4",
 		},
+		// ======= isCIDR =======
+		{
+			name:     "isCIDR for ipv4 cidr",
+			input:    `{{ .foo | default "10.233.64.0/18" | isCIDR }}`,
+			variable: make(map[string]any),
+			excepted: "true",
+		},
+		{
+			name:     "isCIDR for ipv6 cidr",
+			input:    `{{ .foo | default "fd00::/64" | isCIDR }}`,
+			variable: make(map[string]any),
+			excepted: "true",
+		},
+		{
+			name:     "isCIDR for the last entry of a dual-stack cidr",
+			input:    `{{ .foo | default "10.233.64.0/18,fd00::/64" | splitList "," | last | isCIDR }}`,
+			variable: make(map[string]any),
+			excepted: "true",
+		},
+		{
+			name:     "isCIDR for empty entry of a trailing comma",
+			input:    `{{ .foo | default "10.233.64.0/18," | splitList "," | last | isCIDR }}`,
+			variable: make(map[string]any),
+			excepted: "false",
+		},
+		{
+			name:     "isCIDR for ip address without prefix",
+			input:    `{{ .foo | default "10.233.64.1" | isCIDR }}`,
+			variable: make(map[string]any),
+			excepted: "false",
+		},
+		{
+			name:     "isCIDR for garbage",
+			input:    `{{ .foo | default "not-a-cidr" | isCIDR }}`,
+			variable: make(map[string]any),
+			excepted: "false",
+		},
 		// ======= pow =======
 		{
 			name:     "pow true-1",

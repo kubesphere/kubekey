@@ -2,3 +2,36 @@
 global:
   registry:
     address: {{ .image_registry.dockerio_registry }}/kubeovn
+{{- $podCIDRs := .cni.pod_cidr | splitList "," }}
+{{- $ipv4PodCIDR := $podCIDRs | first }}
+{{- $ipv6PodCIDR := $podCIDRs | last }}
+{{- $hasIPv4 := eq ($ipv4PodCIDR | ipFamily) "IPv4" }}
+{{- $hasIPv6 := eq ($ipv6PodCIDR | ipFamily) "IPv6" }}
+{{/* Kube-OVN stores the cluster CIDRs per address family and picks one section
+     based on "networking.NET_STACK". Without this the chart defaults (10.16.0.0/16)
+     are used and "cni.pod_cidr" is ignored. An empty POD_GATEWAY makes Kube-OVN
+     derive the gateway (first address) of each family from the CIDR. */}}
+networking:
+{{- if and $hasIPv4 $hasIPv6 }}
+  NET_STACK: dual_stack
+{{- else if $hasIPv6 }}
+  NET_STACK: ipv6
+{{- else }}
+  NET_STACK: ipv4
+{{- end }}
+{{- if and $hasIPv4 $hasIPv6 }}
+dual_stack:
+  POD_CIDR: {{ .cni.pod_cidr }}
+  POD_GATEWAY: ""
+  SVC_CIDR: {{ .cni.service_cidr }}
+{{- else if $hasIPv6 }}
+ipv6:
+  POD_CIDR: {{ $ipv6PodCIDR }}
+  POD_GATEWAY: ""
+  SVC_CIDR: {{ .cni.service_cidr }}
+{{- else }}
+ipv4:
+  POD_CIDR: {{ $ipv4PodCIDR }}
+  POD_GATEWAY: ""
+  SVC_CIDR: {{ .cni.service_cidr }}
+{{- end }}
