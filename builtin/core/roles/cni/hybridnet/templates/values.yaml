@@ -1,3 +1,20 @@
 # hybridnet helm values
 images:
   registryURL: {{ .image_registry.dockerio_registry }}
+{{- $podCIDRs := .cni.pod_cidr | splitList "," }}
+{{- $ipv4PodCIDR := $podCIDRs | first }}
+{{- $ipv6PodCIDR := $podCIDRs | last }}
+{{- $hasIPv4 := eq ($ipv4PodCIDR | ipFamily) "IPv4" }}
+{{- $hasIPv6 := eq ($ipv6PodCIDR | ipFamily) "IPv6" }}
+{{/* hybridnet hands a pod the addresses of its IP family, so the cluster's
+     configured families must be reflected here or the chart defaults (a single
+     IPv4 "init" Subnet) are used and "cni.pod_cidr" is silently ignored.
+     "defaultIPFamily" is the family given to pods that do not request one; with
+     "DualStack" hybridnet allocates one IPv4 and one IPv6 address, taken from
+     one IPv4 and one IPv6 Subnet of the same Network. The chart renders exactly
+     one "init" Subnet, so the role creates the second family of a dual-stack
+     cluster after the chart is installed. */}}
+defaultIPFamily: {{ if and $hasIPv4 $hasIPv6 }}DualStack{{ else if $hasIPv6 }}IPv6{{ else }}IPv4{{ end }}
+init:
+  ipVersion: {{ if $hasIPv4 }}"4"{{ else }}"6"{{ end }}
+  cidr: {{ if $hasIPv4 }}{{ $ipv4PodCIDR }}{{ else }}{{ $ipv6PodCIDR }}{{ end }}

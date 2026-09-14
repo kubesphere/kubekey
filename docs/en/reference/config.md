@@ -776,6 +776,48 @@ cni:
 | `cni.multi_cni` | Whether to enable multi-CNI support. `multus` means enable Multus, `none` means do not enable. |
 | `cni.multus.image` | Multus CNI container image configuration (registry, repository, tag). |
 
+### Dual-Stack (IPv4/IPv6) Configuration
+
+KubeKey supports standard Kubernetes dual-stack networking. A dual-stack cluster is configured as follows.
+
+1. Set both `cni.pod_cidr` and `cni.service_cidr` to two address families, IPv4 first:
+
+   ```yaml
+   cni:
+     pod_cidr: 10.233.64.0/18,fd00:10:244::/56
+     service_cidr: 10.233.0.0/18,fd00:10:96::/112
+     ipv4_mask_size: 24
+     ipv6_mask_size: 64
+   ```
+
+   Each value must be one or two valid CIDRs: an empty value, more than two address families, and anything that is not a CIDR (a bare IP address, for example) are rejected before installation.
+
+2. Give every node an address in both families in the inventory, so that kubelet can advertise `--node-ip=<IPv4>,<IPv6>`:
+
+   ```yaml
+   hosts:
+     node1:
+       internal_ipv4: 172.16.0.3
+       internal_ipv6: fd85::3
+   ```
+
+   IPv4 must come first everywhere. `kube-apiserver`'s `--advertise-address` stays single-family, so it keeps advertising the IPv4 address while the Service range carries both families.
+
+   The address families of the node addresses (`internal_ipv4` / `internal_ipv6`), `cni.pod_cidr` and `cni.service_cidr` must all agree. A node counts as dual-stack when both addresses are defined, and the cluster counts as dual-stack when `cni.pod_cidr` lists both families, so a dual-stack cluster requires both addresses on every node while a single-stack cluster requires exactly one. Setting `internal_ipv6` on a node of an IPv4-only cluster is rejected: kubelet publishes every entry of `--node-ip` as an `InternalIP`, so the node would report an IPv6 address that no cluster route covers.
+
+3. Choose a CNI that supports dual-stack. KubeKey derives the address families of every built-in CNI from `cni.pod_cidr`:
+
+   | CNI | Wiring |
+   |-----|--------|
+   | `calico` | No KubeKey-side wiring needed: the tigera-operator reads the `podSubnet` of the `kubeadm-config` ConfigMap, which is rendered from `cni.pod_cidr`, and creates one IP pool per address family on its own (it also enables IPv6 node address detection by default). |
+   | `cilium` | `ipv4.enabled` / `ipv6.enabled` plus `ipam.clusterPoolIPv4PodCIDRList` / `clusterPoolIPv6PodCIDRList`. |
+   | `flannel` | `podCidr` and `podCidrv6`. |
+   | `kubeovn` | `networking.NET_STACK: dual_stack` with `dual_stack.POD_CIDR` and `dual_stack.SVC_CIDR`. |
+   | `hybridnet` | `defaultIPFamily: DualStack`. A dual-stack Pod is allocated one IPv4 and one IPv6 address from one IPv4 and one IPv6 Subnet of the same Network, so KubeKey also creates the IPv6 counterpart of the chart's `init` Subnet. |
+   | `spiderpool` | `ipam.enableIPv4` / `ipam.enableIPv6`. |
+
+> **Restriction**: the cluster Pod and Service CIDRs cannot be changed after installation (a Kubernetes limitation), so an existing single-stack cluster cannot be converted to dual-stack in place; a dual-stack cluster has to be created from scratch.
+
 ---
 
 ## Container Runtime (CRI) Configuration (04-cri.yaml)
