@@ -163,8 +163,11 @@
     {{- else if and (.kubernetes.control_plane_endpoint.type | eq "local") (.kubernetes.control_plane_endpoint.local.address | empty | not) }}
     {{ .kubernetes.control_plane_endpoint.local.address }} {{ .kubernetes.control_plane_endpoint.host }}
     {{- else }}
+    {{- if .internal_ipv4 | empty | not }}
     127.0.0.1 {{ .kubernetes.control_plane_endpoint.host }}
+    {{- else }}
     ::1 {{ .kubernetes.control_plane_endpoint.host }}
+    {{- end }}
     {{- end }}
     # kubekey kubernetes control_plane_endpoint END
     EOF
