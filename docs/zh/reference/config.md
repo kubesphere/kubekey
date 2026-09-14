@@ -772,6 +772,48 @@ cni:
 | `cni.multi_cni` | 是否启用多 CNI 支持。`multus` 表示启用 Multus，`none` 表示不启用。 |
 | `cni.multus.image` | Multus CNI 容器镜像的配置（registry、repository、tag）。 |
 
+### 双栈（IPv4/IPv6）配置
+
+KubeKey 支持标准的 Kubernetes 双栈网络，可按以下步骤配置双栈集群。
+
+1. 将 `cni.pod_cidr` 与 `cni.service_cidr` 同时设置为两个地址族，IPv4 在前：
+
+   ```yaml
+   cni:
+     pod_cidr: 10.233.64.0/18,fd00:10:244::/56
+     service_cidr: 10.233.0.0/18,fd00:10:96::/112
+     ipv4_mask_size: 24
+     ipv6_mask_size: 64
+   ```
+
+   两个字段都必须是 1~2 个合法 CIDR：空值、超过两个地址族，以及任何非 CIDR 的写法（例如只写 IP 不写掩码）都会在安装前被拒绝。
+
+2. 在 inventory 中为每个节点同时配置两个地址族的地址，使 kubelet 能够下发 `--node-ip=<IPv4>,<IPv6>`：
+
+   ```yaml
+   hosts:
+     node1:
+       internal_ipv4: 172.16.0.3
+       internal_ipv6: fd85::3
+   ```
+
+   所有位置都必须保持 IPv4 在前。`kube-apiserver` 的 `--advertise-address` 仅支持单地址族，因此仍通告 IPv4 地址，而 Service 网段同时承载两个地址族。
+
+   节点地址（`internal_ipv4` / `internal_ipv6`）、`cni.pod_cidr` 与 `cni.service_cidr` 三者的地址族必须一致。当两个地址都已定义时该节点视为双栈节点，当 `cni.pod_cidr` 列出两个地址族时该集群视为双栈集群，因此双栈集群要求每个节点同时配置两个地址，单栈集群则要求只配置其中一个。在仅 IPv4 的集群中为节点配置 `internal_ipv6` 会被拒绝：kubelet 会把 `--node-ip` 的每一项都作为 `InternalIP` 上报，该节点因此会通告一个集群路由并未覆盖的 IPv6 地址。
+
+3. 选择支持双栈的 CNI。KubeKey 会依据 `cni.pod_cidr` 推导每个内置 CNI 需要服务的地址族：
+
+   | CNI | 配置方式 |
+   |-----|----------|
+   | `calico` | 无需 KubeKey 侧接线：tigera-operator 会读取 `kubeadm-config` ConfigMap 中的 `podSubnet`（由 `cni.pod_cidr` 渲染而来），并据此自动为每个地址族创建 IP 池（同时默认启用 IPv6 节点地址探测）。 |
+   | `cilium` | `ipv4.enabled` / `ipv6.enabled` 以及 `ipam.clusterPoolIPv4PodCIDRList` / `clusterPoolIPv6PodCIDRList`。 |
+   | `flannel` | `podCidr` 与 `podCidrv6`。 |
+   | `kubeovn` | `networking.NET_STACK: dual_stack`，配合 `dual_stack.POD_CIDR` 与 `dual_stack.SVC_CIDR`。 |
+   | `hybridnet` | `defaultIPFamily: DualStack`。双栈 Pod 需要从同一 Network 下的一对 IPv4/IPv6 Subnet 中各分配一个地址，因此 KubeKey 还会补建 chart 所渲染 `init` Subnet 的 IPv6 对偶 Subnet。 |
+   | `spiderpool` | `ipam.enableIPv4` / `ipam.enableIPv6`。 |
+
+> **限制**：集群创建完成后无法修改 Pod 与 Service 网段（这是 Kubernetes 本身的限制），因此已存在的单栈集群无法就地转换为双栈，双栈集群需要重新创建。
+
 ---
 
 ## 容器运行时 (CRI) 配置 (04-cri.yaml)

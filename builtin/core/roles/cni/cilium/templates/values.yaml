@@ -111,20 +111,27 @@ authentication:
           # -- SPIRE server image
           image:
             repository: "{{ .image_registry.ghcrio_registry }}/spiffe/spire-server{{if and (.cni.cilium_version | semverCompare ">=1.14.0") (.cni.cilium_version | semverCompare "<1.15.0" )}}:1.6.3@sha256:f4bc49fb0bd1d817a6c46204cc7ce943c73fb0a5496a78e0e4dc20c9a816ad7f{{ end }}"
+{{/* The address families are derived from "cni.pod_cidr": its first entry is the
+     IPv4 side, its last entry the IPv6 side. */}}
+{{- $podCIDRs := .cni.pod_cidr | splitList "," }}
+{{- $ipv4PodCIDR := $podCIDRs | first }}
+{{- $ipv6PodCIDR := $podCIDRs | last }}
+{{- $hasIPv4 := eq ($ipv4PodCIDR | ipFamily) "IPv4" }}
+{{- $hasIPv6 := eq ($ipv6PodCIDR | ipFamily) "IPv6" }}
 ipv4:
-  enabled: {{ .cni.ipv4_support }}
+  enabled: {{ $hasIPv4 }}
 ipv6:
-  enabled: {{ .cni.ipv6_support }}
+  enabled: {{ $hasIPv6 }}
 ipam:
   operator:
-{{- if .cni.ipv4_support }}
+{{- if $hasIPv4 }}
     clusterPoolIPv4PodCIDRList:
-      - {{ .cni.ipv4_pod_cidr }}
+      - {{ $ipv4PodCIDR }}
     clusterPoolIPv4MaskSize: {{ .cni.ipv4_mask_size }}
 {{- end }}
-{{- if .cni.ipv6_support }}
+{{- if $hasIPv6 }}
     clusterPoolIPv6PodCIDRList:
-      - {{ .cni.ipv6_pod_cidr }}
+      - {{ $ipv6PodCIDR }}
     clusterPoolIPv6MaskSize: {{ .cni.ipv6_mask_size }}
 {{- end }}
 {{- if or (.cni.multi_cni | eq "multus") (.cni.multi_cni | eq "spiderpool") }}

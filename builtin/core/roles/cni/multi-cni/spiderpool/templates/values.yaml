@@ -1,3 +1,8 @@
+{{/* The address families are derived from "cni.pod_cidr": its first entry is the
+     IPv4 side, its last entry the IPv6 side. */}}
+{{- $podCIDRs := .cni.pod_cidr | splitList "," }}
+{{- $hasIPv4 := eq ($podCIDRs | first | ipFamily) "IPv4" }}
+{{- $hasIPv6 := eq ($podCIDRs | last | ipFamily) "IPv6" -}}
 global:
   ## @param global.imageRegistryOverride Global image registry for all images, which is used for offline environment
   imageRegistryOverride: "{{ .image_registry.ghcrio_registry }}"
@@ -9,7 +14,7 @@ global:
   ##
   ipam:
     ## @param ipam.enableIPv4 enable ipv4
-    enableIPv4: {{ .cni.ipv4_support }}
-  
+    enableIPv4: {{ $hasIPv4 }}
+
     ## @param ipam.enableIPv6 enable ipv6
-    enableIPv6: {{ .cni.ipv6_support }}
+    enableIPv6: {{ $hasIPv6 }}

@@ -1,0 +1,16 @@
+# The IPv6 counterpart of the "init" Overlay Subnet rendered by the chart.
+# hybridnet allocates a dual-stack pod one IPv4 and one IPv6 address, both taken
+# from Subnets of the same Network, so the "init" Network needs one Subnet per
+# family. Only created for dual-stack clusters.
+{{- $podCIDRs := .cni.pod_cidr | splitList "," }}
+apiVersion: networking.alibaba.com/v1
+kind: Subnet
+metadata:
+  name: init-ipv6
+spec:
+  network: init
+  range:
+    version: "6"
+    cidr: {{ $podCIDRs | last }}
+  config:
+    autoNatOutgoing: true
