@@ -16,7 +16,10 @@ This document explains how to install a Kubernetes cluster using KubeKey.
 
 Kubernetes requires the following OS dependencies to be pre-installed:
 
-`socat` `conntrack` `ipset` `ebtables` `chrony` `ipvsadm`
+- Debian/Ubuntu: `socat` `conntrack` `ipset` `ebtables` `chrony` `ipvsadm`
+- RHEL/CentOS: `socat` `conntrack-tools` `ipset` `ebtables` `chrony` `ipvsadm`
+
+KubeKey installs these packages automatically during node initialization. To customize the lists, set `native.packages.debs` or `native.packages.rpms` in the config file; see [Config Reference](../reference/config.md).
 
 KubeKey provides pre-compiled dependency packages for some Linux distributions, available at [iso-latest](https://github.com/kubesphere/kubekey/releases/tag/iso-latest).
 For supported distributions and build methods, see [Dependency Packages](../dependency-packages/README.md).

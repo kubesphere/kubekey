@@ -23,3 +23,25 @@ native:
   #   [hostname of the node being installed] -> corresponding node IP
   localDNS:
     - /etc/hosts
+  # OS packages installed on every node during initialization, declared per package
+  # manager with their real distribution package names.
+  # Additional packages are appended automatically when required:
+  #   - nftables when kubernetes.kube_proxy.mode is "nftables"
+  #   - when the inventory defines a non-empty "nfs" group: nfs-kernel-server (deb)
+  #     or nfs-utils (rpm) on the nodes of that group, and nfs-common (deb) or
+  #     nfs-utils (rpm) on all other nodes
+  packages:
+    debs:
+      - socat
+      - conntrack
+      - ipset
+      - ebtables
+      - chrony
+      - ipvsadm
+    rpms:
+      - socat
+      - conntrack-tools
+      - ipset
+      - ebtables
+      - chrony
+      - ipvsadm
