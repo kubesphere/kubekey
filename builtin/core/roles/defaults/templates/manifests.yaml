@@ -22,14 +22,14 @@
     {{- if $default_crictl_version | has "v1.23.0" | not }}
     {{- $default_crictl_version = append $default_crictl_version "v1.23.0" }}
     {{- end }}
-    {{- if $default_docker_version | has "20.10.23" | not }}
-    {{- $default_docker_version = append $default_docker_version "20.10.23" }}
+    {{- if $default_docker_version | has "23.0.6" | not }}
+    {{- $default_docker_version = append $default_docker_version "23.0.6" }}
     {{- end }}
-    {{- if $default_containerd_version | has "v1.6.20" | not }}
-    {{- $default_containerd_version = append $default_containerd_version "v1.6.20" }}
+    {{- if $default_containerd_version | has "v1.6.21" | not }}
+    {{- $default_containerd_version = append $default_containerd_version "v1.6.21" }}
     {{- end }}
-    {{- if $default_runc_version | has "v1.1.5" | not }}
-    {{- $default_runc_version = append $default_runc_version "v1.1.5" }}
+    {{- if $default_runc_version | has "v1.1.7" | not }}
+    {{- $default_runc_version = append $default_runc_version "v1.1.7" }}
     {{- end }}
     {{- if $default_calico_version | has "v3.25.2" | not }}
     {{- $default_calico_version = append $default_calico_version "v3.25.2" }}
@@ -56,17 +56,17 @@
     {{- if $default_crictl_version | has "v1.24.0" | not }}
     {{- $default_crictl_version = append $default_crictl_version "v1.24.0" }}
     {{- end }}
-    {{- if $default_docker_version | has "20.10.23" | not }}
-    {{- $default_docker_version = append $default_docker_version "20.10.23" }}
+    {{- if $default_docker_version | has "28.5.2" | not }}
+    {{- $default_docker_version = append $default_docker_version "28.5.2" }}
     {{- end }}
-    {{- if $default_cridockerd_version | has "v0.3.2" | not }}
-    {{- $default_cridockerd_version = append $default_cridockerd_version "v0.3.2" }}
+    {{- if $default_cridockerd_version | has "v0.4.7" | not }}
+    {{- $default_cridockerd_version = append $default_cridockerd_version "v0.4.7" }}
     {{- end }}
-    {{- if $default_containerd_version | has "v1.6.20" | not }}
-    {{- $default_containerd_version = append $default_containerd_version "v1.6.20" }}
+    {{- if $default_containerd_version | has "v1.7.28" | not }}
+    {{- $default_containerd_version = append $default_containerd_version "v1.7.28" }}
     {{- end }}
-    {{- if $default_runc_version | has "v1.1.5" | not }}
-    {{- $default_runc_version = append $default_runc_version "v1.1.5" }}
+    {{- if $default_runc_version | has "v1.3.3" | not }}
+    {{- $default_runc_version = append $default_runc_version "v1.3.3" }}
     {{- end }}
     {{- if $default_calico_version | has "v3.26.5" | not }}
     {{- $default_calico_version = append $default_calico_version "v3.26.5" }}
@@ -93,17 +93,17 @@
     {{- if $default_crictl_version | has "v1.25.0" | not }}
     {{- $default_crictl_version = append $default_crictl_version "v1.25.0" }}
     {{- end }}
-    {{- if $default_docker_version | has "20.10.23" | not }}
-    {{- $default_docker_version = append $default_docker_version "20.10.23" }}
+    {{- if $default_docker_version | has "28.5.2" | not }}
+    {{- $default_docker_version = append $default_docker_version "28.5.2" }}
     {{- end }}
-    {{- if $default_cridockerd_version | has "v0.3.2" | not }}
-    {{- $default_cridockerd_version = append $default_cridockerd_version "v0.3.2" }}
+    {{- if $default_cridockerd_version | has "v0.4.7" | not }}
+    {{- $default_cridockerd_version = append $default_cridockerd_version "v0.4.7" }}
     {{- end }}
-    {{- if $default_containerd_version | has "v1.6.20" | not }}
-    {{- $default_containerd_version = append $default_containerd_version "v1.6.20" }}
+    {{- if $default_containerd_version | has "v1.7.28" | not }}
+    {{- $default_containerd_version = append $default_containerd_version "v1.7.28" }}
     {{- end }}
-    {{- if $default_runc_version | has "v1.1.5" | not }}
-    {{- $default_runc_version = append $default_runc_version "v1.1.5" }}
+    {{- if $default_runc_version | has "v1.3.3" | not }}
+    {{- $default_runc_version = append $default_runc_version "v1.3.3" }}
     {{- end }}
     {{- if $default_calico_version | has "v3.26.5" | not }}
     {{- $default_calico_version = append $default_calico_version "v3.26.5" }}
@@ -130,17 +130,17 @@
     {{- if $default_crictl_version | has "v1.26.0" | not }}
     {{- $default_crictl_version = append $default_crictl_version "v1.26.0" }}
     {{- end }}
-    {{- if $default_docker_version | has "23.0.5" | not }}
-    {{- $default_docker_version = append $default_docker_version "23.0.5" }}
+    {{- if $default_docker_version | has "28.5.2" | not }}
+    {{- $default_docker_version = append $default_docker_version "28.5.2" }}
     {{- end }}
-    {{- if $default_cridockerd_version | has "v0.3.7" | not }}
-    {{- $default_cridockerd_version = append $default_cridockerd_version "v0.3.7" }}
+    {{- if $default_cridockerd_version | has "v0.4.7" | not }}
+    {{- $default_cridockerd_version = append $default_cridockerd_version "v0.4.7" }}
     {{- end }}
-    {{- if $default_containerd_version | has "v1.6.21" | not }}
-    {{- $default_containerd_version = append $default_containerd_version "v1.6.21" }}
+    {{- if $default_containerd_version | has "v1.7.28" | not }}
+    {{- $default_containerd_version = append $default_containerd_version "v1.7.28" }}
     {{- end }}
-    {{- if $default_runc_version | has "v1.1.7" | not }}
-    {{- $default_runc_version = append $default_runc_version "v1.1.7" }}
+    {{- if $default_runc_version | has "v1.3.3" | not }}
+    {{- $default_runc_version = append $default_runc_version "v1.3.3" }}
     {{- end }}
     {{- if $default_calico_version | has "v3.26.5" | not }}
     {{- $default_calico_version = append $default_calico_version "v3.26.5" }}
@@ -167,17 +167,17 @@
     {{- if $default_crictl_version | has "v1.27.0" | not }}
     {{- $default_crictl_version = append $default_crictl_version "v1.27.0" }}
     {{- end }}
-    {{- if $default_docker_version | has "24.0.9" | not }}
-    {{- $default_docker_version = append $default_docker_version "24.0.9" }}
+    {{- if $default_docker_version | has "28.5.2" | not }}
+    {{- $default_docker_version = append $default_docker_version "28.5.2" }}
     {{- end }}
-    {{- if $default_cridockerd_version | has "v0.3.15" | not }}
-    {{- $default_cridockerd_version = append $default_cridockerd_version "v0.3.15" }}
+    {{- if $default_cridockerd_version | has "v0.4.7" | not }}
+    {{- $default_cridockerd_version = append $default_cridockerd_version "v0.4.7" }}
     {{- end }}
-    {{- if $default_containerd_version | has "v1.7.13" | not }}
-    {{- $default_containerd_version = append $default_containerd_version "v1.7.13" }}
+    {{- if $default_containerd_version | has "v1.7.28" | not }}
+    {{- $default_containerd_version = append $default_containerd_version "v1.7.28" }}
     {{- end }}
-    {{- if $default_runc_version | has "v1.1.12" | not }}
-    {{- $default_runc_version = append $default_runc_version "v1.1.12" }}
+    {{- if $default_runc_version | has "v1.3.3" | not }}
+    {{- $default_runc_version = append $default_runc_version "v1.3.3" }}
     {{- end }}
     {{- if $default_calico_version | has "v3.28.5" | not }}
     {{- $default_calico_version = append $default_calico_version "v3.28.5" }}
@@ -204,17 +204,17 @@
     {{- if $default_crictl_version | has "v1.28.0" | not }}
     {{- $default_crictl_version = append $default_crictl_version "v1.28.0" }}
     {{- end }}
-    {{- if $default_docker_version | has "24.0.9" | not }}
-    {{- $default_docker_version = append $default_docker_version "24.0.9" }}
+    {{- if $default_docker_version | has "28.5.2" | not }}
+    {{- $default_docker_version = append $default_docker_version "28.5.2" }}
     {{- end }}
-    {{- if $default_cridockerd_version | has "v0.3.15" | not }}
-    {{- $default_cridockerd_version = append $default_cridockerd_version "v0.3.15" }}
+    {{- if $default_cridockerd_version | has "v0.4.7" | not }}
+    {{- $default_cridockerd_version = append $default_cridockerd_version "v0.4.7" }}
     {{- end }}
-    {{- if $default_containerd_version | has "v1.7.13" | not }}
-    {{- $default_containerd_version = append $default_containerd_version "v1.7.13" }}
+    {{- if $default_containerd_version | has "v1.7.28" | not }}
+    {{- $default_containerd_version = append $default_containerd_version "v1.7.28" }}
     {{- end }}
-    {{- if $default_runc_version | has "v1.1.12" | not }}
-    {{- $default_runc_version = append $default_runc_version "v1.1.12" }}
+    {{- if $default_runc_version | has "v1.3.3" | not }}
+    {{- $default_runc_version = append $default_runc_version "v1.3.3" }}
     {{- end }}
     {{- if $default_calico_version | has "v3.28.5" | not }}
     {{- $default_calico_version = append $default_calico_version "v3.28.5" }}
@@ -241,17 +241,17 @@
     {{- if $default_crictl_version | has "v1.29.0" | not }}
     {{- $default_crictl_version = append $default_crictl_version "v1.29.0" }}
     {{- end }}
-    {{- if $default_docker_version | has "25.0.5" | not }}
-    {{- $default_docker_version = append $default_docker_version "25.0.5" }}
+    {{- if $default_docker_version | has "28.5.2" | not }}
+    {{- $default_docker_version = append $default_docker_version "28.5.2" }}
     {{- end }}
-    {{- if $default_cridockerd_version | has "v0.3.21" | not }}
-    {{- $default_cridockerd_version = append $default_cridockerd_version "v0.3.21" }}
+    {{- if $default_cridockerd_version | has "v0.4.7" | not }}
+    {{- $default_cridockerd_version = append $default_cridockerd_version "v0.4.7" }}
     {{- end }}
-    {{- if $default_containerd_version | has "v1.7.13" | not }}
-    {{- $default_containerd_version = append $default_containerd_version "v1.7.13" }}
+    {{- if $default_containerd_version | has "v1.7.28" | not }}
+    {{- $default_containerd_version = append $default_containerd_version "v1.7.28" }}
     {{- end }}
-    {{- if $default_runc_version | has "v1.1.12" | not }}
-    {{- $default_runc_version = append $default_runc_version "v1.1.12" }}
+    {{- if $default_runc_version | has "v1.3.3" | not }}
+    {{- $default_runc_version = append $default_runc_version "v1.3.3" }}
     {{- end }}
     {{- if $default_calico_version | has "v3.29.7" | not }}
     {{- $default_calico_version = append $default_calico_version "v3.29.7" }}
@@ -278,17 +278,17 @@
     {{- if $default_crictl_version | has "v1.30.0" | not }}
     {{- $default_crictl_version = append $default_crictl_version "v1.30.0" }}
     {{- end }}
-    {{- if $default_docker_version | has "25.0.5" | not }}
-    {{- $default_docker_version = append $default_docker_version "25.0.5" }}
+    {{- if $default_docker_version | has "29.6.2" | not }}
+    {{- $default_docker_version = append $default_docker_version "29.6.2" }}
     {{- end }}
-    {{- if $default_cridockerd_version | has "v0.3.21" | not }}
-    {{- $default_cridockerd_version = append $default_cridockerd_version "v0.3.21" }}
+    {{- if $default_cridockerd_version | has "v0.4.7" | not }}
+    {{- $default_cridockerd_version = append $default_cridockerd_version "v0.4.7" }}
     {{- end }}
-    {{- if $default_containerd_version | has "v1.7.13" | not }}
-    {{- $default_containerd_version = append $default_containerd_version "v1.7.13" }}
+    {{- if $default_containerd_version | has "v2.2.6" | not }}
+    {{- $default_containerd_version = append $default_containerd_version "v2.2.6" }}
     {{- end }}
-    {{- if $default_runc_version | has "v1.1.12" | not }}
-    {{- $default_runc_version = append $default_runc_version "v1.1.12" }}
+    {{- if $default_runc_version | has "v1.3.6" | not }}
+    {{- $default_runc_version = append $default_runc_version "v1.3.6" }}
     {{- end }}
     {{- if $default_calico_version | has "v3.29.7" | not }}
     {{- $default_calico_version = append $default_calico_version "v3.29.7" }}
@@ -315,17 +315,17 @@
     {{- if $default_crictl_version | has "v1.31.0" | not }}
     {{- $default_crictl_version = append $default_crictl_version "v1.31.0" }}
     {{- end }}
-    {{- if $default_docker_version | has "25.0.5" | not }}
-    {{- $default_docker_version = append $default_docker_version "25.0.5" }}
+    {{- if $default_docker_version | has "29.6.2" | not }}
+    {{- $default_docker_version = append $default_docker_version "29.6.2" }}
     {{- end }}
-    {{- if $default_cridockerd_version | has "v0.3.21" | not }}
-    {{- $default_cridockerd_version = append $default_cridockerd_version "v0.3.21" }}
+    {{- if $default_cridockerd_version | has "v0.4.7" | not }}
+    {{- $default_cridockerd_version = append $default_cridockerd_version "v0.4.7" }}
     {{- end }}
-    {{- if $default_containerd_version | has "v1.7.13" | not }}
-    {{- $default_containerd_version = append $default_containerd_version "v1.7.13" }}
+    {{- if $default_containerd_version | has "v2.2.6" | not }}
+    {{- $default_containerd_version = append $default_containerd_version "v2.2.6" }}
     {{- end }}
-    {{- if $default_runc_version | has "v1.1.12" | not }}
-    {{- $default_runc_version = append $default_runc_version "v1.1.12" }}
+    {{- if $default_runc_version | has "v1.3.6" | not }}
+    {{- $default_runc_version = append $default_runc_version "v1.3.6" }}
     {{- end }}
     {{- if $default_calico_version | has "v3.30.7" | not }}
     {{- $default_calico_version = append $default_calico_version "v3.30.7" }}
@@ -352,17 +352,17 @@
     {{- if $default_crictl_version | has "v1.32.0" | not }}
     {{- $default_crictl_version = append $default_crictl_version "v1.32.0" }}
     {{- end }}
-    {{- if $default_docker_version | has "25.0.5" | not }}
-    {{- $default_docker_version = append $default_docker_version "25.0.5" }}
+    {{- if $default_docker_version | has "29.6.2" | not }}
+    {{- $default_docker_version = append $default_docker_version "29.6.2" }}
     {{- end }}
-    {{- if $default_cridockerd_version | has "v0.3.21" | not }}
-    {{- $default_cridockerd_version = append $default_cridockerd_version "v0.3.21" }}
+    {{- if $default_cridockerd_version | has "v0.4.7" | not }}
+    {{- $default_cridockerd_version = append $default_cridockerd_version "v0.4.7" }}
     {{- end }}
-    {{- if $default_containerd_version | has "v1.7.13" | not }}
-    {{- $default_containerd_version = append $default_containerd_version "v1.7.13" }}
+    {{- if $default_containerd_version | has "v2.2.6" | not }}
+    {{- $default_containerd_version = append $default_containerd_version "v2.2.6" }}
     {{- end }}
-    {{- if $default_runc_version | has "v1.1.12" | not }}
-    {{- $default_runc_version = append $default_runc_version "v1.1.12" }}
+    {{- if $default_runc_version | has "v1.3.6" | not }}
+    {{- $default_runc_version = append $default_runc_version "v1.3.6" }}
     {{- end }}
     {{- if $default_calico_version | has "v3.31.7" | not }}
     {{- $default_calico_version = append $default_calico_version "v3.31.7" }}
@@ -389,17 +389,17 @@
     {{- if $default_crictl_version | has "v1.33.0" | not }}
     {{- $default_crictl_version = append $default_crictl_version "v1.33.0" }}
     {{- end }}
-    {{- if $default_docker_version | has "25.0.5" | not }}
-    {{- $default_docker_version = append $default_docker_version "25.0.5" }}
+    {{- if $default_docker_version | has "29.6.2" | not }}
+    {{- $default_docker_version = append $default_docker_version "29.6.2" }}
     {{- end }}
-    {{- if $default_cridockerd_version | has "v0.3.21" | not }}
-    {{- $default_cridockerd_version = append $default_cridockerd_version "v0.3.21" }}
+    {{- if $default_cridockerd_version | has "v0.4.7" | not }}
+    {{- $default_cridockerd_version = append $default_cridockerd_version "v0.4.7" }}
     {{- end }}
-    {{- if $default_containerd_version | has "v1.7.13" | not }}
-    {{- $default_containerd_version = append $default_containerd_version "v1.7.13" }}
+    {{- if $default_containerd_version | has "v2.2.6" | not }}
+    {{- $default_containerd_version = append $default_containerd_version "v2.2.6" }}
     {{- end }}
-    {{- if $default_runc_version | has "v1.1.12" | not }}
-    {{- $default_runc_version = append $default_runc_version "v1.1.12" }}
+    {{- if $default_runc_version | has "v1.3.6" | not }}
+    {{- $default_runc_version = append $default_runc_version "v1.3.6" }}
     {{- end }}
     {{- if $default_calico_version | has "v3.31.7" | not }}
     {{- $default_calico_version = append $default_calico_version "v3.31.7" }}
@@ -426,17 +426,17 @@
     {{- if $default_crictl_version | has "v1.34.0" | not }}
     {{- $default_crictl_version = append $default_crictl_version "v1.34.0" }}
     {{- end }}
-    {{- if $default_docker_version | has "25.0.5" | not }}
-    {{- $default_docker_version = append $default_docker_version "25.0.5" }}
+    {{- if $default_docker_version | has "29.6.2" | not }}
+    {{- $default_docker_version = append $default_docker_version "29.6.2" }}
     {{- end }}
-    {{- if $default_cridockerd_version | has "v0.3.21" | not }}
-    {{- $default_cridockerd_version = append $default_cridockerd_version "v0.3.21" }}
+    {{- if $default_cridockerd_version | has "v0.4.7" | not }}
+    {{- $default_cridockerd_version = append $default_cridockerd_version "v0.4.7" }}
     {{- end }}
-    {{- if $default_containerd_version | has "v1.7.13" | not }}
-    {{- $default_containerd_version = append $default_containerd_version "v1.7.13" }}
+    {{- if $default_containerd_version | has "v2.2.6" | not }}
+    {{- $default_containerd_version = append $default_containerd_version "v2.2.6" }}
     {{- end }}
-    {{- if $default_runc_version | has "v1.1.12" | not }}
-    {{- $default_runc_version = append $default_runc_version "v1.1.12" }}
+    {{- if $default_runc_version | has "v1.3.6" | not }}
+    {{- $default_runc_version = append $default_runc_version "v1.3.6" }}
     {{- end }}
     {{- if $default_calico_version | has "v3.32.2" | not }}
     {{- $default_calico_version = append $default_calico_version "v3.32.2" }}
@@ -463,17 +463,17 @@
     {{- if $default_crictl_version | has "v1.35.0" | not }}
     {{- $default_crictl_version = append $default_crictl_version "v1.35.0" }}
     {{- end }}
-    {{- if $default_docker_version | has "25.0.5" | not }}
-    {{- $default_docker_version = append $default_docker_version "25.0.5" }}
+    {{- if $default_docker_version | has "29.6.2" | not }}
+    {{- $default_docker_version = append $default_docker_version "29.6.2" }}
     {{- end }}
-    {{- if $default_cridockerd_version | has "v0.3.21" | not }}
-    {{- $default_cridockerd_version = append $default_cridockerd_version "v0.3.21" }}
+    {{- if $default_cridockerd_version | has "v0.4.7" | not }}
+    {{- $default_cridockerd_version = append $default_cridockerd_version "v0.4.7" }}
     {{- end }}
-    {{- if $default_containerd_version | has "v1.7.13" | not }}
-    {{- $default_containerd_version = append $default_containerd_version "v1.7.13" }}
+    {{- if $default_containerd_version | has "v2.2.6" | not }}
+    {{- $default_containerd_version = append $default_containerd_version "v2.2.6" }}
     {{- end }}
-    {{- if $default_runc_version | has "v1.1.12" | not }}
-    {{- $default_runc_version = append $default_runc_version "v1.1.12" }}
+    {{- if $default_runc_version | has "v1.3.6" | not }}
+    {{- $default_runc_version = append $default_runc_version "v1.3.6" }}
     {{- end }}
     {{- if $default_calico_version | has "v3.32.2" | not }}
     {{- $default_calico_version = append $default_calico_version "v3.32.2" }}
@@ -500,17 +500,17 @@
     {{- if $default_crictl_version | has "v1.36.0" | not }}
     {{- $default_crictl_version = append $default_crictl_version "v1.36.0" }}
     {{- end }}
-    {{- if $default_docker_version | has "25.0.5" | not }}
-    {{- $default_docker_version = append $default_docker_version "25.0.5" }}
+    {{- if $default_docker_version | has "29.7.2" | not }}
+    {{- $default_docker_version = append $default_docker_version "29.7.2" }}
     {{- end }}
-    {{- if $default_cridockerd_version | has "v0.3.21" | not }}
-    {{- $default_cridockerd_version = append $default_cridockerd_version "v0.3.21" }}
+    {{- if $default_cridockerd_version | has "v0.4.7" | not }}
+    {{- $default_cridockerd_version = append $default_cridockerd_version "v0.4.7" }}
     {{- end }}
-    {{- if $default_containerd_version | has "v1.7.13" | not }}
-    {{- $default_containerd_version = append $default_containerd_version "v1.7.13" }}
+    {{- if $default_containerd_version | has "v2.3.3" | not }}
+    {{- $default_containerd_version = append $default_containerd_version "v2.3.3" }}
     {{- end }}
-    {{- if $default_runc_version | has "v1.1.12" | not }}
-    {{- $default_runc_version = append $default_runc_version "v1.1.12" }}
+    {{- if $default_runc_version | has "v1.4.3" | not }}
+    {{- $default_runc_version = append $default_runc_version "v1.4.3" }}
     {{- end }}
     {{- if $default_calico_version | has "v3.32.2" | not }}
     {{- $default_calico_version = append $default_calico_version "v3.32.2" }}
@@ -537,17 +537,17 @@
     {{- if $default_crictl_version | has "v1.37.0" | not }}
     {{- $default_crictl_version = append $default_crictl_version "v1.37.0" }}
     {{- end }}
-    {{- if $default_docker_version | has "25.0.5" | not }}
-    {{- $default_docker_version = append $default_docker_version "25.0.5" }}
+    {{- if $default_docker_version | has "29.7.2" | not }}
+    {{- $default_docker_version = append $default_docker_version "29.7.2" }}
     {{- end }}
-    {{- if $default_cridockerd_version | has "v0.3.21" | not }}
-    {{- $default_cridockerd_version = append $default_cridockerd_version "v0.3.21" }}
+    {{- if $default_cridockerd_version | has "v0.4.7" | not }}
+    {{- $default_cridockerd_version = append $default_cridockerd_version "v0.4.7" }}
     {{- end }}
-    {{- if $default_containerd_version | has "v2.3.4" | not }}
-    {{- $default_containerd_version = append $default_containerd_version "v2.3.4" }}
+    {{- if $default_containerd_version | has "v2.3.3" | not }}
+    {{- $default_containerd_version = append $default_containerd_version "v2.3.3" }}
     {{- end }}
-    {{- if $default_runc_version | has "v1.2.6" | not }}
-    {{- $default_runc_version = append $default_runc_version "v1.2.6" }}
+    {{- if $default_runc_version | has "v1.4.3" | not }}
+    {{- $default_runc_version = append $default_runc_version "v1.4.3" }}
     {{- end }}
     {{- if $default_calico_version | has "v3.32.2" | not }}
     {{- $default_calico_version = append $default_calico_version "v3.32.2" }}

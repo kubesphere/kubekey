@@ -110,11 +110,56 @@ Recommended etcd versions for each Kubernetes version:
 
 ### Container Runtime
 
-> **Note**: Container runtime is the underlying software on Kubernetes nodes responsible for running containers. KubeKey supports multiple container runtimes, including containerd, CRI-O, and Docker (via cri-dockerd).
+> **Note**: Container runtime is the underlying software on Kubernetes nodes responsible for running containers. The built-in core playbook supports **containerd** (the default) and **Docker** (through the [cri-dockerd](https://github.com/Mirantis/cri-dockerd) CRI adapter); CRI-O is not provided by the built-in core playbook.
 
-> **Version Selection**: Default versions are set based on the code in the [cri-dockerd](https://github.com/Mirantis/cri-dockerd) project to ensure compatibility with Kubernetes versions.
+> **Important**: Kubernetes removed the built-in `dockershim` in v1.24, so from v1.24 onwards Docker is usable as a node runtime only through the external cri-dockerd shim. containerd is the recommended runtime for new clusters.
 
-> **Note**: Docker as a container runtime has been deprecated in Kubernetes 1.24+, and it is recommended to use containerd or CRI-O.
+#### How the defaults are chosen: Docker is the anchor
+
+KubeKey picks one **Docker** version per Kubernetes minor and then sets `cri.containerd_version` and `cri.runc_version` to the **exact versions bundled inside that Docker static package**.
+
+The reason is that the two runtimes have to be interchangeable on the same node. In Docker mode `cri/docker` unpacks the whole `docker/*` payload of `docker-<version>.tgz` into `/usr/local/bin`, so `containerd`, `containerd-shim-runc-v2`, `runc` and `dockerd` all come from that single package; and `cri/meta/main.yaml` selects **either** `cri/docker` **or** `cri/containerd` based on `container_manager`, never both. `cri.containerd_version` / `cri.runc_version` are therefore inert when Docker is the runtime. Keeping the containerd-mode defaults on the same version pair makes the runtime stack **identical in both modes**, so a cluster can be moved between `containerd` and `docker` without a version mismatch. That is why these two values follow Docker rather than containerd's own release cadence.
+
+**Where the bundled versions come from**: the `ARG CONTAINERD_VERSION` / `ARG RUNC_VERSION` declarations in the `Dockerfile` of the matching release tag of [moby/moby](https://github.com/moby/moby) - the build input for both the Docker static packages and the published images. The same values can be read back from the shipped binaries (`go version -m <pkg>/containerd` prints the containerd module version, `runc --version` prints the runc version); for every row below the two sources agree.
+
+| kubernetes version | KubeKey docker | bundled containerd | bundled runc | KubeKey cri-dockerd |
+|---|---|---|---|---|
+| 1.23 | 23.0.6 | v1.6.21 | v1.1.7 | v0.4.7 |
+| 1.24 ~ 1.29 | 28.5.2 | v1.7.28 | v1.3.3 | v0.4.7 |
+| 1.30 ~ 1.35 | 29.6.2 | v2.2.6 | v1.3.6 | v0.4.7 |
+| 1.36 ~ 1.37 | 29.7.2 | v2.3.3 | v1.4.3 | v0.4.7 |
+
+> **Sources for the version pairs** - the moby `Dockerfile` of each tag: [v23.0.6](https://github.com/moby/moby/blob/v23.0.6/Dockerfile), [v28.5.2](https://github.com/moby/moby/blob/v28.5.2/Dockerfile), [docker-v29.6.2](https://github.com/moby/moby/blob/docker-v29.6.2/Dockerfile), [docker-v29.7.2](https://github.com/moby/moby/blob/docker-v29.7.2/Dockerfile).
+
+> **Why one Docker version covers several Kubernetes minors**: a Docker static package bundles exactly one containerd build - the one that release was built against - and Docker publishes no Kubernetes compatibility matrix, so there is no per-minor official pair to quote. KubeKey instead groups Kubernetes minors by the **containerd series** they need and then takes the **newest Docker release that still ships that series**:
+> - **1.24 ~ 1.29 -> containerd 1.7**: `28.5.2` is the last Docker release on the 1.7 line (`v1.7.28` / `v1.3.3`); later releases move to containerd 2.x.
+> - **1.30 ~ 1.35 -> containerd 2.2**: Kubernetes 1.30+ requires containerd 2.x. On the Docker side the 2.x line runs `2.1.5` (29.0.0) -> `2.2.4`~`2.2.6` (29.6.x) -> `2.3.x` (29.7.x onwards). The 2.1 series reached end of life on 2026-07-03, so KubeKey takes the still-supported **2.2** series, whose highest Docker-side patch is `29.6.2` (`v2.2.6` / `v1.3.6`). The same release serves Kubernetes 1.35, which also needs 2.2.
+> - **1.36 ~ 1.37 -> containerd 2.3**: `29.7.2` is the newest release carrying 2.3 that is available on the static-package mirror (`v2.3.3` / `v1.4.3`). Docker `29.8.0` (`v2.3.4` / `v1.5.1`) was released on 2026-09-03 but has not been mirrored yet; it can be adopted as a patch-level update once it is.
+
+> **Relation to containerd's own matrix**: containerd publishes a [Kubernetes support matrix](https://github.com/containerd/containerd/blob/main/RELEASES.md#kubernetes-support) listing, per Kubernetes minor, the series it considers **recommended** (the most thoroughly tested); it is not a formal compatibility guarantee, and a `+` suffix means "that version or later **within the same minor series**". The grouping above uses that series information, but the concrete patch version always comes from the Docker package because of the interchangeability requirement described at the top of this section.
+
+> **About `cri-dockerd`**: since v0.4.0 cri-dockerd requires Docker API `v1.42` or newer, which is the API version of **Docker v23**. Every Docker version in the table is >= v23, so `v0.4.7` - the current release of the 0.4 line, which also carries the newest CVE fixes - is used for all Kubernetes minors. Override it with `--set cri.cridockerd_version="v0.4.7"`. Kubernetes 1.23 still uses the built-in dockershim, so the cri-dockerd role is not exercised there; the value is carried for consistency and takes effect when such a cluster is upgraded past 1.24.
+
+> **Security note for Kubernetes 1.23**: Docker `23.0.6` bundles runc `v1.1.7`, below the `v1.1.12` fix line of CVE-2024-21626 (a high-severity container breakout). Kubernetes 1.23 defaults to the Docker runtime and still ships dockershim, so this combination is reachable by default. Raising the 1.23 default to Docker `>= 24.0.9` would cross that fix line (it bundles runc `v1.1.12`) but would also move containerd to `v1.7.13`, breaking parity with containerd mode; the trade-off is deliberate here and can be changed with `--set cri.docker_version`.
+
+#### [containerd](https://github.com/containerd/containerd)
+
+> **Note**: containerd is the default runtime of KubeKey - `container_manager: containerd` is the default for Kubernetes 1.24 and later.
+
+> **Installation**:
+> - Use `--set cri.container_manager="containerd"` to select containerd
+> - Use `--set cri.containerd_version="v2.3.3"` to specify the containerd version to install (if not specified, the default version will be used)
+> - Use `--set cri.runc_version="v1.4.3"` to specify the runc version (if not specified, the default version will be used)
+
+#### [Docker](https://github.com/moby/moby)
+
+> **Note**: Docker can be used as a node runtime from Kubernetes 1.24 onwards only through the external cri-dockerd shim; on Kubernetes 1.23 the built-in dockershim is still present and cri-dockerd is not installed.
+
+> **Installation**:
+> - Use `--set cri.container_manager="docker"` to select Docker
+> - Use `--set cri.docker_version="29.7.2"` to specify the Docker version to install (if not specified, the default version will be used)
+> - Use `--set cri.cridockerd_version="v0.4.7"` to specify the cri-dockerd version (if not specified, the default version will be used)
+> - In Docker mode the containerd / runc binaries come from the Docker package itself, so `cri.containerd_version` and `cri.runc_version` have no effect
 
 ### Container Network Plugin
 

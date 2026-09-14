@@ -204,7 +204,7 @@ func terminalCfg() map[string]interface{} {
 		},
 		"cri": map[string]interface{}{
 			"container_manager":  "containerd",
-			"containerd_version": "v1.7.13",
+			"containerd_version": "v2.3.3",
 			"crictl_version":     "v1.36.0",
 		},
 		"cni": map[string]interface{}{
