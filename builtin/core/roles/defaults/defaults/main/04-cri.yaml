@@ -41,6 +41,10 @@ cri:
   containerd:
     # How to handle /etc/containerd/config.toml when already installed: empty (default) skips, "merge" merges with existing file, "override" overwrites
     config_policy: ""
+    # Download the statically linked containerd binary instead of the default dynamically linked one.
+    # Useful on older distros (e.g. Rocky Linux 8) whose glibc predates what recent containerd releases require.
+    # Only set this for a containerd_version that publishes a "containerd-static-*" release asset.
+    static_binary: false
     config:
       root: "{{ .cri.containerd.data_root | default \"/var/lib/containerd\" }}"
       version: 2

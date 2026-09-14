@@ -817,6 +817,10 @@ cri:
     # Policy for updating the containerd config file and systemd service when the runtime is already installed.
     # Empty (default): skip the update; "merge": merge with the existing config (node-side keys take precedence); "override": overwrite.
     config_policy: ""
+    # Download the statically linked containerd binary instead of the default dynamically linked one.
+    # Useful on older distros (e.g. Rocky Linux 8) whose glibc predates what recent containerd releases require.
+    # Only set this for a containerd_version that publishes a "containerd-static-*" release asset.
+    static_binary: false
     config:
       # containerd data root directory
       root: "{{ .cri.containerd.data_root | default \"/var/lib/containerd\" }}"
@@ -883,6 +887,7 @@ cri:
 | `cri.docker.daemon.exec-opts` | Docker exec options list, e.g., cgroup driver. |
 | `cri.containerd.config` | containerd configuration, mapped to `/etc/containerd/config.toml`. |
 | `cri.containerd.config_policy` | Policy for updating the containerd config file (`/etc/containerd/config.toml`) and systemd service when the runtime is already installed: empty (default) skips the update; `merge` merges with the existing config (node-side existing keys take precedence); `override` overwrites. Binary installation and certificate sync are not affected by this policy. |
+| `cri.containerd.static_binary` | Whether to download the statically linked containerd binary (`containerd-static-*`) instead of the default dynamically linked one. Useful on older distros whose glibc predates what recent containerd releases require. Requires the target containerd version to actually publish a static release asset. |
 | `cri.docker.daemon_policy` | Same as `cri.containerd.config_policy`, but applies to the Docker daemon (`/etc/docker/daemon.json`) and its systemd service. |
 | `cri.containerd.config.root` | containerd data persistence root directory. |
 | `cri.containerd.config.version` | containerd configuration file version. |
@@ -1230,7 +1235,9 @@ download:
     # containerd binary package
     containerd: >-
       {{- .zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
-      github.com/containerd/containerd/releases/download/{{ "{{ .version }}" }}/containerd-{{ "{{ .version | default \"\" | trimPrefix \"v\" }}" }}-linux-{{ "{{ .arch }}" }}.tar.gz
+      github.com/containerd/containerd/releases/download/{{ "{{ .version }}" }}/containerd-
+      {{- .cri.containerd.static_binary | default false | ternary "static-" "" -}}
+      {{ "{{ .version | default \"\" | trimPrefix \"v\" }}" }}-linux-{{ "{{ .arch }}" }}.tar.gz
     # runc binary
     runc: >-
       {{- .zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
