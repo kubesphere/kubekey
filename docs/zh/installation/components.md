@@ -109,12 +109,57 @@
 
 ### 容器运行时
 
-> **说明**：容器运行时是 Kubernetes 节点上负责运行容器的底层软件。KubeKey 支持多种容器运行时，包括 containerd、CRI-O 和 Docker（通过 cri-dockerd）。
+> **说明**：容器运行时是 Kubernetes 节点上负责运行容器的底层软件。内建 core playbook 支持 **containerd**（默认）与 **Docker**（通过 [cri-dockerd](https://github.com/Mirantis/cri-dockerd) CRI 适配层）；CRI-O 不由内建 core playbook 提供。
 
-> **版本选择**：默认版本根据 [cri-dockerd](https://github.com/Mirantis/cri-dockerd) 项目中的代码来设置，确保与 Kubernetes 版本的兼容性。
+> **重要**：Kubernetes 自 v1.24 起移除了内建的 `dockershim`，因此从 1.24 开始 Docker 只能通过外部 cri-dockerd 适配层作为节点运行时使用。新部署推荐使用 containerd。
 
-> **注意**：Docker 作为容器运行时在 Kubernetes 1.24+ 版本中已被弃用，建议使用 containerd 或 CRI-O。
+#### 版本选择：以 Docker 为锚
 
+**核心：两种容器运行时可互换。** Docker 模式下 `cri/docker` 把 `docker-<version>.tgz` 的整个 `docker/*` 解到 `/usr/local/bin`，containerd / runc / dockerd 全部来自该包，`cri.containerd_version` / `cri.runc_version` 不生效。故 KubeKey 把 containerd/runc 默认值设成所选 Docker 包内嵌的那一对，两种模式运行时栈一致、可原地互换。
+
+**表格1：来源说明**（containerd 官方推荐）
+
+| Kubernetes 版本 | containerd 版本支持 | containerd 推荐 runc 版本 | containerd 官方链接 |
+|---|---|---|---|
+| 1.23 | v1.6.39 | ≥ v1.3.1 | [RELEASES.md](https://github.com/containerd/containerd/blob/main/RELEASES.md#kubernetes-support) · [RUNC.md](https://github.com/containerd/containerd/blob/main/docs/RUNC.md) |
+| 1.24 ~ 1.29 | v1.7.35 | ≥ v1.3.6 | 同上 |
+| 1.30 ~ 1.34 | v2.0.12 | ≥ v1.3.6 | 同上 |
+| 1.35 | v2.2.8 | ≥ v1.3.6 | 同上 |
+| 1.36 ~ 1.37 | v2.3.5 | ≥ v1.5.1 | 同上 |
+
+**表格2：版本适配**（KubeKey 默认值）
+
+| Kubernetes 版本 | docker 适配版本 | docker 内置 containerd | docker 内置 runc | 来源 |
+|---|---|---|---|---|
+| 1.23 | 23.0.6 | v1.6.21 | v1.1.7 | [v23.0.6](https://github.com/moby/moby/blob/v23.0.6/Dockerfile) |
+| 1.24 ~ 1.29 | 28.5.2 | v1.7.28 | v1.3.3 | [v28.5.2](https://github.com/moby/moby/blob/v28.5.2/Dockerfile) |
+| 1.30 ~ 1.35 | 29.6.2 | v2.2.6 | v1.3.6 | [docker-v29.6.2](https://github.com/moby/moby/blob/docker-v29.6.2/Dockerfile) |
+| 1.36 ~ 1.37 | 29.7.2 | v2.3.3 | v1.4.3 | [docker-v29.7.2](https://github.com/moby/moby/blob/docker-v29.7.2/Dockerfile) |
+
+> **分组依据**：一个 Docker 包只内嵌一个 containerd 构建，Docker 不发布 Kubernetes 兼容矩阵；按各 Kubernetes 小版本所需的 containerd 系列分组，取仍提供该系列的最新 Docker 版本。1.30~1.35 取 2.2（2.1 已 EOL）；1.36~1.37 取 2.3（29.8.0 待镜像同步）。
+
+> **cri-dockerd**：自 v0.4.0 要求 Docker API v1.42（= Docker v23），上表全部满足，统一 `v0.4.7`。1.23 用内建 dockershim，不装 cri-dockerd。
+
+> **1.23 安全提示**：docker 23.0.6 内嵌 runc v1.1.7 < CVE-2024-21626 修复线 v1.1.12，属刻意取舍（抬到 ≥24.0.9 会破坏与 containerd 模式的版本一致性）。
+
+#### [containerd](https://github.com/containerd/containerd)
+
+> **说明**：containerd 是 KubeKey 的默认运行时——自 Kubernetes 1.24 起 `container_manager: containerd` 为默认值。
+
+> **安装**：
+> - 使用 `--set cri.container_manager="containerd"` 选择 containerd
+> - 使用 `--set cri.containerd_version="v2.3.3"` 指定要安装的 containerd 版本（不指定则使用默认值）
+> - 使用 `--set cri.runc_version="v1.4.3"` 指定 runc 版本（不指定则使用默认值）
+
+#### [Docker](https://github.com/moby/moby)
+
+> **说明**：从 Kubernetes 1.24 起 Docker 只能通过外部 cri-dockerd 适配层作为节点运行时；在 Kubernetes 1.23 上内建 dockershim 仍然存在，不会安装 cri-dockerd。
+
+> **安装**：
+> - 使用 `--set cri.container_manager="docker"` 选择 Docker
+> - 使用 `--set cri.docker_version="29.7.2"` 指定要安装的 Docker 版本（不指定则使用默认值）
+> - 使用 `--set cri.cridockerd_version="v0.4.7"` 指定 cri-dockerd 版本（不指定则使用默认值）
+> - Docker 模式下 containerd / runc 二进制来自 Docker 包本身，`cri.containerd_version` 与 `cri.runc_version` 不生效
 
 ### 容器网络插件
 

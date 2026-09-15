@@ -66,12 +66,13 @@ spec:
     crictl_version: v1.23.0
     # ========== Docker Runtime ==========
     # Docker binary version.
-    docker_version: 20.10.23
+    docker_version: 23.0.6
     # ========== Containerd Runtime ==========
     # containerd binary version (active only when container_manager is containerd).
-    # containerd_version: v1.6.20
+    # Matches the containerd bundled in the docker static package above.
+    # containerd_version: v1.6.21
     # runc binary version (active only when container_manager is containerd).
-    # runc_version: v1.1.5
+    # runc_version: v1.1.7
   cni:
     # CNI plugin type. Supported: calico, cilium, flannel, hybridnet, kubeovn, other
     type: calico
