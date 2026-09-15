@@ -130,14 +130,12 @@ Recommended etcd versions for each Kubernetes version:
 
 **Table 2: versions KubeKey ships**
 
-| kubernetes version | docker version | docker bundled containerd | docker bundled runc |
-|---|---|---|---|
-| 1.23 | 23.0.6 | v1.6.21 | v1.1.7 |
-| 1.24 ~ 1.29 | 28.5.2 | v1.7.28 | v1.3.3 |
-| 1.30 ~ 1.35 | 29.6.2 | v2.2.6 | v1.3.6 |
-| 1.36 ~ 1.37 | 29.7.2 | v2.3.3 | v1.4.3 |
-
-> **Sources for the version pairs**: the `ARG CONTAINERD_VERSION` / `ARG RUNC_VERSION` declarations in the moby `Dockerfile` of each tag: [v23.0.6](https://github.com/moby/moby/blob/v23.0.6/Dockerfile), [v28.5.2](https://github.com/moby/moby/blob/v28.5.2/Dockerfile), [docker-v29.6.2](https://github.com/moby/moby/blob/docker-v29.6.2/Dockerfile), [docker-v29.7.2](https://github.com/moby/moby/blob/docker-v29.7.2/Dockerfile).
+| kubernetes version | docker version | docker bundled containerd | docker bundled runc | source |
+|---|---|---|---|---|
+| 1.23 | 23.0.6 | v1.6.21 | v1.1.7 | [v23.0.6](https://github.com/moby/moby/blob/v23.0.6/Dockerfile) |
+| 1.24 ~ 1.29 | 28.5.2 | v1.7.28 | v1.3.3 | [v28.5.2](https://github.com/moby/moby/blob/v28.5.2/Dockerfile) |
+| 1.30 ~ 1.35 | 29.6.2 | v2.2.6 | v1.3.6 | [docker-v29.6.2](https://github.com/moby/moby/blob/docker-v29.6.2/Dockerfile) |
+| 1.36 ~ 1.37 | 29.7.2 | v2.3.3 | v1.4.3 | [docker-v29.7.2](https://github.com/moby/moby/blob/docker-v29.7.2/Dockerfile) |
 
 > **Grouping**: one Docker package bundles exactly one containerd build and Docker publishes no Kubernetes compatibility matrix, so KubeKey groups Kubernetes minors by the containerd series they need and takes the newest Docker release that still ships that series. 1.30~1.35 take 2.2 (2.1 is EOL); 1.36~1.37 take 2.3 (29.8.0 is not mirrored yet).
 

@@ -129,14 +129,12 @@
 
 **表格2：版本适配**（KubeKey 默认值）
 
-| Kubernetes 版本 | docker 适配版本 | docker 内置 containerd | docker 内置 runc |
-|---|---|---|---|
-| 1.23 | 23.0.6 | v1.6.21 | v1.1.7 |
-| 1.24 ~ 1.29 | 28.5.2 | v1.7.28 | v1.3.3 |
-| 1.30 ~ 1.35 | 29.6.2 | v2.2.6 | v1.3.6 |
-| 1.36 ~ 1.37 | 29.7.2 | v2.3.3 | v1.4.3 |
-
-> **版本对来源**：moby 各 tag 的 `Dockerfile` 中 `ARG CONTAINERD_VERSION` / `ARG RUNC_VERSION`（[v23.0.6](https://github.com/moby/moby/blob/v23.0.6/Dockerfile)、[v28.5.2](https://github.com/moby/moby/blob/v28.5.2/Dockerfile)、[docker-v29.6.2](https://github.com/moby/moby/blob/docker-v29.6.2/Dockerfile)、[docker-v29.7.2](https://github.com/moby/moby/blob/docker-v29.7.2/Dockerfile)）。
+| Kubernetes 版本 | docker 适配版本 | docker 内置 containerd | docker 内置 runc | 来源 |
+|---|---|---|---|---|
+| 1.23 | 23.0.6 | v1.6.21 | v1.1.7 | [v23.0.6](https://github.com/moby/moby/blob/v23.0.6/Dockerfile) |
+| 1.24 ~ 1.29 | 28.5.2 | v1.7.28 | v1.3.3 | [v28.5.2](https://github.com/moby/moby/blob/v28.5.2/Dockerfile) |
+| 1.30 ~ 1.35 | 29.6.2 | v2.2.6 | v1.3.6 | [docker-v29.6.2](https://github.com/moby/moby/blob/docker-v29.6.2/Dockerfile) |
+| 1.36 ~ 1.37 | 29.7.2 | v2.3.3 | v1.4.3 | [docker-v29.7.2](https://github.com/moby/moby/blob/docker-v29.7.2/Dockerfile) |
 
 > **分组依据**：一个 Docker 包只内嵌一个 containerd 构建，Docker 不发布 Kubernetes 兼容矩阵；按各 Kubernetes 小版本所需的 containerd 系列分组，取仍提供该系列的最新 Docker 版本。1.30~1.35 取 2.2（2.1 已 EOL）；1.36~1.37 取 2.3（29.8.0 待镜像同步）。
 
