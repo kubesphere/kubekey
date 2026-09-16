@@ -104,9 +104,6 @@
 | 1.36 | v3.6.8 |
 | 1.37 | v3.7.0 |
 
-> **关于 etcd 最小要求版本列**：
-> Kubernetes 1.23~1.27 在最小列保留历史 `MinExternalEtcdVersion`（`3.2.18`）；从 1.28 起，最小列反映各版本自身的 `MinExternalEtcdVersion`（1.28~1.30 为 `3.4.13-4`，1.31~1.33 为 `3.5.11-0` 及 `3.5.24-0`，1.34 为 `3.5.21-0` 及 `3.5.24-0`，1.35~1.37 为 `3.5.24-0`）。KubeKey 在 `etcd_min_versions` 中镜像该值，在 **precheck 阶段、kubeadm 运行之前** 拒绝**过旧**的 etcd——例如 `etcd 3.5.6` 无法随 Kubernetes 1.31.14+（最小 `3.5.24-0`）升级。KubeKey 刻意**不**对外部 etcd 施加上限：kubeadm 本身只硬性拒绝过旧的 etcd（`preflight/checks.go` 仅在 `etcdVersion < minExternalEtcdVersion` 时报错），其 `SupportedEtcdVersion` map 仅用于选择堆叠式（本地）etcd 版本（缺失时仅告警兜底），从不会拒绝过新的外部 etcd。
-
 ### 容器运行时
 
 > **说明**：容器运行时是 Kubernetes 节点上负责运行容器的底层软件。内建 core playbook 支持 **containerd**（默认）与 **Docker**（通过 [cri-dockerd](https://github.com/Mirantis/cri-dockerd) CRI 适配层）；CRI-O 不由内建 core playbook 提供。

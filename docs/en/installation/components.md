@@ -105,9 +105,6 @@ Recommended etcd versions for each Kubernetes version:
 | 1.36 | v3.6.8 |
 | 1.37 | v3.7.0 |
 
-> **About the etcd minimum required version column**:
-> Kubernetes 1.23~1.27 keep the historical `MinExternalEtcdVersion` (`3.2.18`) in the minimum column; starting at 1.28, the minimum column reflects each release's own `MinExternalEtcdVersion` (e.g. `3.4.13-4` for 1.28~1.30, `3.5.11-0` then `3.5.24-0` for 1.31~1.33, `3.5.21-0` then `3.5.24-0` for 1.34, and `3.5.24-0` for 1.35~1.37). KubeKey mirrors this in `etcd_min_versions` and rejects etcd that is **too old** in **precheck, before kubeadm runs** — e.g. `etcd 3.5.6` cannot be upgraded together with Kubernetes 1.31.14+ (minimum `3.5.24-0`). KubeKey intentionally does **not** enforce an upper bound on external etcd: kubeadm itself only hard-rejects an etcd that is too old (`preflight/checks.go` errors only when `etcdVersion < minExternalEtcdVersion`), and its `SupportedEtcdVersion` map is used solely to pick the stacked (local) etcd version with a graceful warning fallback — never to reject a newer external etcd.
-
 ### Container Runtime
 
 > **Note**: Container runtime is the underlying software on Kubernetes nodes responsible for running containers. The built-in core playbook supports **containerd** (the default) and **Docker** (through the [cri-dockerd](https://github.com/Mirantis/cri-dockerd) CRI adapter); CRI-O is not provided by the built-in core playbook.
