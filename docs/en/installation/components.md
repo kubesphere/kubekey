@@ -93,7 +93,7 @@ Recommended etcd versions for each Kubernetes version:
 | 1.26 | v3.5.10 |
 | 1.27 | v3.5.12 |
 | 1.28 | v3.5.15 |
-| 1.29 | v3.5.15 |
+| 1.29 | v3.5.16 |
 | 1.30 | v3.5.15 |
 | 1.31 | v3.5.24 |
 | 1.32 | v3.5.24 |
@@ -263,9 +263,9 @@ Recommended etcd versions for each Kubernetes version:
 
 > **Installation**:
 > - Use `--set cni.type="hybridnet"` to specify HybridNet as the container network plugin
-> - Use `--set cni.hybridnet_version="v0.8.8"` to specify the HybridNet version to install (if not specified, the default version will be used)
+> - Use `--set cni.hybridnet_version="0.6.8"` to specify the HybridNet version to install (if not specified, the default version will be used)
 
-> **Note**: HybridNet official documentation does not clearly specify the supported Kubernetes version range. The default version in the KubeKey project is v0.8.8. It is recommended to fully test before using in production environments.
+> **Note**: HybridNet official documentation does not clearly specify the supported Kubernetes version range. The default version in the KubeKey project is 0.6.8 (the chart that deploys HybridNet v0.8.8). It is recommended to fully test before using in production environments.
 
 > **Key Features**: Multi-network plane support, Underlay/Overlay hybrid deployment, flexible IP address management, network isolation
 

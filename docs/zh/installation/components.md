@@ -92,7 +92,7 @@
 | 1.26 | v3.5.10 |
 | 1.27 | v3.5.12 |
 | 1.28 | v3.5.15 |
-| 1.29 | v3.5.15 |
+| 1.29 | v3.5.16 |
 | 1.30 | v3.5.15 |
 | 1.31 | v3.5.24 |
 | 1.32 | v3.5.24 |
@@ -261,9 +261,9 @@
 
 > **安装方式**：
 > - 通过 `--set cni.type="hybridnet"` 指定安装 HybridNet 作为容器网络插件
-> - 通过 `--set cni.hybridnet_version="v0.8.8"` 指定安装的 HybridNet 版本（不指定则使用默认版本）
+> - 通过 `--set cni.hybridnet_version="0.6.8"` 指定安装的 HybridNet 版本（不指定则使用默认版本）
 
-> **注意**：HybridNet 官方未明确说明支持的 Kubernetes 版本范围。KubeKey 项目中默认版本为 v0.8.8，建议在生产环境使用前进行充分测试。
+> **注意**：HybridNet 官方未明确说明支持的 Kubernetes 版本范围。KubeKey 项目中默认版本为 0.6.8（对应部署 HybridNet v0.8.8 的 chart），建议在生产环境使用前进行充分测试。
 
 > **主要特性**：多网络平面支持、Underlay/Overlay 混合部署、灵活的 IP 地址管理、网络隔离
 

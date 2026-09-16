@@ -12,7 +12,7 @@ kubernetes:
         tag: 2.9.6-alpine
 etcd:
   # etcd binary
-  etcd_version: v3.5.15
+  etcd_version: v3.5.16
 image_registry:
   # ========== image registry ==========
   # keepalived image tag. Used for load balancing when there are multiple image registry nodes.

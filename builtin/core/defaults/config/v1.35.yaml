@@ -103,7 +103,7 @@ spec:
     #kubeovn_version: v1.16.2
     # ========== Hybridnet CNI ==========
     # Hybridnet version (effective only when type is hybridnet).
-    #hybridnet_version: v0.8.8
+    #hybridnet_version: 0.6.8
   storage_class:
     # ========== Storage Class Configuration ==========
     # ========== Local/OpenEBS Storage Class ==========
