@@ -12,7 +12,11 @@ kubernetes:
         tag: 2.9.6-alpine
 etcd:
   # etcd binary
-  etcd_version: v3.5.16
+  # Deliberately v3.5.15, not kubeadm 1.29's own v3.5.16-0: the upgrade path
+  # runs 1.28 -> 1.29 -> 1.30 and both neighbours ship v3.5.15, so v3.5.16 here
+  # would make the 1.29 -> 1.30 hop downgrade etcd, which the etcd precheck
+  # rejects. Keep the per-minor ladder monotonic (TestVersionLadderMonotonic).
+  etcd_version: v3.5.15
 image_registry:
   # ========== image registry ==========
   # keepalived image tag. Used for load balancing when there are multiple image registry nodes.

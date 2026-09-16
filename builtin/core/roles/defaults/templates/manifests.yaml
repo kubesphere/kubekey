@@ -235,8 +235,8 @@
     {{- if $default_helm_version | has "v3.13.3" | not }}
     {{- $default_helm_version = append $default_helm_version "v3.13.3" }}
     {{- end }}
-    {{- if $default_etcd_version | has "v3.5.16" | not }}
-    {{- $default_etcd_version = append $default_etcd_version "v3.5.16" }}
+    {{- if $default_etcd_version | has "v3.5.15" | not }}
+    {{- $default_etcd_version = append $default_etcd_version "v3.5.15" }}
     {{- end }}
     {{- if $default_crictl_version | has "v1.29.0" | not }}
     {{- $default_crictl_version = append $default_crictl_version "v1.29.0" }}
