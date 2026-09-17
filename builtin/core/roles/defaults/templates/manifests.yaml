@@ -788,7 +788,7 @@ download:
       - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/kubernetes/pause:3.10.2{{ else }}registry.k8s.io/pause:3.10.2{{ end }}
       ## kubernetes/dns v1.37
       - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/coredns/coredns:v1.14.6{{ else }}registry.k8s.io/coredns/coredns:v1.14.6{{ end }}
-      - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/dns/k8s-dns-node-cache:1.26.7{{ else }}registry.k8s.io/dns/k8s-dns-node-cache:1.26.7{{ end }}
+      - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/dns/k8s-dns-node-cache:1.26.8{{ else }}registry.k8s.io/dns/k8s-dns-node-cache:1.26.8{{ end }}
   {{- end }}
 {{- end }}
       ## kubernetes/etcd

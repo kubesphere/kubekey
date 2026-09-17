@@ -365,7 +365,7 @@ Recommended etcd versions for each Kubernetes version:
 | 1.34 | [1.26.4](https://github.com/kubernetes/kubernetes/blob/v1.34.0/cluster/addons/dns/nodelocaldns/nodelocaldns.yaml#L141) | v1.26.4 |
 | 1.35 | [1.26.4](https://github.com/kubernetes/kubernetes/blob/v1.35.0/cluster/addons/dns/nodelocaldns/nodelocaldns.yaml#L141) | v1.26.4 |
 | 1.36 | [1.26.7](https://github.com/kubernetes/kubernetes/blob/v1.36.0/cluster/addons/dns/nodelocaldns/nodelocaldns.yaml#L141) | v1.26.7 |
-| 1.37 | [1.26.8](https://github.com/kubernetes/kubernetes/blob/v1.37.0/cluster/addons/dns/nodelocaldns/nodelocaldns.yaml#L141) | v1.26.7 |
+| 1.37 | [1.26.8](https://github.com/kubernetes/kubernetes/blob/v1.37.0/cluster/addons/dns/nodelocaldns/nodelocaldns.yaml#L141) | v1.26.8 |
 
 ### pause Image
 

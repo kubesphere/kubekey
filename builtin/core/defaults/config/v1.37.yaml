@@ -136,6 +136,6 @@ spec:
     nodelocaldns:
       enabled: true
       image:
-        tag: 1.26.7
+        tag: 1.26.8
   # the external images will to add in packages
   image_manifests: []

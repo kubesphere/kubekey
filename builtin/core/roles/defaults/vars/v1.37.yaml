@@ -93,4 +93,4 @@ dns:
   # NodeLocalDNS settings.
   nodelocaldns:
     image:
-      tag: 1.26.7
+      tag: 1.26.8
