@@ -71,30 +71,21 @@
 
 **核心：两种容器运行时可互换。** Docker 模式下 `cri/docker` 把 `docker-<version>.tgz` 的整个 `docker/*` 解到 `/usr/local/bin`，containerd / runc / dockerd 全部来自该包，`cri.containerd_version` / `cri.runc_version` 不生效。故 KubeKey 把 containerd/runc 默认值设成所选 Docker 包内嵌的那一对，两种模式运行时栈一致、可原地互换。
 
-**表格1：来源说明**（containerd 官方推荐）
-
-| Kubernetes 版本 | containerd 版本支持 | containerd 推荐 runc 版本 | containerd 官方链接 |
-|---|---|---|---|
-| 1.23 | v1.6.39 | ≥ v1.3.1 | [RELEASES.md](https://github.com/containerd/containerd/blob/main/RELEASES.md#kubernetes-support) · [RUNC.md](https://github.com/containerd/containerd/blob/main/docs/RUNC.md) |
-| 1.24 ~ 1.29 | v1.7.35 | ≥ v1.3.6 | 同上 |
-| 1.30 ~ 1.34 | v2.0.12 | ≥ v1.3.6 | 同上 |
-| 1.35 | v2.2.8 | ≥ v1.3.6 | 同上 |
-| 1.36 ~ 1.37 | v2.3.5 | ≥ v1.5.1 | 同上 |
-
-**表格2：版本适配**（KubeKey 默认值）
-
-| Kubernetes 版本 | docker 适配版本 | docker 内置 containerd | docker 内置 runc | 来源 |
+| kubernetes 版本 | containerd 官方推荐版本 | 适配的 docker 版本 | docker 内置 containerd 版本 | docker 内置 runc 版本 |
 |---|---|---|---|---|
-| 1.23 | 23.0.6 | v1.6.21 | v1.1.7 | [v23.0.6](https://github.com/moby/moby/blob/v23.0.6/Dockerfile) |
-| 1.24 ~ 1.29 | 28.5.2 | v1.7.28 | v1.3.3 | [v28.5.2](https://github.com/moby/moby/blob/v28.5.2/Dockerfile) |
-| 1.30 ~ 1.35 | 29.6.2 | v2.2.6 | v1.3.6 | [docker-v29.6.2](https://github.com/moby/moby/blob/docker-v29.6.2/Dockerfile) |
-| 1.36 ~ 1.37 | 29.7.2 | v2.3.3 | v1.4.3 | [docker-v29.7.2](https://github.com/moby/moby/blob/docker-v29.7.2/Dockerfile) |
+| 1.23 | containerd: [v1.6.39](https://github.com/containerd/containerd/blob/v1.6.39/RELEASES.md#support-horizon)<br>runc: [>=1.3.0](https://github.com/containerd/containerd/blob/v1.6.39/docs/RUNC.md) | v23.0.6 | [v1.6.21](https://github.com/moby/moby/blob/9dbdbd4b6d7681bd18c897a6ba0376073c2a72ff/Dockerfile#L195) | [v1.1.7](https://github.com/moby/moby/blob/9dbdbd4b6d7681bd18c897a6ba0376073c2a72ff/Dockerfile#L283) |
+| 1.24 ~ 1.29 | containerd: [v1.7.35](https://github.com/containerd/containerd/blob/v1.7.35/RELEASES.md#support-horizon)<br>runc: [>=1.3.6](https://github.com/containerd/containerd/blob/v1.7.35/docs/RUNC.md) | v28.5.2 | [v1.7.28](https://github.com/moby/moby/blob/89c5e8fd66634b6128fc4c0e6f1236e2540e46e0/Dockerfile#L174) | [v1.3.3](https://github.com/moby/moby/blob/89c5e8fd66634b6128fc4c0e6f1236e2540e46e0/Dockerfile#L264) |
+| 1.30 ~ 1.34 | containerd: [v2.0.12](https://github.com/containerd/containerd/blob/v2.0.12/RELEASES.md#support-horizon)<br>runc: [>=1.3.6](https://github.com/containerd/containerd/blob/v2.0.12/docs/RUNC.md) | v29.6.2 | [v2.2.6](https://github.com/moby/moby/blob/3d80467678f6e36325fa9ae3dd486fe91e5652e3/Dockerfile#L145) | [v1.3.6](https://github.com/moby/moby/blob/3d80467678f6e36325fa9ae3dd486fe91e5652e3/Dockerfile#L251) |
+| 1.35 | containerd: [v2.2.8](https://github.com/containerd/containerd/blob/v2.2.8/RELEASES.md#support-horizon)<br>runc: [>=1.3.6](https://github.com/containerd/containerd/blob/v2.2.8/docs/RUNC.md) | v29.6.2 | [v2.2.6](https://github.com/moby/moby/blob/3d80467678f6e36325fa9ae3dd486fe91e5652e3/Dockerfile#L145) | [v1.3.6](https://github.com/moby/moby/blob/3d80467678f6e36325fa9ae3dd486fe91e5652e3/Dockerfile#L251) |
+| 1.36 ~ 1.37 | containerd: [v2.3.5](https://github.com/containerd/containerd/blob/v2.3.5/RELEASES.md#support-horizon)<br>runc: [>=1.5.1](https://github.com/containerd/containerd/blob/v2.3.5/docs/RUNC.md) | v29.7.2 | [v2.3.3](https://github.com/moby/moby/blob/6a43e3d5afddf4111da0f864bbc7cae5d7e95001/Dockerfile#L145) | [v1.4.3](https://github.com/moby/moby/blob/6a43e3d5afddf4111da0f864bbc7cae5d7e95001/Dockerfile#L251) |
+
+> **来源**：「containerd 官方推荐版本」列链接到该 containerd 版本 tag 的 `RELEASES.md` 与 `docs/RUNC.md`；「docker 内置 containerd / runc」两列链接到对应 Docker 版本 tag 所在 commit 的 `Dockerfile` 中 `ARG CONTAINERD_VERSION` / `ARG RUNC_VERSION` 所在行。
 
 > **分组依据**：一个 Docker 包只内嵌一个 containerd 构建，Docker 不发布 Kubernetes 兼容矩阵；按各 Kubernetes 小版本所需的 containerd 系列分组，取仍提供该系列的最新 Docker 版本。1.30~1.35 取 2.2（2.1 已 EOL）；1.36~1.37 取 2.3（29.8.0 待镜像同步）。
 
 > **cri-dockerd**：自 v0.4.0 要求 Docker API v1.42（= Docker v23），上表全部满足，统一 `v0.4.7`。1.23 用内建 dockershim，不装 cri-dockerd。
 
-> **1.23 安全提示**：docker 23.0.6 内嵌 runc v1.1.7 < CVE-2024-21626 修复线 v1.1.12，属刻意取舍（抬到 ≥24.0.9 会破坏与 containerd 模式的版本一致性）。
+> **1.23 安全提示**：docker v23.0.6 内嵌 runc v1.1.7 < CVE-2024-21626 修复线 v1.1.12，属刻意取舍（抬到 ≥24.0.9 会破坏与 containerd 模式的版本一致性）。
 
 #### [containerd](https://github.com/containerd/containerd)
 

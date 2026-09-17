@@ -72,30 +72,21 @@ Recommended etcd versions for each Kubernetes version:
 
 **The point: the two container runtimes must be interchangeable.** In Docker mode `cri/docker` unpacks the whole `docker/*` payload of `docker-<version>.tgz` into `/usr/local/bin`, so containerd / runc / dockerd all come from that single package and `cri.containerd_version` / `cri.runc_version` are inert. KubeKey therefore sets the containerd/runc defaults to the pair bundled in the chosen Docker package, so the runtime stack is identical in both modes and a cluster can be moved between them in place.
 
-**Table 1: sources** (containerd official recommendations)
-
-| kubernetes version | containerd version support | containerd recommended runc version | containerd official link |
-|---|---|---|---|
-| 1.23 | v1.6.39 | >= v1.3.1 | [RELEASES.md](https://github.com/containerd/containerd/blob/main/RELEASES.md#kubernetes-support) · [RUNC.md](https://github.com/containerd/containerd/blob/main/docs/RUNC.md) |
-| 1.24 ~ 1.29 | v1.7.35 | >= v1.3.6 | same as above |
-| 1.30 ~ 1.34 | v2.0.12 | >= v1.3.6 | same as above |
-| 1.35 | v2.2.8 | >= v1.3.6 | same as above |
-| 1.36 ~ 1.37 | v2.3.5 | >= v1.5.1 | same as above |
-
-**Table 2: versions KubeKey ships**
-
-| kubernetes version | docker version | docker bundled containerd | docker bundled runc | source |
+| kubernetes version | recommended containerd version | docker version | docker bundled containerd | docker bundled runc |
 |---|---|---|---|---|
-| 1.23 | 23.0.6 | v1.6.21 | v1.1.7 | [v23.0.6](https://github.com/moby/moby/blob/v23.0.6/Dockerfile) |
-| 1.24 ~ 1.29 | 28.5.2 | v1.7.28 | v1.3.3 | [v28.5.2](https://github.com/moby/moby/blob/v28.5.2/Dockerfile) |
-| 1.30 ~ 1.35 | 29.6.2 | v2.2.6 | v1.3.6 | [docker-v29.6.2](https://github.com/moby/moby/blob/docker-v29.6.2/Dockerfile) |
-| 1.36 ~ 1.37 | 29.7.2 | v2.3.3 | v1.4.3 | [docker-v29.7.2](https://github.com/moby/moby/blob/docker-v29.7.2/Dockerfile) |
+| 1.23 | containerd: [v1.6.39](https://github.com/containerd/containerd/blob/v1.6.39/RELEASES.md#support-horizon)<br>runc: [>=1.3.0](https://github.com/containerd/containerd/blob/v1.6.39/docs/RUNC.md) | v23.0.6 | [v1.6.21](https://github.com/moby/moby/blob/9dbdbd4b6d7681bd18c897a6ba0376073c2a72ff/Dockerfile#L195) | [v1.1.7](https://github.com/moby/moby/blob/9dbdbd4b6d7681bd18c897a6ba0376073c2a72ff/Dockerfile#L283) |
+| 1.24 ~ 1.29 | containerd: [v1.7.35](https://github.com/containerd/containerd/blob/v1.7.35/RELEASES.md#support-horizon)<br>runc: [>=1.3.6](https://github.com/containerd/containerd/blob/v1.7.35/docs/RUNC.md) | v28.5.2 | [v1.7.28](https://github.com/moby/moby/blob/89c5e8fd66634b6128fc4c0e6f1236e2540e46e0/Dockerfile#L174) | [v1.3.3](https://github.com/moby/moby/blob/89c5e8fd66634b6128fc4c0e6f1236e2540e46e0/Dockerfile#L264) |
+| 1.30 ~ 1.34 | containerd: [v2.0.12](https://github.com/containerd/containerd/blob/v2.0.12/RELEASES.md#support-horizon)<br>runc: [>=1.3.6](https://github.com/containerd/containerd/blob/v2.0.12/docs/RUNC.md) | v29.6.2 | [v2.2.6](https://github.com/moby/moby/blob/3d80467678f6e36325fa9ae3dd486fe91e5652e3/Dockerfile#L145) | [v1.3.6](https://github.com/moby/moby/blob/3d80467678f6e36325fa9ae3dd486fe91e5652e3/Dockerfile#L251) |
+| 1.35 | containerd: [v2.2.8](https://github.com/containerd/containerd/blob/v2.2.8/RELEASES.md#support-horizon)<br>runc: [>=1.3.6](https://github.com/containerd/containerd/blob/v2.2.8/docs/RUNC.md) | v29.6.2 | [v2.2.6](https://github.com/moby/moby/blob/3d80467678f6e36325fa9ae3dd486fe91e5652e3/Dockerfile#L145) | [v1.3.6](https://github.com/moby/moby/blob/3d80467678f6e36325fa9ae3dd486fe91e5652e3/Dockerfile#L251) |
+| 1.36 ~ 1.37 | containerd: [v2.3.5](https://github.com/containerd/containerd/blob/v2.3.5/RELEASES.md#support-horizon)<br>runc: [>=1.5.1](https://github.com/containerd/containerd/blob/v2.3.5/docs/RUNC.md) | v29.7.2 | [v2.3.3](https://github.com/moby/moby/blob/6a43e3d5afddf4111da0f864bbc7cae5d7e95001/Dockerfile#L145) | [v1.4.3](https://github.com/moby/moby/blob/6a43e3d5afddf4111da0f864bbc7cae5d7e95001/Dockerfile#L251) |
+
+> **Sources**: the "recommended containerd version" column links to `RELEASES.md` and `docs/RUNC.md` of that containerd tag; the two docker columns link to the `ARG CONTAINERD_VERSION` / `ARG RUNC_VERSION` lines of the `Dockerfile` at the commit of the matching Docker tag.
 
 > **Grouping**: one Docker package bundles exactly one containerd build and Docker publishes no Kubernetes compatibility matrix, so KubeKey groups Kubernetes minors by the containerd series they need and takes the newest Docker release that still ships that series. 1.30~1.35 take 2.2 (2.1 is EOL); 1.36~1.37 take 2.3 (29.8.0 is not mirrored yet).
 
 > **cri-dockerd**: since v0.4.0 it requires Docker API v1.42 (= Docker v23), which every version above satisfies, so `v0.4.7` is used everywhere. Kubernetes 1.23 uses the built-in dockershim and does not install cri-dockerd.
 
-> **Security note for Kubernetes 1.23**: docker 23.0.6 bundles runc v1.1.7, below the v1.1.12 fix line of CVE-2024-21626; this is a deliberate trade-off (raising it to >= 24.0.9 would break parity with containerd mode).
+> **Security note for Kubernetes 1.23**: docker v23.0.6 bundles runc v1.1.7, below the v1.1.12 fix line of CVE-2024-21626; this is a deliberate trade-off (raising it to >= 24.0.9 would break parity with containerd mode).
 
 #### [containerd](https://github.com/containerd/containerd)
 
