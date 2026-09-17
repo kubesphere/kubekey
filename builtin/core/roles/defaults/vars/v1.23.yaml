@@ -32,14 +32,14 @@ cri:
   crictl_version: v1.23.0
   # ========== cri: docker ==========
   # docker binary
-  docker_version: 20.10.23
-  # cridockerd. Required when kube_version is greater than 1.24
-  cridockerd_version: v0.3.2
+  docker_version: 23.0.6
+  # cridockerd. Required for Kubernetes v1.24 and later.
+  cridockerd_version: v0.4.7
   # ========== cri: containerd ==========
-  # containerd binary
-  containerd_version: v1.6.20
-  # runc binary
-  runc_version: v1.1.5
+  # containerd binary. Matches the containerd bundled in the docker static package above.
+  containerd_version: v1.6.21
+  # runc binary. Matches the runc bundled in the docker static package above.
+  runc_version: v1.1.7
 cni:
   # ========== cni ==========
   # cni_plugins binary provides standard CNI plugins (loopback, bridge, macvlan, host-local, etc.).

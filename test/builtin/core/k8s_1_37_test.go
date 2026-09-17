@@ -75,8 +75,8 @@ func TestK8s137VarsOverlay(t *testing.T) {
 
 	assertNestedString(t, ov, "v3.7.0", "etcd", "etcd_version")
 	assertNestedString(t, ov, "v1.37.0", "cri", "crictl_version")
-	assertNestedString(t, ov, "v2.3.4", "cri", "containerd_version")
-	assertNestedString(t, ov, "v1.2.6", "cri", "runc_version")
+	assertNestedString(t, ov, "v2.3.3", "cri", "containerd_version")
+	assertNestedString(t, ov, "v1.4.3", "cri", "runc_version")
 	assertNestedString(t, ov, "v1.9.1", "cni", "cni_plugins_version")
 	assertNestedString(t, ov, "v3.32.2", "cni", "calico_version")
 	assertNestedString(t, ov, "1.20.1", "cni", "cilium_version")
@@ -142,8 +142,8 @@ func TestK8s137ManifestsBranches(t *testing.T) {
 	assert.Contains(t, content, `slice (. | splitList ".") 0 2 | join "." | eq "v1.37"`, "manifests must branch on v1.37")
 	assert.Contains(t, content, `append $default_etcd_version "v3.7.0"`, "1.37 etcd in manifests must be v3.7.0")
 	assert.Contains(t, content, `append $default_crictl_version "v1.37.0"`, "1.37 crictl in manifests must be v1.37.0")
-	assert.Contains(t, content, `append $default_containerd_version "v2.3.4"`, "1.37 containerd in manifests must be v2.3.4")
-	assert.Contains(t, content, `append $default_runc_version "v1.2.6"`, "1.37 runc in manifests must be v1.2.6")
+	assert.Contains(t, content, `append $default_containerd_version "v2.3.3"`, "1.37 containerd in manifests must be v2.3.3")
+	assert.Contains(t, content, `append $default_runc_version "v1.4.3"`, "1.37 runc in manifests must be v1.4.3")
 
 	// pause / CoreDNS image branch for v1.37.
 	assert.Contains(t, content, "kubernetes/pause:3.10.2", "1.37 pause image must be 3.10.2")

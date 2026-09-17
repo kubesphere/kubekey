@@ -24,6 +24,7 @@ limitations under the License.
 package core_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -204,7 +205,7 @@ func terminalCfg() map[string]interface{} {
 		},
 		"cri": map[string]interface{}{
 			"container_manager":  "containerd",
-			"containerd_version": "v1.7.13",
+			"containerd_version": "v2.3.3",
 			"crictl_version":     "v1.36.0",
 		},
 		"cni": map[string]interface{}{
@@ -375,5 +376,64 @@ func TestCompareVersionNumbers(t *testing.T) {
 			got := core.CompareVersionNumbers(tt.a, tt.b)
 			assert.Equal(t, tt.want, got)
 		})
+	}
+}
+
+// TestVersionLadderMonotonic locks in the "no component ever regresses along the
+// upgrade path" invariant that the auto-step model relies on.
+//
+// Every intermediate hop of an auto-step upgrade overlays its per-minor version
+// fields from roles/defaults/vars/v1.<minor>.yaml (see UpgradeVersionOverlay), so
+// the ladder those files describe must be monotonically non-decreasing. The
+// runtime etcd precheck enforces the same rule one hop at a time ("Downgrading
+// etcd is not supported"); this test enforces it for the shipped path as a whole,
+// which is what catches a v1.29 etcd bumped to v3.5.16 while both v1.28 and v1.30
+// stay on v3.5.15 (the 1.29 -> 1.30 hop would then downgrade etcd).
+//
+// It is deliberately separate from TestValidateTerminalVersions: that one compares
+// the user's pinned terminal values against the intermediate hops, while this one
+// compares consecutive hops of the shipped path itself.
+func TestVersionLadderMonotonic(t *testing.T) {
+	vfs := core.BuiltinPlaybook
+	minors := []int{23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37}
+
+	var prev map[string]string
+	prevMinor := 0
+	for _, minor := range minors {
+		overlay, err := core.UpgradeVersionOverlay(vfs, minor)
+		require.NoError(t, err)
+
+		cur := make(map[string]string)
+		flattenVersionLeaves(overlay, "", cur)
+
+		for path, val := range cur {
+			prevVal, ok := prev[path]
+			if !ok || prevVal == "" || val == "" {
+				continue
+			}
+			assert.GreaterOrEqual(t, core.CompareVersionNumbers(val, prevVal), 0,
+				"%s must not regress along the upgrade path: v1.%d=%s -> v1.%d=%s",
+				path, prevMinor, prevVal, minor, val)
+		}
+
+		prev = cur
+		prevMinor = minor
+	}
+}
+
+// flattenVersionLeaves flattens a version overlay into dotted-path -> leaf
+// string, so consecutive minors can be compared field by field regardless of
+// nesting depth.
+func flattenVersionLeaves(in map[string]interface{}, prefix string, out map[string]string) {
+	for k, v := range in {
+		path := k
+		if prefix != "" {
+			path = prefix + "." + k
+		}
+		if nested, ok := v.(map[string]interface{}); ok {
+			flattenVersionLeaves(nested, path, out)
+			continue
+		}
+		out[path] = fmt.Sprintf("%v", v)
 	}
 }

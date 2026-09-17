@@ -68,15 +68,16 @@ spec:
     crictl_version: v1.37.0
     # ========== Docker Runtime ==========
     # Docker binary version.
-    #docker_version: 25.0.5
+    #docker_version: 29.7.2
     # cridockerd version (required for Kubernetes 1.24+).
-    # cridockerd_version: v0.3.21
+    # cridockerd_version: v0.4.7
     # ========== Containerd Runtime ==========
     # containerd binary version (active only when container_manager is containerd).
+    # Matches the containerd bundled in the docker static package above.
     # K8s 1.36+ requires containerd 2.x; the v1.x fallback path has been removed.
-    # containerd_version: v2.3.4
+    # containerd_version: v2.3.3
     # runc binary version (active only when container_manager is containerd).
-    # runc_version: v1.2.6
+    # runc_version: v1.4.3
   cni:
     # CNI plugin type. Supported: calico, cilium, flannel, hybridnet, kubeovn, other
     type: calico
@@ -110,7 +111,7 @@ spec:
     #kubeovn_version: v1.16.2
     # ========== Hybridnet CNI ==========
     # Hybridnet version (effective only when type is hybridnet).
-    #hybridnet_version: v0.8.8
+    #hybridnet_version: 0.6.8
   storage_class:
     # ========== Storage Class Configuration ==========
     # ========== Local/OpenEBS Storage Class ==========

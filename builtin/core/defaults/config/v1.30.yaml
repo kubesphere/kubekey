@@ -66,14 +66,15 @@ spec:
     crictl_version: v1.30.0
     # ========== Docker Runtime ==========
     # Docker binary version.
-    #docker_version: 25.0.5
+    #docker_version: 29.6.2
     # cridockerd version (required for Kubernetes 1.24+).
-    # cridockerd_version: v0.3.21
+    # cridockerd_version: v0.4.7
     # ========== Containerd Runtime ==========
     # containerd binary version (active only when container_manager is containerd).
-    # containerd_version: v1.7.13
+    # Matches the containerd bundled in the docker static package above.
+    # containerd_version: v2.2.6
     # runc binary version (active only when container_manager is containerd).
-    # runc_version: v1.1.12
+    # runc_version: v1.3.6
   cni:
     # CNI plugin type. Supported: calico, cilium, flannel, hybridnet, kubeovn, other
     type: calico
@@ -93,7 +94,7 @@ spec:
     calico_version: v3.29.7
     # ========== Cilium CNI ==========
     # Cilium version (effective only when type is cilium).
-    #cilium_version: 1.18.9
+    #cilium_version: 1.18.13
     # ========== Flannel CNI ==========
     # Flannel version (effective only when type is flannel).
     #flannel_version: v0.27.4
