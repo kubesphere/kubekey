@@ -137,7 +137,7 @@
 > - 通过 `--set cni.type="calico"` 指定安装 Calico 作为容器网络插件
 > 通过 `--set cni.calico_version="v3.32.2"` 指定安装的 calico 版本
 
-| kubernetes 版本 | 推荐 calico 版本 | kubekey 默认版 |
+| kubernetes 版本 | 推荐 calico 版本 | kubekey 默认版本 |
 |---|---|---|
 | 1.23 | [3.25](https://archive-os-3-25.netlify.app/calico/3.25/getting-started/kubernetes/requirements/#kubernetes-requirements) | v3.25.2 |
 | 1.24 | [3.25](https://archive-os-3-25.netlify.app/calico/3.25/getting-started/kubernetes/requirements/#kubernetes-requirements), [3.26](https://archive-os-3-26.netlify.app/calico/3.26/getting-started/kubernetes/requirements/#kubernetes-requirements) | v3.26.5 |
@@ -169,7 +169,7 @@
 
 > **主要特性**：基于 eBPF 的高性能数据平面、网络策略、服务网格集成、可观测性、多集群支持
 
-| kubernetes 版本 | 推荐 cilium 版本 | kubekey 默认版 |
+| kubernetes 版本 | 推荐 cilium 版本 | kubekey 默认版本 |
 |---|---|---|
 | 1.23 | [1.14](https://docs.cilium.io/en/v1.14/network/kubernetes/compatibility/) | 1.14.19 |
 | 1.24 | [1.14](https://docs.cilium.io/en/v1.14/network/kubernetes/compatibility/) | 1.14.19 |
@@ -195,7 +195,7 @@
 
 > **主要特性**：简单易用、轻量级、支持多种后端（VXLAN、host-gw、UDP）、跨节点通信
 
-| kubernetes 版本 | 推荐 flannel 版本 | kubekey 默认版 |
+| kubernetes 版本 | 推荐 flannel 版本 | kubekey 默认版本 |
 |---|---|---|
 | 1.23\~1.37 | [0.19.0+](https://github.com/flannel-io/flannel/blob/master/Documentation/kubernetes.md) | v0.28.9 |
 
@@ -222,7 +222,7 @@
 
 > **主要特性**：子网管理、QoS 流量控制、网络策略、静态 IP 分配、多租户支持、VPC 网络
 
-| kubernetes 版本 | 推荐 kubeovn 版本 | kubekey 默认版 |
+| kubernetes 版本 | 推荐 kubeovn 版本 | kubekey 默认版本 |
 |---|---|---|
 | 1.23\~1.28 | [1.12](https://kubeovn.github.io/docs/v1.12.x/en/start/prepare/), [1.13](https://kubeovn.github.io/docs/v1.13.x/en/start/prepare/) | v1.13.15 |
 | 1.29\~1.37 | [1.15](https://kubeovn.github.io/docs/v1.15.x/en/start/prepare/), [1.16](https://kubeovn.github.io/docs/v1.16.x/en/start/prepare/) | v1.16.2 |
@@ -249,7 +249,7 @@
 
 > **主要特性**：Pod 多网络接口支持、CNI 链式调用、支持多种 CNI 插件（macvlan、ipvlan、SR-IOV 等）、NetworkAttachmentDefinition CRD 支持
 
-| kubernetes 版本 | 推荐 multus 版本 | kubekey 默认版 |
+| kubernetes 版本 | 推荐 multus 版本 | kubekey 默认版本 |
 |---|---|---|
 | 1.23\~1.37 | [v4.0.0+](https://github.com/k8snetworkplumbingwg/multus-cni/releases) | v4.3.0 |
 
@@ -265,7 +265,7 @@
 
 > **主要特性**：简化安装流程、基于 CRD 的双栈 IPAM 管理、RDMA 网络加速（RoCE、InfiniBand）、卓越的网络性能（低延迟、高吞吐）、多集群网络互通
 
-| kubernetes 版本 | 推荐 spiderpool 版本 | kubekey 默认版 |
+| kubernetes 版本 | 推荐 spiderpool 版本 | kubekey 默认版本 |
 |---|---|---|
 | 1.23\~1.37 | [v1.0.x, v1.1.x, v1.2.x](https://spidernet-io.github.io/spiderpool/v1.1/usage/install/system-requirements/#node-requirements) | v1.2.2 |
 
@@ -288,7 +288,7 @@
 
 > **主要特性**：本地高性能存储、自动 PV 创建、支持多种存储类型（hostpath、device、lvm）
 
-| kubernetes 版本 | 推荐 localpv 版本 | kubekey 默认版 |
+| kubernetes 版本 | 推荐 localpv 版本 | kubekey 默认版本 |
 |---|---|---|
 | 1.23\~1.33 | [v4.0.x, v4.1.x, v4.2.x, HEAD](https://github.com/openebs/dynamic-localpv-provisioner?tab=readme-ov-file#kubernetes-compatibility-matrix) | 4.4.0 |
 
