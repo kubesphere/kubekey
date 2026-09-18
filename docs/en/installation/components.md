@@ -167,7 +167,7 @@ Recommended etcd versions for each Kubernetes version:
 
 > **Installation**:
 > - Use `--set cni.type="cilium"` to specify Cilium as the container network plugin
-> - Use `--set cni.cilium_version="1.19.7"` to specify the Cilium version to install (if not specified, the default version will be used)
+> - Use `--set cni.cilium_version="1.20.1"` to specify the Cilium version to install (if not specified, the default version will be used)
 
 > **Key Features**: High-performance eBPF-based data plane, network policies, service mesh integration, observability, multi-cluster support
 
@@ -199,7 +199,8 @@ Recommended etcd versions for each Kubernetes version:
 
 | kubernetes version | recommended flannel version | kubekey default version |
 |---|---|---|
-| 1.23\~1.37 | [0.19.0+](https://github.com/flannel-io/flannel/blob/master/Documentation/kubernetes.md) | v0.28.9 |
+| 1.23\~1.34 | [0.19.0+](https://github.com/flannel-io/flannel/blob/master/Documentation/kubernetes.md) | v0.27.4 |
+| 1.35\~1.37 | [0.19.0+](https://github.com/flannel-io/flannel/blob/master/Documentation/kubernetes.md) | v0.28.9 |
 
 
 #### [kubeovn](https://github.com/kubeovn/kube-ovn)
@@ -215,7 +216,8 @@ Recommended etcd versions for each Kubernetes version:
 | kubernetes version | recommended kubeovn version | kubekey default version |
 |---|---|---|
 | 1.23\~1.28 | [1.12](https://kubeovn.github.io/docs/v1.12.x/en/start/prepare/), [1.13](https://kubeovn.github.io/docs/v1.13.x/en/start/prepare/) | v1.13.15 |
-| 1.29\~1.37 | [1.15](https://kubeovn.github.io/docs/v1.15.x/en/start/prepare/), [1.16](https://kubeovn.github.io/docs/v1.16.x/en/start/prepare/) | v1.16.2 |
+| 1.29\~1.34 | [1.15](https://kubeovn.github.io/docs/v1.15.x/en/start/prepare/), [1.16](https://kubeovn.github.io/docs/v1.16.x/en/start/prepare/) | v1.15.0 |
+| 1.35\~1.37 | [1.15](https://kubeovn.github.io/docs/v1.15.x/en/start/prepare/), [1.16](https://kubeovn.github.io/docs/v1.16.x/en/start/prepare/) | v1.16.2 |
 
 ### Multi Container Network Plugin
 

@@ -165,7 +165,7 @@
 
 > **安装方式**：
 > - 通过 `--set cni.type="cilium"` 指定安装 Cilium 作为容器网络插件
-> - 通过 `--set cni.cilium_version="1.19.7"` 指定安装的 Cilium 版本（不指定则使用默认版本）
+> - 通过 `--set cni.cilium_version="1.20.1"` 指定安装的 Cilium 版本（不指定则使用默认版本）
 
 > **主要特性**：基于 eBPF 的高性能数据平面、网络策略、服务网格集成、可观测性、多集群支持
 
@@ -197,7 +197,8 @@
 
 | kubernetes 版本 | 推荐 flannel 版本 | kubekey 默认版本 |
 |---|---|---|
-| 1.23\~1.37 | [0.19.0+](https://github.com/flannel-io/flannel/blob/master/Documentation/kubernetes.md) | v0.28.9 |
+| 1.23\~1.34 | [0.19.0+](https://github.com/flannel-io/flannel/blob/master/Documentation/kubernetes.md) | v0.27.4 |
+| 1.35\~1.37 | [0.19.0+](https://github.com/flannel-io/flannel/blob/master/Documentation/kubernetes.md) | v0.28.9 |
 
 
 #### [kubeovn](https://github.com/kubeovn/kube-ovn)
@@ -213,7 +214,8 @@
 | kubernetes 版本 | 推荐 kubeovn 版本 | kubekey 默认版本 |
 |---|---|---|
 | 1.23\~1.28 | [1.12](https://kubeovn.github.io/docs/v1.12.x/en/start/prepare/), [1.13](https://kubeovn.github.io/docs/v1.13.x/en/start/prepare/) | v1.13.15 |
-| 1.29\~1.37 | [1.15](https://kubeovn.github.io/docs/v1.15.x/en/start/prepare/), [1.16](https://kubeovn.github.io/docs/v1.16.x/en/start/prepare/) | v1.16.2 |
+| 1.29\~1.34 | [1.15](https://kubeovn.github.io/docs/v1.15.x/en/start/prepare/), [1.16](https://kubeovn.github.io/docs/v1.16.x/en/start/prepare/) | v1.15.0 |
+| 1.35\~1.37 | [1.15](https://kubeovn.github.io/docs/v1.15.x/en/start/prepare/), [1.16](https://kubeovn.github.io/docs/v1.16.x/en/start/prepare/) | v1.16.2 |
 
 
 ### 多容器网络插件
