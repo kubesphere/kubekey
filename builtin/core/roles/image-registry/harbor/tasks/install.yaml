@@ -41,6 +41,31 @@
   command: |
     cd /opt/harbor/{{ .image_registry.harbor_version }}/harbor && /bin/bash install.sh
 
+# In HA mode the registry domain must resolve inside the harbor containers.
+# Docker's embedded DNS does not read the host's /etc/hosts, so inject the
+# domain -> ha_vip mapping and every harbor node's hostname -> IP mapping
+# into every service of docker-compose.yml, mirroring the image registry
+# hosts block in init-os.sh.
+- name: Harbor | Inject registry domain resolution into docker-compose for HA
+  when:
+    - .image_registry.ha_vip | empty | not
+    - .groups.image_registry | len | lt 1
+    - .image_registry.auth.registry | splitList "/" | first | splitList ":" | first | empty | not
+    - .image_registry.auth.registry | splitList "/" | first | splitList ":" | first | isIP | not
+  command: |
+    {{- $registryHost := .image_registry.auth.registry | splitList "/" | first | splitList ":" | first }}
+    {{- $entries := list (printf "%s:%s" $registryHost .image_registry.ha_vip) }}
+    {{- range .groups.image_registry }}
+      {{- $hostname := index $.hostvars . "hostname" }}
+      {{- if (index $.hostvars . "internal_ipv4") | empty | not }}
+        {{- $entries = append $entries (printf "%s:%s" $hostname (index $.hostvars . "internal_ipv4")) }}
+      {{- end }}
+      {{- if (index $.hostvars . "internal_ipv6") | empty | not }}
+        {{- $entries = append $entries (printf "%s:%s" $hostname (index $.hostvars . "internal_ipv6")) }}
+      {{- end }}
+    {{- end }}
+    sed -i 's/^    networks:/    extra_hosts:\n{{- range $entries }}      - "{{ . }}"\n{{- end }}    networks:/' /opt/harbor/{{ .image_registry.harbor_version }}/harbor/docker-compose.yml
+
 - name: Harbor | Disable HTTP port in docker-compose when http_port is empty
   when:
     - .image_registry.http_port | empty
