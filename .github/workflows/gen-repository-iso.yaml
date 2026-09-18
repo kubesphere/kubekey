@@ -52,10 +52,16 @@ jobs:
             dockerfile: dockerfile.almalinux90
           - name: centos-8-rpms
             dockerfile: dockerfile.centos8
+          - name: centos-9-rpms
+            dockerfile: dockerfile.centos9
+          - name: centos-10-rpms
+            dockerfile: dockerfile.centos10
           - name: debian-10-debs
             dockerfile: dockerfile.debian10
           - name: debian-11-debs
             dockerfile: dockerfile.debian11
+          - name: debian-12-debs
+            dockerfile: dockerfile.debian12
           - name: kylin-v10SP3-2403-rpms
             dockerfile: dockerfile.kylinv10sp3-2403
           - name: kylin-v10SP3-rpms
@@ -64,6 +70,18 @@ jobs:
             dockerfile: dockerfile.kylinv10sp2
           - name: kylin-v10SP1-rpms
             dockerfile: dockerfile.kylinv10sp1
+          - name: rocky-8-rpms
+            dockerfile: dockerfile.rocky8
+          - name: rocky-9-rpms
+            dockerfile: dockerfile.rocky9
+          - name: anolis-8.6-anck-rpms
+            dockerfile: dockerfile.anolis8.6-anck
+          - name: anolis-8.6-rhck-rpms
+            dockerfile: dockerfile.anolis8.6-rhck
+          - name: openeuler-22.03-rpms
+            dockerfile: dockerfile.openeuler22.03
+          - name: openeuler-24.03-rpms
+            dockerfile: dockerfile.openeuler24.03
           - name: ubuntu-18.04-debs
             dockerfile: dockerfile.ubuntu1804
           - name: ubuntu-20.04-debs
@@ -133,12 +151,21 @@ jobs:
         include:
           - name: almalinux-9.0-rpms
           - name: centos-8-rpms
+          - name: centos-9-rpms
+          - name: centos-10-rpms
           - name: debian-10-debs
           - name: debian-11-debs
+          - name: debian-12-debs
           - name: kylin-v10SP3-2403-rpms
           - name: kylin-v10SP3-rpms
           - name: kylin-v10SP2-rpms
           - name: kylin-v10SP1-rpms
+          - name: rocky-8-rpms
+          - name: rocky-9-rpms
+          - name: anolis-8.6-anck-rpms
+          - name: anolis-8.6-rhck-rpms
+          - name: openeuler-22.03-rpms
+          - name: openeuler-24.03-rpms
           - name: ubuntu-18.04-debs
           - name: ubuntu-20.04-debs
           - name: ubuntu-22.04-debs
