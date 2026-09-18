@@ -107,7 +107,7 @@ v3 的 `HostCfg` 本身不带 role/taint 信息；角色仅来自 `roleGroups`�
 
 | v3 `network` | v4 `cni` | 说明 |
 |---|---|---|
-| `plugin` | `type` | `calico`/`cilium`/`flannel`/`kubeovn`/`hybridnet`；未知 → `other` + **告警** |
+| `plugin` | `type` | `calico`/`cilium`/`flannel`/`kubeovn`；未知 → `other` + **告警** |
 | `kubePodsCIDR` | `pod_cidr` | |
 | `kubeServiceCIDR` | `service_cidr` | |
 | `multusCNI.enabled` | `multi_cni = "multus"` | **告警** |
@@ -191,7 +191,7 @@ v3 的 `HostCfg` 本身不带 role/taint 信息；角色仅来自 `roleGroups`�
 | `network.calico.ipAutoDetectionMethod` | 手工 | 通过 `cni.calico.values`（Calico helm 自定义 values 文件，对应 Calico Installation spec）配置 |
 | `network.calico.ipv4NatOutgoing=false` | 手工 | 通过 `cni.calico.values`（Calico helm 自定义 values 文件，对应 Calico Installation spec）配置 |
 | `network.calico.typha` / `controller` | 手工 | 通过 `cni.calico.values`（Calico helm 自定义 values 文件，对应 Calico Installation spec）配置 |
-| `network.flannel` / `kubeovn` / `hybridnet` | 手工 | v4 未暴露各插件细节 |
+| `network.flannel` / `kubeovn` | 手工 | v4 未暴露各插件细节 |
 | `dns.coredns` | 手工 | 迁移到 `dns.coredns.zone_configs` |
 | `dns.nodelocaldns.externalZones` | 手工 | — |
 | `etcd.backupPeriod` | 自动映射 → `etcd.backup.on_calendar` | 见 etcd 映射表 |

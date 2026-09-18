@@ -50,16 +50,6 @@
     src: "{{ .binary_dir }}/cni/kubeovn/kube-ovn-{{ .item }}.tgz"
     dest: "{{ .artifact_dir }}/kubekey/cni/kubeovn/kube-ovn-{{ .item }}.tgz"
 
-- name: Helm | Ensure the Hybridnet binary is available
-  loop: "{{ .download.cni.hybridnet_version | toJson }}"
-  when:
-    - .item | empty | not
-    - .download.cni.type | has "hybridnet"
-    - printf "%s/cni/hybridnet/hybridnet-%s.tgz" .artifact_dir .item | fileExists | not
-  copy:
-    src: "{{ .binary_dir }}/cni/hybridnet/hybridnet-{{ .item }}.tgz"
-    dest: "{{ .artifact_dir }}/kubekey/cni/hybridnet/hybridnet-{{ .item }}.tgz"
-
 - name: Helm | Ensure the localpv Provisioner binary is available
   loop: "{{ .download.storage_class.localpv_provisioner_version | default (list .storage_class.localpv_provisioner_version) | toJson }}"
   when:

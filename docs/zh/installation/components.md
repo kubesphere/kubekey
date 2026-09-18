@@ -165,7 +165,7 @@
 
 > **安装方式**：
 > - 通过 `--set cni.type="cilium"` 指定安装 Cilium 作为容器网络插件
-> - 通过 `--set cni.cilium_version="1.19.7"` 指定安装的 Cilium 版本（不指定则使用默认版本）
+> - 通过 `--set cni.cilium_version="1.20.1"` 指定安装的 Cilium 版本（不指定则使用默认版本）
 
 > **主要特性**：基于 eBPF 的高性能数据平面、网络策略、服务网格集成、可观测性、多集群支持
 
@@ -197,20 +197,9 @@
 
 | kubernetes 版本 | 推荐 flannel 版本 | kubekey 默认版本 |
 |---|---|---|
-| 1.23\~1.37 | [0.19.0+](https://github.com/flannel-io/flannel/blob/master/Documentation/kubernetes.md) | v0.28.9 |
+| 1.23\~1.34 | [0.19.0+](https://github.com/flannel-io/flannel/blob/master/Documentation/kubernetes.md) | v0.27.4 |
+| 1.35\~1.37 | [0.19.0+](https://github.com/flannel-io/flannel/blob/master/Documentation/kubernetes.md) | v0.28.9 |
 
-
-#### [hybridnet](https://github.com/alibaba/hybridnet)
-
-> **说明**：HybridNet 是阿里巴巴开源的多网络平面 CNI 插件，支持 Underlay 和 Overlay 网络混合部署，提供灵活的 IP 地址管理和网络隔离能力。适合需要多网络平面和精细 IP 管理的场景。
-
-> **安装方式**：
-> - 通过 `--set cni.type="hybridnet"` 指定安装 HybridNet 作为容器网络插件
-> - 通过 `--set cni.hybridnet_version="0.6.8"` 指定安装的 HybridNet 版本（不指定则使用默认版本）
-
-> **注意**：HybridNet 官方未明确说明支持的 Kubernetes 版本范围。KubeKey 项目中默认版本为 0.6.8（对应部署 HybridNet v0.8.8 的 chart），建议在生产环境使用前进行充分测试。
-
-> **主要特性**：多网络平面支持、Underlay/Overlay 混合部署、灵活的 IP 地址管理、网络隔离
 
 #### [kubeovn](https://github.com/kubeovn/kube-ovn)
 
@@ -225,7 +214,8 @@
 | kubernetes 版本 | 推荐 kubeovn 版本 | kubekey 默认版本 |
 |---|---|---|
 | 1.23\~1.28 | [1.12](https://kubeovn.github.io/docs/v1.12.x/en/start/prepare/), [1.13](https://kubeovn.github.io/docs/v1.13.x/en/start/prepare/) | v1.13.15 |
-| 1.29\~1.37 | [1.15](https://kubeovn.github.io/docs/v1.15.x/en/start/prepare/), [1.16](https://kubeovn.github.io/docs/v1.16.x/en/start/prepare/) | v1.16.2 |
+| 1.29\~1.34 | [1.15](https://kubeovn.github.io/docs/v1.15.x/en/start/prepare/), [1.16](https://kubeovn.github.io/docs/v1.16.x/en/start/prepare/) | v1.15.0 |
+| 1.35\~1.37 | [1.15](https://kubeovn.github.io/docs/v1.15.x/en/start/prepare/), [1.16](https://kubeovn.github.io/docs/v1.16.x/en/start/prepare/) | v1.16.2 |
 
 
 ### 多容器网络插件

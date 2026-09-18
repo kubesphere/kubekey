@@ -12,9 +12,6 @@ dependencies:
   - role: cni/kubeovn
     when: .cni.type | eq "kubeovn"
 
-  - role: cni/hybridnet
-    when: .cni.type | eq "hybridnet"
-
   - role: cni/multi-cni/multus
     when: .cni.multi_cni | eq "multus"
 

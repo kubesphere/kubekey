@@ -10,7 +10,7 @@ cluster_require:
     - '"debian"'
     - centos
     - '"centos"'
-  require_network_plugin: ['calico', 'flannel', 'cilium', 'hybridnet', 'kube-ovn']
+  require_network_plugin: ['calico', 'flannel', 'cilium']
   # the minimal version of kubernetes to be installed.
   kube_version_min_required: v1.23.0
   # memory size for each kube_control_plane node.(unit kB)

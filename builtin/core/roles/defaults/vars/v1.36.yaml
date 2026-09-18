@@ -66,9 +66,6 @@ cni:
   # ========== cni: kubeovn ==========
   # kubeovn helm
   kubeovn_version: v1.16.2
-  # ========== cni: hybridnet ==========
-  # hybridnet helm
-  hybridnet_version: 0.6.8
   # ========== multi-cni: multus ==========
   multus:
     image:

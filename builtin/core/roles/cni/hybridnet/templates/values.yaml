@@ -1,3 +1,0 @@
-# hybridnet helm values
-images:
-  registryURL: {{ .image_registry.dockerio_registry }}

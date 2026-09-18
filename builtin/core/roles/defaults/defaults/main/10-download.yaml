@@ -86,9 +86,6 @@ download:
     kubeovn: >-
       {{- .zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
       kubeovn.github.io/kube-ovn/kube-ovn-{{ "{{ .version }}" }}.tgz
-    hybridnet: >-
-      {{- .zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
-      github.com/alibaba/hybridnet/releases/download/helm-chart-{{ "{{ .version }}" }}/hybridnet-{{ "{{ .version }}" }}.tgz
     localpv_provisioner: >-
       {{- .zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
       openebs.github.io/dynamic-localpv-provisioner/localpv-provisioner-{{ "{{ .version }}" }}.tgz
@@ -515,9 +512,6 @@ download:
       v0.28.9:
         - ghcr.io/flannel-io/flannel-cni-plugin:v1.9.1-flannel3
         - ghcr.io/flannel-io/flannel:v0.28.9
-    hybridnet/hybridnet:
-      0.6.8:
-        - docker.io/hybridnetdev/hybridnet:v0.8.8
     kubeovn/kube-ovn:
       v1.13.15:
         - docker.io/kubeovn/kube-ovn:v1.13.15

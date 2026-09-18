@@ -34,6 +34,7 @@ func funcMap() template.FuncMap {
 	f["ipInCIDR"] = ipInCIDR
 	f["ipFamily"] = ipFamily
 	f["isIP"] = isIP
+	f["isCIDR"] = isCIDR
 	f["pow"] = pow
 	f["subtractList"] = subtractList
 	f["fileExists"] = fileExists
@@ -238,6 +239,15 @@ func isIP(addr string) bool {
 	}
 
 	return net.ParseIP(host) != nil
+}
+
+// isCIDR reports whether the given string is a single IPv4 or IPv6 CIDR block,
+// such as "10.233.64.0/18" or "fd00::/64". Unlike ipFamily it never fails, so a
+// template can validate user input and report the problem itself.
+func isCIDR(cidr string) bool {
+	_, _, err := net.ParseCIDR(cidr)
+
+	return err == nil
 }
 
 // pow Get the "pow" power of "base". (base ** pow)

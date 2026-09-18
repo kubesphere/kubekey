@@ -167,7 +167,7 @@ Recommended etcd versions for each Kubernetes version:
 
 > **Installation**:
 > - Use `--set cni.type="cilium"` to specify Cilium as the container network plugin
-> - Use `--set cni.cilium_version="1.19.7"` to specify the Cilium version to install (if not specified, the default version will be used)
+> - Use `--set cni.cilium_version="1.20.1"` to specify the Cilium version to install (if not specified, the default version will be used)
 
 > **Key Features**: High-performance eBPF-based data plane, network policies, service mesh integration, observability, multi-cluster support
 
@@ -199,20 +199,9 @@ Recommended etcd versions for each Kubernetes version:
 
 | kubernetes version | recommended flannel version | kubekey default version |
 |---|---|---|
-| 1.23\~1.37 | [0.19.0+](https://github.com/flannel-io/flannel/blob/master/Documentation/kubernetes.md) | v0.28.9 |
+| 1.23\~1.34 | [0.19.0+](https://github.com/flannel-io/flannel/blob/master/Documentation/kubernetes.md) | v0.27.4 |
+| 1.35\~1.37 | [0.19.0+](https://github.com/flannel-io/flannel/blob/master/Documentation/kubernetes.md) | v0.28.9 |
 
-
-#### [hybridnet](https://github.com/alibaba/hybridnet)
-
-> **Note**: HybridNet is an open-source multi-network plane CNI plugin from Alibaba, supporting hybrid deployment of Underlay and Overlay networks, providing flexible IP address management and network isolation capabilities. Suitable for scenarios requiring multiple network planes and fine-grained IP management.
-
-> **Installation**:
-> - Use `--set cni.type="hybridnet"` to specify HybridNet as the container network plugin
-> - Use `--set cni.hybridnet_version="0.6.8"` to specify the HybridNet version to install (if not specified, the default version will be used)
-
-> **Note**: HybridNet official documentation does not clearly specify the supported Kubernetes version range. The default version in the KubeKey project is 0.6.8 (the chart that deploys HybridNet v0.8.8). It is recommended to fully test before using in production environments.
-
-> **Key Features**: Multi-network plane support, Underlay/Overlay hybrid deployment, flexible IP address management, network isolation
 
 #### [kubeovn](https://github.com/kubeovn/kube-ovn)
 
@@ -227,7 +216,8 @@ Recommended etcd versions for each Kubernetes version:
 | kubernetes version | recommended kubeovn version | kubekey default version |
 |---|---|---|
 | 1.23\~1.28 | [1.12](https://kubeovn.github.io/docs/v1.12.x/en/start/prepare/), [1.13](https://kubeovn.github.io/docs/v1.13.x/en/start/prepare/) | v1.13.15 |
-| 1.29\~1.37 | [1.15](https://kubeovn.github.io/docs/v1.15.x/en/start/prepare/), [1.16](https://kubeovn.github.io/docs/v1.16.x/en/start/prepare/) | v1.16.2 |
+| 1.29\~1.34 | [1.15](https://kubeovn.github.io/docs/v1.15.x/en/start/prepare/), [1.16](https://kubeovn.github.io/docs/v1.16.x/en/start/prepare/) | v1.15.0 |
+| 1.35\~1.37 | [1.15](https://kubeovn.github.io/docs/v1.15.x/en/start/prepare/), [1.16](https://kubeovn.github.io/docs/v1.16.x/en/start/prepare/) | v1.16.2 |
 
 ### Multi Container Network Plugin
 

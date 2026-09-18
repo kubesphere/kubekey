@@ -26,8 +26,6 @@ image_registry:
   # docker-registry image tag
   docker_registry_version: 2.8.3
 cri:
-  type: calico
-  ipv6_support: false
   # support: containerd,docker
   container_manager: containerd
   # ========== cri ==========
@@ -60,9 +58,6 @@ cni:
   # ========== cni: kubeovn ==========
   # kubeovn helm
   kubeovn_version: v1.13.15
-  # ========== cni: hybridnet ==========
-  # hybridnet helm
-  hybridnet_version: 0.6.8
   # ========== multi-cni: multus ==========
   multus:
     image:
