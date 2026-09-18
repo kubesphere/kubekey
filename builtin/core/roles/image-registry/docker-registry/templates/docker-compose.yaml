@@ -26,6 +26,22 @@ services:
 {{- else }}
       - {{ .image_registry.https_port | default 443 }}:5000
 {{- end }}
+{{- $registryHost := .image_registry.auth.registry | splitList "/" | first | splitList ":" | first }}
+{{- if and ($registryHost | empty | not) ($registryHost | isIP | not) }}
+    extra_hosts:
+{{- if .image_registry.ha_vip | empty | not }}
+      - "{{ $registryHost }}:{{ .image_registry.ha_vip }}"
+{{- end }}
+{{- range .groups.image_registry | default list }}
+{{- $hostname := index $.hostvars . "hostname" }}
+{{- if (index $.hostvars . "internal_ipv4") | empty | not }}
+      - "{{ $hostname }}:{{ index $.hostvars . "internal_ipv4" }}"
+{{- end }}
+{{- if (index $.hostvars . "internal_ipv6") | empty | not }}
+      - "{{ $hostname }}:{{ index $.hostvars . "internal_ipv6" }}"
+{{- end }}
+{{- end }}
+{{- end }}
     networks:
       - proxy
 networks:
