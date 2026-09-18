@@ -200,18 +200,6 @@
 | 1.23\~1.37 | [0.19.0+](https://github.com/flannel-io/flannel/blob/master/Documentation/kubernetes.md) | v0.28.9 |
 
 
-#### [hybridnet](https://github.com/alibaba/hybridnet)
-
-> **说明**：HybridNet 是阿里巴巴开源的多网络平面 CNI 插件，支持 Underlay 和 Overlay 网络混合部署，提供灵活的 IP 地址管理和网络隔离能力。适合需要多网络平面和精细 IP 管理的场景。
-
-> **安装方式**：
-> - 通过 `--set cni.type="hybridnet"` 指定安装 HybridNet 作为容器网络插件
-> - 通过 `--set cni.hybridnet_version="0.6.8"` 指定安装的 HybridNet 版本（不指定则使用默认版本）
-
-> **注意**：HybridNet 官方未明确说明支持的 Kubernetes 版本范围。KubeKey 项目中默认版本为 0.6.8（对应部署 HybridNet v0.8.8 的 chart），建议在生产环境使用前进行充分测试。
-
-> **主要特性**：多网络平面支持、Underlay/Overlay 混合部署、灵活的 IP 地址管理、网络隔离
-
 #### [kubeovn](https://github.com/kubeovn/kube-ovn)
 
 > **说明**：Kube-OVN 是基于 OVN（Open Virtual Network）的 Kubernetes 网络插件，提供企业级的网络功能，包括子网管理、QoS、网络策略、静态 IP 分配等。适合需要丰富网络功能和精细控制的场景。

@@ -8,7 +8,6 @@
 {{- $default_calico_version := list }}
 {{- $default_cilium_version := list }}
 {{- $default_flannel_version := list }}
-{{- $default_hybridnet_version := list }}
 {{- $default_kubeovn_version := list }}
 
 {{- range .download.kubernetes.kube_version }}
@@ -39,9 +38,6 @@
     {{- end }}
     {{- if $default_flannel_version | has "v0.27.4" | not }}
     {{- $default_flannel_version = append $default_flannel_version "v0.27.4" }}
-    {{- end }}
-    {{- if $default_hybridnet_version | has "0.6.8" | not }}
-    {{- $default_hybridnet_version = append $default_hybridnet_version "0.6.8" }}
     {{- end }}
     {{- if $default_kubeovn_version | has "v1.13.15" | not }}
     {{- $default_kubeovn_version = append $default_kubeovn_version "v1.13.15" }}
@@ -77,9 +73,6 @@
     {{- if $default_flannel_version | has "v0.27.4" | not }}
     {{- $default_flannel_version = append $default_flannel_version "v0.27.4" }}
     {{- end }}
-    {{- if $default_hybridnet_version | has "0.6.8" | not }}
-    {{- $default_hybridnet_version = append $default_hybridnet_version "0.6.8" }}
-    {{- end }}
     {{- if $default_kubeovn_version | has "v1.13.15" | not }}
     {{- $default_kubeovn_version = append $default_kubeovn_version "v1.13.15" }}
     {{- end }}
@@ -113,9 +106,6 @@
     {{- end }}
     {{- if $default_flannel_version | has "v0.27.4" | not }}
     {{- $default_flannel_version = append $default_flannel_version "v0.27.4" }}
-    {{- end }}
-    {{- if $default_hybridnet_version | has "0.6.8" | not }}
-    {{- $default_hybridnet_version = append $default_hybridnet_version "0.6.8" }}
     {{- end }}
     {{- if $default_kubeovn_version | has "v1.13.15" | not }}
     {{- $default_kubeovn_version = append $default_kubeovn_version "v1.13.15" }}
@@ -151,9 +141,6 @@
     {{- if $default_flannel_version | has "v0.27.4" | not }}
     {{- $default_flannel_version = append $default_flannel_version "v0.27.4" }}
     {{- end }}
-    {{- if $default_hybridnet_version | has "0.6.8" | not }}
-    {{- $default_hybridnet_version = append $default_hybridnet_version "0.6.8" }}
-    {{- end }}
     {{- if $default_kubeovn_version | has "v1.13.15" | not }}
     {{- $default_kubeovn_version = append $default_kubeovn_version "v1.13.15" }}
     {{- end }}
@@ -187,9 +174,6 @@
     {{- end }}
     {{- if $default_flannel_version | has "v0.27.4" | not }}
     {{- $default_flannel_version = append $default_flannel_version "v0.27.4" }}
-    {{- end }}
-    {{- if $default_hybridnet_version | has "0.6.8" | not }}
-    {{- $default_hybridnet_version = append $default_hybridnet_version "0.6.8" }}
     {{- end }}
     {{- if $default_kubeovn_version | has "v1.13.15" | not }}
     {{- $default_kubeovn_version = append $default_kubeovn_version "v1.13.15" }}
@@ -225,9 +209,6 @@
     {{- if $default_flannel_version | has "v0.27.4" | not }}
     {{- $default_flannel_version = append $default_flannel_version "v0.27.4" }}
     {{- end }}
-    {{- if $default_hybridnet_version | has "0.6.8" | not }}
-    {{- $default_hybridnet_version = append $default_hybridnet_version "0.6.8" }}
-    {{- end }}
     {{- if $default_kubeovn_version | has "v1.13.15" | not }}
     {{- $default_kubeovn_version = append $default_kubeovn_version "v1.13.15" }}
     {{- end }}
@@ -261,9 +242,6 @@
     {{- end }}
     {{- if $default_flannel_version | has "v0.27.4" | not }}
     {{- $default_flannel_version = append $default_flannel_version "v0.27.4" }}
-    {{- end }}
-    {{- if $default_hybridnet_version | has "0.6.8" | not }}
-    {{- $default_hybridnet_version = append $default_hybridnet_version "0.6.8" }}
     {{- end }}
     {{- if $default_kubeovn_version | has "v1.15.0" | not }}
     {{- $default_kubeovn_version = append $default_kubeovn_version "v1.15.0" }}
@@ -299,9 +277,6 @@
     {{- if $default_flannel_version | has "v0.27.4" | not }}
     {{- $default_flannel_version = append $default_flannel_version "v0.27.4" }}
     {{- end }}
-    {{- if $default_hybridnet_version | has "0.6.8" | not }}
-    {{- $default_hybridnet_version = append $default_hybridnet_version "0.6.8" }}
-    {{- end }}
     {{- if $default_kubeovn_version | has "v1.15.0" | not }}
     {{- $default_kubeovn_version = append $default_kubeovn_version "v1.15.0" }}
     {{- end }}
@@ -335,9 +310,6 @@
     {{- end }}
     {{- if $default_flannel_version | has "v0.27.4" | not }}
     {{- $default_flannel_version = append $default_flannel_version "v0.27.4" }}
-    {{- end }}
-    {{- if $default_hybridnet_version | has "0.6.8" | not }}
-    {{- $default_hybridnet_version = append $default_hybridnet_version "0.6.8" }}
     {{- end }}
     {{- if $default_kubeovn_version | has "v1.15.0" | not }}
     {{- $default_kubeovn_version = append $default_kubeovn_version "v1.15.0" }}
@@ -373,9 +345,6 @@
     {{- if $default_flannel_version | has "v0.27.4" | not }}
     {{- $default_flannel_version = append $default_flannel_version "v0.27.4" }}
     {{- end }}
-    {{- if $default_hybridnet_version | has "0.6.8" | not }}
-    {{- $default_hybridnet_version = append $default_hybridnet_version "0.6.8" }}
-    {{- end }}
     {{- if $default_kubeovn_version | has "v1.15.0" | not }}
     {{- $default_kubeovn_version = append $default_kubeovn_version "v1.15.0" }}
     {{- end }}
@@ -409,9 +378,6 @@
     {{- end }}
     {{- if $default_flannel_version | has "v0.27.4" | not }}
     {{- $default_flannel_version = append $default_flannel_version "v0.27.4" }}
-    {{- end }}
-    {{- if $default_hybridnet_version | has "0.6.8" | not }}
-    {{- $default_hybridnet_version = append $default_hybridnet_version "0.6.8" }}
     {{- end }}
     {{- if $default_kubeovn_version | has "v1.15.0" | not }}
     {{- $default_kubeovn_version = append $default_kubeovn_version "v1.15.0" }}
@@ -447,9 +413,6 @@
     {{- if $default_flannel_version | has "v0.27.4" | not }}
     {{- $default_flannel_version = append $default_flannel_version "v0.27.4" }}
     {{- end }}
-    {{- if $default_hybridnet_version | has "0.6.8" | not }}
-    {{- $default_hybridnet_version = append $default_hybridnet_version "0.6.8" }}
-    {{- end }}
     {{- if $default_kubeovn_version | has "v1.15.0" | not }}
     {{- $default_kubeovn_version = append $default_kubeovn_version "v1.15.0" }}
     {{- end }}
@@ -483,9 +446,6 @@
     {{- end }}
     {{- if $default_flannel_version | has "v0.28.9" | not }}
     {{- $default_flannel_version = append $default_flannel_version "v0.28.9" }}
-    {{- end }}
-    {{- if $default_hybridnet_version | has "0.6.8" | not }}
-    {{- $default_hybridnet_version = append $default_hybridnet_version "0.6.8" }}
     {{- end }}
     {{- if $default_kubeovn_version | has "v1.16.2" | not }}
     {{- $default_kubeovn_version = append $default_kubeovn_version "v1.16.2" }}
@@ -521,9 +481,6 @@
     {{- if $default_flannel_version | has "v0.28.9" | not }}
     {{- $default_flannel_version = append $default_flannel_version "v0.28.9" }}
     {{- end }}
-    {{- if $default_hybridnet_version | has "0.6.8" | not }}
-    {{- $default_hybridnet_version = append $default_hybridnet_version "0.6.8" }}
-    {{- end }}
     {{- if $default_kubeovn_version | has "v1.16.2" | not }}
     {{- $default_kubeovn_version = append $default_kubeovn_version "v1.16.2" }}
     {{- end }}
@@ -557,9 +514,6 @@
     {{- end }}
     {{- if $default_flannel_version | has "v0.28.9" | not }}
     {{- $default_flannel_version = append $default_flannel_version "v0.28.9" }}
-    {{- end }}
-    {{- if $default_hybridnet_version | has "0.6.8" | not }}
-    {{- $default_hybridnet_version = append $default_hybridnet_version "0.6.8" }}
     {{- end }}
     {{- if $default_kubeovn_version | has "v1.16.2" | not }}
     {{- $default_kubeovn_version = append $default_kubeovn_version "v1.16.2" }}
@@ -658,13 +612,6 @@ download:
 {{- else }}
     flannel_version: []
 {{- end }}   
-    # ========== cni: hybridnet ==========
-    # hybridnet helm
-{{- if .download.cni.type | has "hybridnet" }}
-    hybridnet_version: {{ .download.cni.hybridnet_version | default (list "0.6.8") | toJson }}
-{{- else }}
-    hybridnet_version: []
-{{- end }}
     # ========== cni: kubeovn ==========
     # kubeovn helm
 {{- if .download.cni.type | has "kubeovn" }}
@@ -833,14 +780,6 @@ download:
   {{- range .download.cni.flannel_version | default $default_flannel_version }}
       ##  CNI/flannel-{{ . }}
     {{- range index $.download.images "flannel/flannel" . }}
-      - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/{{ slice (. | splitList "/") 1 | join "/" }}{{ else }}{{ . }}{{ end }}
-    {{- end }}
-  {{- end }}
-{{- end }}
-{{- if .download.cni.type | has "hybridnet" }}
-  {{- range .download.cni.hybridnet_version | default $default_hybridnet_version }}
-      ##  CNI/hybridnet-{{ . }}
-    {{- range index $.download.images "hybridnet/hybridnet" . }}
       - {{ if $.download.images.registry | empty | not }}{{ $.download.images.registry }}/{{ slice (. | splitList "/") 1 | join "/" }}{{ else }}{{ . }}{{ end }}
     {{- end }}
   {{- end }}

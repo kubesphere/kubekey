@@ -1,6 +1,6 @@
 cni:
   # CNI plugin to use
-  # Specify the network plugin to install for the cluster. Supported: calico, cilium, flannel, hybridnet, kubeovn, other
+  # Specify the network plugin to install for the cluster. Supported: calico, cilium, flannel, kubeovn, other
   type: calico
   # The complete Pod IP pool for the cluster. Single-stack keeps one address
   # family, while a dual-stack cluster lists both families, IPv4 first, as

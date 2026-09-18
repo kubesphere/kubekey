@@ -112,7 +112,7 @@ cluster_require:
     - rocky
     - '"rocky"'
   # 支持的网络插件
-  require_network_plugin: ['calico', 'flannel', 'cilium', 'hybridnet', 'kubeovn']
+  require_network_plugin: ['calico', 'flannel', 'cilium', 'kubeovn']
   # 最低支持的 Kubernetes 版本
   kube_version_min_required: v1.23.0
   # 每个控制平面节点的最低内存要求（MB）
@@ -736,7 +736,7 @@ kubernetes:
 ```yaml
 cni:
   # 要使用的 CNI 插件类型
-  # 指定要为集群安装的网络插件。支持：calico, cilium, flannel, hybridnet, kubeovn, other
+  # 指定要为集群安装的网络插件。支持：calico, cilium, flannel, kubeovn, other
   type: calico
   # 集群 Pod 的完整 IP 地址池。支持 IPv4、IPv6 及双栈
   pod_cidr: 10.233.64.0/18
@@ -764,7 +764,7 @@ cni:
 
 | 参数 | 说明 |
 |------|------|
-| `cni.type` | 集群网络插件类型，可选 `calico`、`cilium`、`flannel`、`hybridnet`、`kubeovn`、`other`。 |
+| `cni.type` | 集群网络插件类型，可选 `calico`、`cilium`、`flannel`、`kubeovn`、`other`。 |
 | `cni.pod_cidr` | 整个集群 Pod 网络的 CIDR 网段。 |
 | `cni.ipv4_mask_size` | 为每个节点划分的 Pod IPv4 子网掩码长度。例如在 `/18` 大网段中使用 `/24` 掩码，每个节点可获得约 256 个 Pod IP。 |
 | `cni.ipv6_mask_size` | 为每个节点划分的 Pod IPv6 子网掩码长度。 |
@@ -809,7 +809,6 @@ KubeKey 支持标准的 Kubernetes 双栈网络，可按以下步骤配置双栈
    | `cilium` | `ipv4.enabled` / `ipv6.enabled` 以及 `ipam.clusterPoolIPv4PodCIDRList` / `clusterPoolIPv6PodCIDRList`。 |
    | `flannel` | `podCidr` 与 `podCidrv6`。 |
    | `kubeovn` | `networking.NET_STACK: dual_stack`，配合 `dual_stack.POD_CIDR` 与 `dual_stack.SVC_CIDR`。 |
-   | `hybridnet` | `defaultIPFamily: DualStack`。双栈 Pod 需要从同一 Network 下的一对 IPv4/IPv6 Subnet 中各分配一个地址，因此 KubeKey 还会补建 chart 所渲染 `init` Subnet 的 IPv6 对偶 Subnet。 |
    | `spiderpool` | `ipam.enableIPv4` / `ipam.enableIPv6`。 |
 
 > **限制**：集群创建完成后无法修改 Pod 与 Service 网段（这是 Kubernetes 本身的限制），因此已存在的单栈集群无法就地转换为双栈，双栈集群需要重新创建。
@@ -1344,10 +1343,6 @@ download:
     kubeovn: >-
       {{- .zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
       kubeovn.github.io/kube-ovn/kube-ovn-{{ "{{ .version }}" }}.tgz
-    # Helm Chart 包：Hybridnet
-    hybridnet: >-
-      {{- .zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
-      github.com/alibaba/hybridnet/releases/download/helm-chart-{{ "{{ .version }}" }}/hybridnet-{{ "{{ .version }}" }}.tgz
     # Helm Chart 包：OpenEBS LocalPV Provisioner
     localpv_provisioner: >-
       {{- .zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
@@ -1628,9 +1623,6 @@ download:
       v0.27.4:
         - ghcr.io/flannel-io/flannel-cni-plugin:v1.8.0-flannel1
         - ghcr.io/flannel-io/flannel:v0.27.4
-    hybridnet/hybridnet:
-      0.6.8:
-        - docker.io/hybridnetdev/hybridnet:v0.8.8
     kubeovn/kube-ovn:
       v1.13.15:
         - docker.io/kubeovn/kube-ovn:v1.13.15

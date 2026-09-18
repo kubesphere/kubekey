@@ -62,18 +62,6 @@
     dest: "{{ .binary_dir }}/cni/kubeovn/kube-ovn-{{ .item }}.tgz"
     timeout: "{{ .download.timeout }}"
 
-- name: Helm | Ensure the Hybridnet binary is available
-  loop: >
-    {{ index (.download.cni) "hybridnet_version" | default (list .cni.hybridnet_version) | toJson }}
-  when: 
-    - .item | empty | not
-    - (index (.download.cni | default dict) "type" | default (list .cni.type)) | has "hybridnet"
-    - printf "%s/cni/hybridnet/hybridnet-%s.tgz" .binary_dir .item | fileExists | not
-  http_get_file:
-    url: "{{ tpl .download.artifact_url.hybridnet (dict \"version\" .item) }}"
-    dest: "{{ .binary_dir }}/cni/hybridnet/hybridnet-{{ .item }}.tgz"
-    timeout: "{{ .download.timeout }}"
-
 - name: Helm | Ensure the localpv Provisioner binary is available
   loop: >
     {{ index (.download.storage_class | default dict) "localpv_provisioner_version" | default (list .storage_class.localpv_provisioner_version) | toJson }}

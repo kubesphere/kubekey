@@ -157,7 +157,6 @@ var upgradeVersionFieldPaths = [][]string{
 	{"cni", "cilium_version"},
 	{"cni", "flannel_version"},
 	{"cni", "kubeovn_version"},
-	{"cni", "hybridnet_version"},
 	{"cni", "multus", "image", "tag"},
 	{"cni", "spiderpool_version"},
 

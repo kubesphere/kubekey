@@ -109,7 +109,7 @@ including the `node[i:j]` range shorthand (e.g. `node[1:3]` → `node1`,`node2`,
 
 | v3 `network` | v4 `cni` | Note |
 |---|---|---|
-| `plugin` | `type` | `calico`/`cilium`/`flannel`/`kubeovn`/`hybridnet`; unknown → `other` + **warning** |
+| `plugin` | `type` | `calico`/`cilium`/`flannel`/`kubeovn`; unknown → `other` + **warning** |
 | `kubePodsCIDR` | `pod_cidr` | |
 | `kubeServiceCIDR` | `service_cidr` | |
 | `multusCNI.enabled` | `multi_cni = "multus"` | **warning** |
@@ -193,7 +193,7 @@ mapping tables above). Their **unsupported sub-flags** still produce a warning.
 | `network.calico.ipAutoDetectionMethod` | manual | configure via `cni.calico.values` (Calico helm custom values file, targeting the Calico Installation spec) |
 | `network.calico.ipv4NatOutgoing=false` | manual | configure via `cni.calico.values` (Calico helm custom values file, targeting the Calico Installation spec) |
 | `network.calico.typha` / `controller` | manual | configure via `cni.calico.values` (Calico helm custom values file, targeting the Calico Installation spec) |
-| `network.flannel` / `kubeovn` / `hybridnet` | manual | v4 does not expose per-plugin details |
+| `network.flannel` / `kubeovn` | manual | v4 does not expose per-plugin details |
 | `dns.coredns` | manual | migrate to `dns.coredns.zone_configs` |
 | `dns.nodelocaldns.externalZones` | manual | — |
 | `etcd.backupPeriod` | auto-mapped → `etcd.backup.on_calendar` | see etcd mapping table |

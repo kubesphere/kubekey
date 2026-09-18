@@ -202,18 +202,6 @@ Recommended etcd versions for each Kubernetes version:
 | 1.23\~1.37 | [0.19.0+](https://github.com/flannel-io/flannel/blob/master/Documentation/kubernetes.md) | v0.28.9 |
 
 
-#### [hybridnet](https://github.com/alibaba/hybridnet)
-
-> **Note**: HybridNet is an open-source multi-network plane CNI plugin from Alibaba, supporting hybrid deployment of Underlay and Overlay networks, providing flexible IP address management and network isolation capabilities. Suitable for scenarios requiring multiple network planes and fine-grained IP management.
-
-> **Installation**:
-> - Use `--set cni.type="hybridnet"` to specify HybridNet as the container network plugin
-> - Use `--set cni.hybridnet_version="0.6.8"` to specify the HybridNet version to install (if not specified, the default version will be used)
-
-> **Note**: HybridNet official documentation does not clearly specify the supported Kubernetes version range. The default version in the KubeKey project is 0.6.8 (the chart that deploys HybridNet v0.8.8). It is recommended to fully test before using in production environments.
-
-> **Key Features**: Multi-network plane support, Underlay/Overlay hybrid deployment, flexible IP address management, network isolation
-
 #### [kubeovn](https://github.com/kubeovn/kube-ovn)
 
 > **Note**: Kube-OVN is a Kubernetes network plugin based on OVN (Open Virtual Network), providing enterprise-grade network features including subnet management, QoS, network policies, static IP allocation, etc. Suitable for scenarios requiring rich network features and fine-grained control.

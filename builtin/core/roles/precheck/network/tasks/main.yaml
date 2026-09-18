@@ -152,13 +152,3 @@
         that: le (.kubernetes.kubelet.max_pods | default 110) (sub (pow 2 (float64 (sub 128 (.cni.ipv6_mask_size | default 64)))) 2)
         fail_msg: >-
           The configured maximum number of pods per node exceeds the number of available IPv6 addresses in the pod CIDR range.
-
-# https://github.com/alibaba/hybridnet/wiki/Getting-Started#install
-- name: Network | Fail if Kubernetes version is too old for hybridnet
-  run_once: true
-  assert:
-    that: .kubernetes.kube_version | semverCompare ">=v1.16.0"
-    fail_msg: >-
-      Hybridnet requires Kubernetes version 1.16.0 or newer.
-  when:
-    - .cni.type | eq "hybridnet"

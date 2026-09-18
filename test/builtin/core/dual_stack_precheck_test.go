@@ -264,7 +264,7 @@ func TestPrecheckNetworkAddressFamilies(t *testing.T) {
 					"kubelet":      map[string]any{"max_pods": 110},
 				},
 				"cluster_require": map[string]any{
-					"require_network_plugin": []any{"calico", "cilium", "flannel", "hybridnet", "kubeovn"},
+					"require_network_plugin": []any{"calico", "cilium", "flannel", "kubeovn"},
 				},
 				"internal_ipv4":      tc.internalIPv4,
 				"internal_ipv6":      tc.internalIPv6,

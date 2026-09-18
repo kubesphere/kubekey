@@ -377,7 +377,7 @@ func (r *Result) convertCNI(cluster *Cluster) map[string]any {
 	switch n.Plugin {
 	case "":
 		return nil
-	case "calico", "cilium", "flannel", "kubeovn", "hybridnet":
+	case "calico", "cilium", "flannel", "kubeovn":
 		cni["type"] = n.Plugin
 	default:
 		r.warnf("network.plugin %q has no v4 cni.type equivalent, use \"other\" and configure it manually", n.Plugin)
@@ -435,7 +435,7 @@ func (r *Result) convertCNI(cluster *Cluster) map[string]any {
 	for _, p := range []struct {
 		name string
 		cfg  map[string]any
-	}{{"flannel", n.Flannel}, {"kubeovn", n.Kubeovn}, {"hybridnet", n.Hybridnet}} {
+	}{{"flannel", n.Flannel}, {"kubeovn", n.Kubeovn}} {
 		if len(p.cfg) > 0 {
 			r.warnf("network.%s has no direct v4 equivalent; review and configure it manually", p.name)
 		}

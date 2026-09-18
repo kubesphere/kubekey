@@ -76,7 +76,7 @@ spec:
     # runc binary version (active only when container_manager is containerd).
     # runc_version: v1.3.3
   cni:
-    # CNI plugin type. Supported: calico, cilium, flannel, hybridnet, kubeovn, other
+    # CNI plugin type. Supported: calico, cilium, flannel, kubeovn, other
     type: calico
     # ========== Multi-CNI ==========
     # Multi-CNI type. Supported: multus, spiderpool, none.
@@ -101,9 +101,6 @@ spec:
     # ========== Kube-OVN CNI ==========
     # Kube-OVN version (effective only when type is kubeovn).
     #kubeovn_version: v1.15.0
-    # ========== Hybridnet CNI ==========
-    # Hybridnet version (effective only when type is hybridnet).
-    #hybridnet_version: 0.6.8
   storage_class:
     # ========== Storage Class Configuration ==========
     # ========== Local/OpenEBS Storage Class ==========

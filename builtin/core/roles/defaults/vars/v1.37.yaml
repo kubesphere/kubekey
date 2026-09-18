@@ -69,8 +69,6 @@ cni:
   flannel_version: v0.28.9
   # ========== cni: kubeovn ==========
   kubeovn_version: v1.16.2
-  # ========== cni: hybridnet ==========
-  hybridnet_version: 0.6.8
   # ========== multi-cni: multus ==========
   multus:
     image:
