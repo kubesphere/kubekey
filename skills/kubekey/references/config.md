@@ -21,7 +21,7 @@ spec:
       - kylin
       - rocky
     # Required network plugins
-    require_network_plugin: ['calico', 'flannel', 'cilium', 'hybridnet', 'kube-ovn']
+    require_network_plugin: ['calico', 'flannel', 'cilium', 'hybridnet', 'kubeovn']
     # Minimum Kubernetes version
     kube_version_min_required: v1.23.0
     # Minimum memory requirements (MB)

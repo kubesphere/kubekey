@@ -112,7 +112,7 @@ cluster_require:
     - rocky
     - '"rocky"'
   # 支持的网络插件
-  require_network_plugin: ['calico', 'flannel', 'cilium', 'hybridnet', 'kube-ovn']
+  require_network_plugin: ['calico', 'flannel', 'cilium', 'hybridnet', 'kubeovn']
   # 最低支持的 Kubernetes 版本
   kube_version_min_required: v1.23.0
   # 每个控制平面节点的最低内存要求（MB）
