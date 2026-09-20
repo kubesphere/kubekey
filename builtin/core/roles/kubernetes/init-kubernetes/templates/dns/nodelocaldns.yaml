@@ -11,12 +11,30 @@
     {{- end -}}
   {{- end -}}
 {{- end -}}
+{{- range .groups.image_registry | default list -}}
+  {{- $hostname := index $.hostvars . "hostname" -}}
+  {{- if (index $.hostvars . "internal_ipv4") | empty | not -}}
+    {{- $autoHosts = append $autoHosts (printf "%s %s" (index $.hostvars . "internal_ipv4") $hostname) -}}
+  {{- end -}}
+  {{- if (index $.hostvars . "internal_ipv6") | empty | not -}}
+    {{- $autoHosts = append $autoHosts (printf "%s %s" (index $.hostvars . "internal_ipv6") $hostname) -}}
+  {{- end -}}
+{{- end -}}
 {{- $nfsServer := .storage_class.nfs.server | default "" -}}
 {{- if and ($nfsServer | empty | not) ($nfsServer | isIP | not) -}}
   {{- if .groups.nfs | empty | not -}}
     {{- if (index .hostvars (.groups.nfs | first) "internal_ipv4") | empty | not -}}
       {{- $autoHosts = append $autoHosts (printf "%s %s" (index .hostvars (.groups.nfs | first) "internal_ipv4") $nfsServer) -}}
     {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- range .groups.nfs | default list -}}
+  {{- $hostname := index $.hostvars . "hostname" -}}
+  {{- if (index $.hostvars . "internal_ipv4") | empty | not -}}
+    {{- $autoHosts = append $autoHosts (printf "%s %s" (index $.hostvars . "internal_ipv4") $hostname) -}}
+  {{- end -}}
+  {{- if (index $.hostvars . "internal_ipv6") | empty | not -}}
+    {{- $autoHosts = append $autoHosts (printf "%s %s" (index $.hostvars . "internal_ipv6") $hostname) -}}
   {{- end -}}
 {{- end -}}
 {{- $allHosts := concat (.dns.coredns.dns_etc_hosts | default list) $autoHosts -}}
@@ -185,7 +203,10 @@ data:
     {{- end }}
 
     {{- if $allHosts | empty | not }}
-      hosts /etc/coredns/hosts {
+      hosts {
+      {{- range $allHosts }}
+        {{ . }}
+      {{- end }}
         fallthrough
       }
     {{- end }}
@@ -234,15 +255,11 @@ data:
       bind {{ .dns.nodelocaldns.ip }}
       forward . /etc/resolv.conf
     {{- if $allHosts | empty | not }}
-      hosts /etc/coredns/hosts {
+      hosts {
+      {{- range $allHosts }}
+        {{ . }}
+      {{- end }}
         fallthrough
       }
     {{- end }}
     }
-
-{{- if $allHosts | empty | not }}
-  hosts: |
-  {{- range $allHosts }}
-    {{ . }}
-  {{- end }}
-{{- end }}
