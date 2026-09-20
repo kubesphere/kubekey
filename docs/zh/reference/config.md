@@ -622,8 +622,9 @@ kubernetes:
         # kube-vip 镜像标签
         tag: v0.7.2
     haproxy:
-      # 本地 haproxy 监听的 IP 地址。0.0.0.0 使 control_plane_endpoint 可通过写入 /etc/hosts 的回环地址（127.0.0.1）访问，与节点地址族无关
-      address: 0.0.0.0
+      # 本地 haproxy 监听回环地址（127.0.0.1 和 ::1），只服务本节点。
+      # worker 节点将 control_plane_endpoint 在 /etc/hosts 中解析为 127.0.0.1/::1，
+      # 通过本机 haproxy 访问 API server。
       # HAProxy 健康检查端口
       health_port: 8081
       image:
@@ -716,7 +717,6 @@ kubernetes:
 | `kubernetes.control_plane_endpoint.kube_vip.env` | 传递给 kube-vip 容器的环境变量，ARP 和 BGP 模式共用。 |
 | `kubernetes.control_plane_endpoint.kube_vip.env.svc_enable` | kube-vip 是否管理 Service（LoadBalancer 类型）VIP。当同时使用独立的 Service VIP 管理组件（例如 MetalLB）时设为 `"false"`。 |
 | `kubernetes.control_plane_endpoint.kube_vip.image` | kube-vip 容器镜像配置。 |
-| `kubernetes.control_plane_endpoint.haproxy.address` | HAProxy 监听的地址（默认 `0.0.0.0`，使回环地址 127.0.0.1 可访问）。 |
 | `kubernetes.control_plane_endpoint.haproxy.health_port` | HAProxy 健康检查端口。 |
 | `kubernetes.control_plane_endpoint.haproxy.image` | HAProxy 容器镜像配置。 |
 | `kubernetes.certs.ca_cert` | 自定义 Kubernetes CA 证书路径（留空则使用 kubeadm/kubekey 生成）。 |

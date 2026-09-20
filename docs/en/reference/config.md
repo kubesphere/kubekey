@@ -626,10 +626,10 @@ kubernetes:
         # kube-vip image tag
         tag: v0.7.2
     haproxy:
-      # The IP address the local haproxy listens on. 0.0.0.0 makes the
-      # control_plane_endpoint reachable via the loopback address (127.0.0.1)
-      # written to /etc/hosts, regardless of the node's address family.
-      address: 0.0.0.0
+      # The local haproxy listens on the loopback address (127.0.0.1 and ::1)
+      # so it only serves the node it runs on. Worker nodes resolve the
+      # control_plane_endpoint to 127.0.0.1/::1 in /etc/hosts and reach the
+      # API server through the local haproxy.
       # HAProxy health check port
       health_port: 8081
       image:
@@ -722,7 +722,6 @@ kubernetes:
 | `kubernetes.control_plane_endpoint.kube_vip.env` | Environment variables passed to the kube-vip container, common to both ARP and BGP modes. |
 | `kubernetes.control_plane_endpoint.kube_vip.env.svc_enable` | Whether kube-vip manages Service (type LoadBalancer) VIPs. Set to `"false"` when using a separate Service VIP manager (e.g. MetalLB) alongside kube-vip. |
 | `kubernetes.control_plane_endpoint.kube_vip.image` | kube-vip container image configuration. |
-| `kubernetes.control_plane_endpoint.haproxy.address` | Address that HAProxy listens on (default `0.0.0.0`, making the loopback address 127.0.0.1 reachable). |
 | `kubernetes.control_plane_endpoint.haproxy.health_port` | HAProxy health check port. |
 | `kubernetes.control_plane_endpoint.haproxy.image` | HAProxy container image configuration. |
 | `kubernetes.certs.ca_cert` | Custom Kubernetes CA certificate path (leave empty to use kubeadm/kubekey generated). |
