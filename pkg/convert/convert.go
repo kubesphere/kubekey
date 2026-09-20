@@ -609,7 +609,7 @@ func (r *Result) convertCRI(cluster *Cluster) map[string]any {
 		setNested(cri, reg.DockerDataDir, "docker", "daemon", "data-root")
 	}
 	if reg.BridgeIP != "" {
-		r.warnf("registry.bridgeIP has no v4 equivalent and is dropped; configure it via cri.docker.daemon.bip")
+		setNested(cri, reg.BridgeIP, "docker", "daemon", "bip")
 	}
 	if reg.NamespaceOverride != "" {
 		r.warnf("registry.namespaceOverride %q has no direct v4 equivalent; review image naming manually", reg.NamespaceOverride)

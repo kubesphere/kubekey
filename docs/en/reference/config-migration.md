@@ -199,7 +199,7 @@ mapping tables above). Their **unsupported sub-flags** still produce a warning.
 | `etcd.backupPeriod` | auto-mapped → `etcd.backup.on_calendar` | see etcd mapping table |
 | `etcd.extraArgs` | auto-mapped → `etcd.env.<snake_key>` | see etcd mapping table; unsupported flags → warning |
 | `etcd.external` (endpoints/certs) | manual | configure the etcd group + certs |
-| `registry.bridgeIP` | manual | configure via `cri.docker.daemon.bip` |
+| `registry.bridgeIP` | auto-mapped → `cri.docker.daemon.bip` | |
 | `registry.namespaceOverride` | manual | review image naming |
 | `registry.namespaceRewrite` | dropped | — |
 | `registry.remoteMirrors` | dropped | — |
