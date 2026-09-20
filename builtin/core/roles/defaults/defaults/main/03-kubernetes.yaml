@@ -127,11 +127,10 @@ kubernetes:
         repository: plndr/kube-vip
         tag: v0.7.2
     haproxy:
-      # The IP address the local haproxy listens on. Leave empty to bind
-      # automatically: 0.0.0.0 on IPv4-only nodes, "::" (dual-stack) when the
-      # node has an IPv6 address. 0.0.0.0 also makes the control_plane_endpoint
-      # reachable via the loopback address (127.0.0.1) written to /etc/hosts.
-      address: ""
+      # The local haproxy listens on the loopback address (127.0.0.1 and ::1)
+      # so it only serves the node it runs on. Worker nodes resolve the
+      # control_plane_endpoint to 127.0.0.1/::1 in /etc/hosts and reach the
+      # API server through the local haproxy.
       health_port: 8081
       image: 
         registry: >-
