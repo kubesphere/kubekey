@@ -276,12 +276,44 @@
   command: |
     /usr/local/bin/kubeadm upgrade node --ignore-preflight-errors=ImagePull
 
+# The control-plane kubelet must be restarted to load the bumped kubelet binary
+# and the regenerated kubeadm-flags.env (kubeadm upgrade apply does NOT restart
+# kubelet). Because KubeKey runs tasks as a per-node pipeline (each node walks
+# the task list independently, in parallel), the CP node skips the worker-only
+# tasks below and races ahead into this restart while workers are still running
+# `kubeadm upgrade node`. That restart recreates the kube-apiserver static pod,
+# leaving a short window where :6443 refuses connections, which makes the
+# workers' `kubeadm upgrade node` fail with
+#   "unable to fetch the kubeadm-config ConfigMap: ... dial tcp ...:6443: connect: connection refused"
+# So: restart the CP kubelet FIRST, then have workers wait for the API server
+# to come back before running `kubeadm upgrade node`.
+- name: UpgradeKubernetes | Restart kubelet on control plane after upgrade
+  when: .groups.kube_control_plane | default list | has .inventory_hostname
+  command: |
+    systemctl daemon-reload && systemctl restart kubelet.service
+
+- name: UpgradeKubernetes | Wait for API server to be ready before upgrading worker nodes
+  when: .groups.kube_worker | default list | has .inventory_hostname
+  command: |
+    i=1
+    while [ $i -le 30 ]; do
+      if curl -sk --connect-timeout 3 https://lb.kubesphere.local:6443/healthz >/dev/null 2>&1; then
+        echo "✅ API server is ready"
+        exit 0
+      fi
+      i=$((i+1))
+      sleep 5
+    done
+    echo "❌ API server not ready within 150 seconds"
+    exit 1
+
 - name: UpgradeKubernetes | Upgrade node configuration on worker nodes
   when: .groups.kube_worker | default list | has .inventory_hostname
   command: |
     /usr/local/bin/kubeadm upgrade node --ignore-preflight-errors=ImagePull
 
-- name: UpgradeKubernetes | Restart kubelet service after upgrade
+- name: UpgradeKubernetes | Restart kubelet on worker nodes after upgrade
+  when: .groups.kube_worker | default list | has .inventory_hostname
   command: |
     systemctl daemon-reload && systemctl restart kubelet.service
 
