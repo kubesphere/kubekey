@@ -78,7 +78,7 @@ apiServer:
     - kubernetes.default.svc
     - kubernetes.default.svc.{{ .kubernetes.cluster_name }}
     - kubernetes.default.svc.{{ .kubernetes.cluster_name }}.{{ .dns.domain }}
-    - {{ index (.cni.service_cidr | ipInCIDR) 0 }}
+    - "{{ index (.cni.service_cidr | ipInCIDR) 0 }}"
     - {{ .kubernetes.control_plane_endpoint.host }}
   {{- range .groups.k8s_cluster | default list }}
     - {{ index $.hostvars . "hostname" }}
