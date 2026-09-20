@@ -81,6 +81,7 @@ spec:
     insecureRegistries: ["insecure.example.com"]
     privateRegistry: "dockerhub.kubekey.local"
     containerdDataDir: /data/containerd
+    bridgeIP: 172.17.0.1/16
     auths:
       "dockerhub.kubekey.local":
         username: admin
@@ -283,6 +284,9 @@ func TestConvertConfig(t *testing.T) {
 	}
 	if got := getNested(t, cfg, "cri", "registry", "mirrors"); got == nil {
 		t.Error("cri.registry.mirrors missing")
+	}
+	if got := getNested(t, cfg, "cri", "docker", "daemon", "bip"); got != "172.17.0.1/16" {
+		t.Errorf("cri.docker.daemon.bip = %v, want 172.17.0.1/16", got)
 	}
 	authsRaw := getNested(t, cfg, "cri", "registry", "auths")
 	var auths []map[string]any

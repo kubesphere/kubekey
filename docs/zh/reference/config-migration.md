@@ -197,7 +197,7 @@ v3 的 `HostCfg` 本身不带 role/taint 信息；角色仅来自 `roleGroups`�
 | `etcd.backupPeriod` | 自动映射 → `etcd.backup.on_calendar` | 见 etcd 映射表 |
 | `etcd.extraArgs` | 自动映射 → `etcd.env.<snake_key>` | 见 etcd 映射表；不支持的 flag → 告警 |
 | `etcd.external`（端点/证书） | 手工 | 配置 etcd 主机组与证书 |
-| `registry.bridgeIP` | 丢弃 | — |
+| `registry.bridgeIP` | 自动映射 → `cri.docker.daemon.bip` | |
 | `registry.namespaceOverride` | 手工 | 复核镜像命名 |
 | `registry.namespaceRewrite` | 丢弃 | — |
 | `registry.remoteMirrors` | 丢弃 | — |

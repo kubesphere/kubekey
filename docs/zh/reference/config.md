@@ -828,6 +828,8 @@ cri:
         max-file: "{{ .kubernetes.kubelet.container_log_max_files | default 3  | toString | toJson }}"
       # 是否启用 live-restore
       live-restore: true
+      # Docker 网桥（docker0）的 IP 网段，例如 172.17.0.1/16
+      # bip: 172.17.0.1/16
       # 容器 exec 选项
       exec-opts:
         - "native.cgroupdriver={{ .cri.cgroup_driver | default \"systemd\" }}"
@@ -904,6 +906,7 @@ cri:
 | `cri.docker.daemon.log-opts.max-size` | 单个容器日志文件的最大大小。 |
 | `cri.docker.daemon.log-opts.max-file` | 保留的旧容器日志文件数量。 |
 | `cri.docker.daemon.live-restore` | 是否启用 Docker live-restore。 |
+| `cri.docker.daemon.bip` | Docker 网桥（docker0）的 IP 网段，例如 `172.17.0.1/16`。 |
 | `cri.docker.daemon.exec-opts` | Docker exec 选项列表，例如 cgroup 驱动。 |
 | `cri.containerd.config` | containerd 配置，映射为 `/etc/containerd/config.toml`。 |
 | `cri.containerd.config_policy` | 已安装 containerd 时，更新配置文件（/etc/containerd/config.toml）与 systemd 服务的策略：空（默认）跳过更新；`merge` 与现有配置合并（节点侧已有键优先）；`override` 覆盖。该策略不影响二进制安装与证书同步。 |
