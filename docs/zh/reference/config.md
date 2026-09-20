@@ -622,8 +622,8 @@ kubernetes:
         # kube-vip 镜像标签
         tag: v0.7.2
     haproxy:
-      # 节点 "lo"（回环）接口上的 IP 地址
-      address: 127.0.0.1
+      # 本地 haproxy 监听的 IP 地址。0.0.0.0 使 control_plane_endpoint 可通过写入 /etc/hosts 的回环地址（127.0.0.1）访问，与节点地址族无关
+      address: 0.0.0.0
       # HAProxy 健康检查端口
       health_port: 8081
       image:
@@ -716,7 +716,7 @@ kubernetes:
 | `kubernetes.control_plane_endpoint.kube_vip.env` | 传递给 kube-vip 容器的环境变量，ARP 和 BGP 模式共用。 |
 | `kubernetes.control_plane_endpoint.kube_vip.env.svc_enable` | kube-vip 是否管理 Service（LoadBalancer 类型）VIP。当同时使用独立的 Service VIP 管理组件（例如 MetalLB）时设为 `"false"`。 |
 | `kubernetes.control_plane_endpoint.kube_vip.image` | kube-vip 容器镜像配置。 |
-| `kubernetes.control_plane_endpoint.haproxy.address` | HAProxy 在本机回环接口上监听的地址。 |
+| `kubernetes.control_plane_endpoint.haproxy.address` | HAProxy 监听的地址（默认 `0.0.0.0`，使回环地址 127.0.0.1 可访问）。 |
 | `kubernetes.control_plane_endpoint.haproxy.health_port` | HAProxy 健康检查端口。 |
 | `kubernetes.control_plane_endpoint.haproxy.image` | HAProxy 容器镜像配置。 |
 | `kubernetes.certs.ca_cert` | 自定义 Kubernetes CA 证书路径（留空则使用 kubeadm/kubekey 生成）。 |
@@ -1116,7 +1116,7 @@ dns:
       repository: >-
         coredns
       # tag: v1.11.1
-    # 自定义 hosts 条目
+    # 自定义 hosts 条目（格式：IP 域名）。集群会自动合并 image_registry 与 NFS 域名解析
     dns_etc_hosts: []
     # DNS 区域匹配配置
     zone_configs:
@@ -1182,7 +1182,7 @@ dns:
 | `dns.nodelocaldns.image` | NodeLocalDNS 容器镜像配置。 |
 | `dns.coredns.ip` | CoreDNS 集群服务 IP，通常取自 Service CIDR 的第 3 个地址。 |
 | `dns.coredns.image` | CoreDNS 容器镜像配置。 |
-| `dns.coredns.dns_etc_hosts` | 向 CoreDNS 注入的自定义 `/etc/hosts` 格式条目。 |
+| `dns.coredns.dns_etc_hosts` | 向 CoreDNS 注入的自定义 `/etc/hosts` 格式条目。集群会自动合并 image_registry 与 NFS 域名解析。 |
 | `dns.coredns.zone_configs` | CoreDNS Corefile 的区域配置列表，可定义匹配的域、缓存、重写、转发等规则。 |
 | `dns.coredns.zone_configs[].zones` | 该区域规则匹配的 DNS 域及端口列表。 |
 | `dns.coredns.zone_configs[].additional_configs` | 附加的 CoreDNS 插件指令列表（如 `errors`、`ready`、`prometheus`、`loop`、`reload`、`loadbalance`）。 |
