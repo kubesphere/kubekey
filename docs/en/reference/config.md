@@ -832,6 +832,8 @@ cri:
         max-file: "{{ .kubernetes.kubelet.container_log_max_files | default 3  | toString | toJson }}"
       # Enable live-restore
       live-restore: true
+      # IP CIDR of the Docker bridge (docker0), e.g. 172.17.0.1/16
+      # bip: 172.17.0.1/16
       # Container exec options
       exec-opts:
         - "native.cgroupdriver={{ .cri.cgroup_driver | default \"systemd\" }}"
@@ -908,6 +910,7 @@ cri:
 | `cri.docker.daemon.log-opts.max-size` | Maximum size of a single container log file. |
 | `cri.docker.daemon.log-opts.max-file` | Number of old container log files to retain. |
 | `cri.docker.daemon.live-restore` | Whether to enable Docker live-restore. |
+| `cri.docker.daemon.bip` | IP CIDR of the Docker bridge (docker0), e.g. `172.17.0.1/16`. |
 | `cri.docker.daemon.exec-opts` | Docker exec options list, e.g., cgroup driver. |
 | `cri.containerd.config` | containerd configuration, mapped to `/etc/containerd/config.toml`. |
 | `cri.containerd.config_policy` | Policy for updating the containerd config file (`/etc/containerd/config.toml`) and systemd service when the runtime is already installed: empty (default) skips the update; `merge` merges with the existing config (node-side existing keys take precedence); `override` overwrites. Binary installation and certificate sync are not affected by this policy. |
