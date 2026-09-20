@@ -48,7 +48,7 @@ apiServer:
 {{- if $internalIPv4 | empty | not }}
     bind-address: 0.0.0.0
 {{- else if $internalIPv6 | empty | not }}
-    bind-address: ::
+    bind-address: "::"
 {{- end }}
 {{- if .security_enhancement }}
     authorization-mode: Node,RBAC
@@ -124,7 +124,7 @@ controllerManager:
   {{- if $internalIPv4 | empty | not }}
     bind-address: 0.0.0.0
   {{- else if $internalIPv6 | empty | not }}
-    bind-address: ::
+    bind-address: "::"
   {{- end }}
 {{- end }}
 {{- if .kubernetes.controller_manager.extra_args }}
@@ -148,7 +148,7 @@ scheduler:
   {{- if $internalIPv4 | empty | not }}
     bind-address: 0.0.0.0
   {{- else if $internalIPv6 | empty | not }}
-    bind-address: ::
+    bind-address: "::"
   {{- end }}
 {{- end }}
 {{- if .kubernetes.scheduler.extra_args }}
