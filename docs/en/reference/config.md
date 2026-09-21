@@ -114,7 +114,7 @@ cluster_require:
     - rocky
     - '"rocky"'
   # Supported network plugins
-  require_network_plugin: ['calico', 'flannel', 'cilium', 'hybridnet', 'kube-ovn']
+  require_network_plugin: ['calico', 'flannel', 'cilium', 'kubeovn']
   # Minimum supported Kubernetes version
   kube_version_min_required: v1.23.0
   # Minimum memory (MB) required for each control plane node
@@ -740,7 +740,7 @@ kubernetes:
 ```yaml
 cni:
   # CNI plugin type to use
-  # Specify the network plugin to install for the cluster. Supported: calico, cilium, flannel, hybridnet, kube-ovn, other
+  # Specify the network plugin to install for the cluster. Supported: calico, cilium, flannel, kube-ovn, other
   type: calico
   # The complete Pod IP pool for the cluster. Supports IPv4, IPv6, and dual-stack
   pod_cidr: 10.233.64.0/18
@@ -768,13 +768,54 @@ cni:
 
 | Parameter | Description |
 |-----------|-------------|
-| `cni.type` | Cluster network plugin type, optional: `calico`, `cilium`, `flannel`, `hybridnet`, `kubeovn`, `other`. |
+| `cni.type` | Cluster network plugin type, optional: `calico`, `cilium`, `flannel`, `kubeovn`, `other`. |
 | `cni.pod_cidr` | CIDR segment for the entire cluster Pod network. |
 | `cni.ipv4_mask_size` | IPv4 subnet mask length allocated to each node. For example, using `/24` mask in a `/18` network, each node can get about 256 Pod IPs. |
 | `cni.ipv6_mask_size` | IPv6 subnet mask length allocated to each node. |
 | `cni.service_cidr` | CIDR segment for the entire cluster Service network. |
 | `cni.multi_cni` | Whether to enable multi-CNI support. `multus` means enable Multus, `none` means do not enable. |
 | `cni.multus.image` | Multus CNI container image configuration (registry, repository, tag). |
+
+### Dual-Stack (IPv4/IPv6) Configuration
+
+KubeKey supports standard Kubernetes dual-stack networking. A dual-stack cluster is configured as follows.
+
+1. Set both `cni.pod_cidr` and `cni.service_cidr` to two address families, IPv4 first:
+
+   ```yaml
+   cni:
+     pod_cidr: 10.233.64.0/18,fd00:10:244::/56
+     service_cidr: 10.233.0.0/18,fd00:10:96::/112
+     ipv4_mask_size: 24
+     ipv6_mask_size: 64
+   ```
+
+   Each value must be one or two valid CIDRs: an empty value, more than two address families, and anything that is not a CIDR (a bare IP address, for example) are rejected before installation.
+
+2. Give every node an address in both families in the inventory, so that kubelet can advertise `--node-ip=<IPv4>,<IPv6>`:
+
+   ```yaml
+   hosts:
+     node1:
+       internal_ipv4: 172.16.0.3
+       internal_ipv6: fd85::3
+   ```
+
+   IPv4 must come first everywhere. `kube-apiserver`'s `--advertise-address` stays single-family, so it keeps advertising the IPv4 address while the Service range carries both families.
+
+   The address families of the node addresses (`internal_ipv4` / `internal_ipv6`), `cni.pod_cidr` and `cni.service_cidr` must all agree. A node counts as dual-stack when both addresses are defined, and the cluster counts as dual-stack when `cni.pod_cidr` lists both families, so a dual-stack cluster requires both addresses on every node while a single-stack cluster requires exactly one. Setting `internal_ipv6` on a node of an IPv4-only cluster is rejected: kubelet publishes every entry of `--node-ip` as an `InternalIP`, so the node would report an IPv6 address that no cluster route covers.
+
+3. Choose a CNI that supports dual-stack. KubeKey derives the address families of every built-in CNI from `cni.pod_cidr`:
+
+   | CNI | Wiring |
+   |-----|--------|
+   | `calico` | No KubeKey-side wiring needed: the tigera-operator reads the `podSubnet` of the `kubeadm-config` ConfigMap, which is rendered from `cni.pod_cidr`, and creates one IP pool per address family on its own (it also enables IPv6 node address detection by default). |
+   | `cilium` | `ipv4.enabled` / `ipv6.enabled` plus `ipam.clusterPoolIPv4PodCIDRList` / `clusterPoolIPv6PodCIDRList`. |
+   | `flannel` | `podCidr` and `podCidrv6`. |
+   | `kubeovn` | `networking.NET_STACK: dual_stack` with `dual_stack.POD_CIDR` and `dual_stack.SVC_CIDR`. |
+   | `spiderpool` | `ipam.enableIPv4` / `ipam.enableIPv6`. |
+
+> **Restriction**: the cluster Pod and Service CIDRs cannot be changed after installation (a Kubernetes limitation), so an existing single-stack cluster cannot be converted to dual-stack in place; a dual-stack cluster has to be created from scratch.
 
 ---
 
@@ -1309,10 +1350,6 @@ download:
     kubeovn: >-
       {{- .zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
       kubeovn.github.io/kube-ovn/kube-ovn-{{ "{{ .version }}" }}.tgz
-    # Helm Chart package: Hybridnet
-    hybridnet: >-
-      {{- .zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
-      github.com/alibaba/hybridnet/releases/download/helm-chart-{{ "{{ .version }}" }}/hybridnet-{{ "{{ .version }}" }}.tgz
     # Helm Chart package: OpenEBS LocalPV Provisioner
     localpv_provisioner: >-
       {{- .zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
@@ -1593,9 +1630,6 @@ download:
       v0.27.4:
         - ghcr.io/flannel-io/flannel-cni-plugin:v1.8.0-flannel1
         - ghcr.io/flannel-io/flannel:v0.27.4
-    hybridnet/hybridnet:
-      0.6.8:
-        - docker.io/hybridnetdev/hybridnet:v0.8.8
     kubeovn/kube-ovn:
       v1.13.15:
         - docker.io/kubeovn/kube-ovn:v1.13.15

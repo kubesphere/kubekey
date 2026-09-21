@@ -177,7 +177,6 @@ type NetworkConfig struct {
 	Flannel         map[string]any `json:"flannel,omitempty"`
 	Kubeovn         map[string]any `json:"kubeovn,omitempty"`
 	MultusCNI       map[string]any `json:"multusCNI,omitempty"`
-	Hybridnet       map[string]any `json:"hybridnet,omitempty"`
 }
 
 // CalicoCfg mirrors v1alpha2.CalicoCfg.

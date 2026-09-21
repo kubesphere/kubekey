@@ -92,7 +92,6 @@ spec:
         - cilium
         - flannel
         - kubeovn
-        - hybridnet
       # multi_cni:          # 可选，多 CNI 管理组件，如 multus
       #   - multus
     cri:

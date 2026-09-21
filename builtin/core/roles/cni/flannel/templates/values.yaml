@@ -1,7 +1,14 @@
 # flannel helm values 
 # https://github.com/flannel-io/flannel/blob/master/Documentation/backends.md
-podCidr: {{ .cni.ipv4_pod_cidr }}
-podCidrv6: {{ .cni.ipv6_pod_cidr }}
+{{/* The address families are derived from "cni.pod_cidr": its first entry is the
+     IPv4 side, its last entry the IPv6 side. */}}
+{{- $podCIDRs := .cni.pod_cidr | splitList "," }}
+{{- $ipv4PodCIDR := $podCIDRs | first }}
+{{- $ipv6PodCIDR := $podCIDRs | last }}
+{{- $hasIPv4 := eq ($ipv4PodCIDR | ipFamily) "IPv4" }}
+{{- $hasIPv6 := eq ($ipv6PodCIDR | ipFamily) "IPv6" }}
+podCidr: {{ if $hasIPv4 }}{{ $ipv4PodCIDR }}{{ end }}
+podCidrv6: {{ if $hasIPv6 }}{{ $ipv6PodCIDR }}{{ end }}
 flannel:
   image:
     repository: {{ .image_registry.ghcrio_registry }}/flannel-io/flannel

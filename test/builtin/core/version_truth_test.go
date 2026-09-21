@@ -97,7 +97,6 @@ var trackedVersionFields = []versionTruthField{
 	{name: "calico", path: []string{"cni", "calico_version"}, repo: "projectcalico/tigera-operator"},
 	{name: "cilium", path: []string{"cni", "cilium_version"}, repo: "cilium/cilium"},
 	{name: "flannel", path: []string{"cni", "flannel_version"}, repo: "flannel/flannel"},
-	{name: "hybridnet", path: []string{"cni", "hybridnet_version"}, repo: "hybridnet/hybridnet"},
 	{name: "kubeovn", path: []string{"cni", "kubeovn_version"}, repo: "kubeovn/kube-ovn"},
 }
 

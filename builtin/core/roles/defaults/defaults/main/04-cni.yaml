@@ -1,31 +1,23 @@
 cni:
   # CNI plugin to use
-  # Specify the network plugin to install for the cluster. Supported: calico, cilium, flannel, hybridnet, kubeovn, other
+  # Specify the network plugin to install for the cluster. Supported: calico, cilium, flannel, kubeovn, other
   type: calico
-  # The complete Pod IP pool for the cluster. Supports IPv4, IPv6, and dual-stack.
+  # The complete Pod IP pool for the cluster. Single-stack keeps one address
+  # family, while a dual-stack cluster lists both families, IPv4 first, as
+  # "ipv4_cidr,ipv6_cidr". Unless the value is left as is, the address families
+  # must match the Service CIDR below and the addresses of every node, so a
+  # dual-stack value requires both "internal_ipv4" and "internal_ipv6" in the
+  # inventory, and a single-stack value requires exactly one of them.
   pod_cidr: 10.233.64.0/18
   # IPv4 subnet mask length for pod allocation per node. Determines the size of each node's pod IP pool.
   ipv4_mask_size: 24
   # IPv6 subnet mask length for pod allocation per node.
   ipv6_mask_size: 64
-  # The complete Service IP pool for the cluster. Supports IPv4, IPv6, and dual-stack.
+  # The complete Service IP pool for the cluster, in the same format as pod_cidr. Must use the same address families, in the same order, as pod_cidr.
   service_cidr: 10.233.0.0/18
-  # In Kubernetes, Pod CIDR supports IPv4, IPv6, and dual-stack. Specify as:
-  # "Single-stack IPv4": pod_cidr in "ipv4" format
-  # "Single-stack IPv6": pod_cidr in "ipv6" format
-  # "Dual-stack": pod_cidr in "ipv4,ipv6" format
-  ipv4_support: >-
-    {{ eq (.cni.pod_cidr | splitList "," | first | ipFamily) "IPv4" }}
-  ipv4_pod_cidr: >-
-    {{- if eq (.cni.pod_cidr | splitList "," | first | ipFamily) "IPv4" -}}
-    {{ .cni.pod_cidr | splitList "," | first }}
-    {{- end -}}
-  ipv6_support: >-
-    {{- eq (.cni.pod_cidr | default "10.233.64.0/18" | splitList "," | last | ipFamily) "IPv6" }}
-  ipv6_pod_cidr: >-
-    {{- if eq (.cni.pod_cidr | default "10.233.64.0/18" | splitList "," | last | ipFamily) "IPv6" -}}
-    {{ .cni.pod_cidr | default "10.233.64.0/18" | splitList "," | last }}
-    {{- end -}}
+  # The per-family values are not stored here: every consumer splits pod_cidr on
+  # "," itself, where the first entry is the IPv4 side and the last entry the
+  # IPv6 side.
 
   # Multi-CNI type. Supported: multus, none.
   multi_cni: "none"
