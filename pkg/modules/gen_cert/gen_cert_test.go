@@ -19,10 +19,16 @@ package gen_cert
 import (
 	"context"
 	"encoding/json"
+	"net"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/runtime"
+	cgutilcert "k8s.io/client-go/util/cert"
+
+	"github.com/kubesphere/kubekey/v4/pkg/modules/internal"
+	"github.com/kubesphere/kubekey/v4/pkg/variable"
 )
 
 // createRawArgs creates a runtime.RawExtension from a map
@@ -167,4 +173,67 @@ func TestGenCertModule(t *testing.T) {
 	t.Run("module exists", func(t *testing.T) {
 		require.NotNil(t, ModuleGenCert)
 	})
+}
+
+// fakeVariable is a minimal variable.Variable implementation used to drive the module directly.
+type fakeVariable struct {
+	vars map[string]any
+}
+
+func (f *fakeVariable) Get(_ variable.GetFunc) (any, error) { return f.vars, nil }
+func (f *fakeVariable) Merge(_ variable.MergeFunc) error    { return nil }
+
+// TestGenCertSANLeakAcrossTasks reproduces the generation sequence performed by
+// builtin/core/roles/certs/init: a task that declares sans is followed by a task that declares
+// none. The certificate produced by the second task must not carry the sans of the first one.
+func TestGenCertSANLeakAcrossTasks(t *testing.T) {
+	// Restore the package level baseline as it is on a fresh process start.
+	defaultAltName = &cgutilcert.AltNames{
+		DNSNames: []string{"localhost"},
+		IPs:      []net.IP{net.IPv4(127, 0, 0, 1), net.IPv6loopback},
+	}
+
+	dir := t.TempDir()
+	v := &fakeVariable{vars: map[string]any{}}
+	run := func(name string, args map[string]any) {
+		t.Helper()
+		_, stderr, err := ModuleGenCert(context.Background(), internal.ExecOptions{
+			Args:     createRawArgs(args),
+			Host:     "localhost",
+			Variable: v,
+		})
+		require.NoError(t, err, "%s: %s", name, stderr)
+	}
+
+	rootKey := filepath.Join(dir, "root.key")
+	rootCert := filepath.Join(dir, "root.crt")
+
+	// 1. Root CA, self signed.
+	run("root", map[string]any{
+		"cn": "root", "out_key": rootKey, "out_cert": rootCert, "policy": "Always",
+	})
+	// 2. First task declares sans, like the etcd certificate task in certs/init.
+	run("task with sans", map[string]any{
+		"cn": "etcd", "out_key": filepath.Join(dir, "first.key"), "out_cert": filepath.Join(dir, "first.crt"),
+		"root_key": rootKey, "root_cert": rootCert, "policy": "Always",
+		"sans": []string{"node-a", "10.0.0.1"},
+	})
+	// 3. Next task declares no sans at all, like the etcd client certificate task.
+	run("task without sans", map[string]any{
+		"cn": "etcd", "out_key": filepath.Join(dir, "second.key"), "out_cert": filepath.Join(dir, "second.crt"),
+		"root_key": rootKey, "root_cert": rootCert, "policy": "Always",
+	})
+
+	chain, err := TryLoadCertChainFromDisk(filepath.Join(dir, "second.crt"))
+	require.NoError(t, err)
+	require.NotEmpty(t, chain)
+	got := chain[0]
+
+	t.Logf("certificate of the task without sans: DNSNames=%v IPAddresses=%v", got.DNSNames, got.IPAddresses)
+
+	const leak = "the sans declared by a previous task must not leak into a certificate that declares none"
+	require.NotContains(t, got.DNSNames, "node-a", leak)
+	for _, ip := range got.IPAddresses {
+		require.NotEqual(t, "10.0.0.1", ip.String(), leak)
+	}
 }
