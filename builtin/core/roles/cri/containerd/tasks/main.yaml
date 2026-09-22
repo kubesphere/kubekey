@@ -82,6 +82,23 @@
       template:
         src: config.toml
         dest: /etc/containerd/config.toml
+
+# containerd v2 reads the registry settings from /etc/containerd/certs.d/<host>/hosts.toml,
+# because it dropped registry.configs.<host>.tls and refuses to combine registry.mirrors with
+# registry.config_path (see templates/config.toml). The mirrors, the insecure registries and
+# the TLS material are therefore written there as well. A v1 node keeps using the
+# configuration generated above and ignores this file.
+- name: Containerd | Write the registry configuration for containerd v2
+  when: or (.cri.containerd_version | default "" | regexMatch "^v?2\\.") (.containerd_install_version.stdout | default "" | regexMatch "containerd/v2")
+  block:
+    - name: Containerd | Generate the registry hosts configuration script
+      template:
+        src: registry-hosts.sh
+        dest: /etc/containerd/registry-hosts.sh
+        mode: 0755
+    - name: Containerd | Apply the registry hosts configuration
+      command: bash /etc/containerd/registry-hosts.sh
+
 - name: Containerd | Deploy the containerd systemd service file
   when: or (.containerd_install_version.error | empty | not) (.containerd_install_version.stdout | contains (printf " %s " .cri.containerd_version) | not) (.cri.containerd.config_policy | empty | not)
   copy:
