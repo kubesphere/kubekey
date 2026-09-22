@@ -2,7 +2,19 @@
 
 # The IP address or hostname to access admin UI and registry service.
 # DO NOT use localhost or 127.0.0.1, because Harbor needs to be accessed by external clients.
-hostname: {{if .groups.image_registry | len | lt 1}}{{ .inventory_hostname }}{{else}}{{ .image_registry.auth.registry | splitList "/" | first | splitList ":" | first }}{{ end }}
+#
+# Every instance of an HA deployment advertises the same endpoint: the registry answers an
+# unauthenticated request with the token realm derived from this value, so a per node value
+# makes each instance hand out a realm of its own and leaves a client pointing at one specific
+# instance after a failover. Use the registry address (the HA virtual IP or the registry
+# domain) whenever one is configured and fall back to the node hostname only when there is
+# none. The shared token key pair (roles/certs/init) makes the tokens interchangeable across
+# the instances behind that address.
+#
+# Keep the function form of "lt": in the pipeline form (.groups.image_registry | len | lt 1)
+# the piped value is passed as the last argument, so it evaluates to "1 < len" and silently
+# selects the hostname branch for HA deployments.
+hostname: {{if lt (.groups.image_registry | len) 1}}{{ .inventory_hostname }}{{else}}{{ .image_registry.auth.registry | splitList "/" | first | splitList ":" | first }}{{ end }}
 
 # http related config
 http:

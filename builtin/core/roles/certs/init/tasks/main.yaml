@@ -141,6 +141,43 @@
     out_cert: >-
       {{ .work_dir }}/pki/image-registry-client.crt
 
+# Harbor signs the registry Bearer tokens with <data_volume>/secret/core/private_key.pem
+# and verifies them with <data_volume>/secret/registry/root.crt; the core/jobservice
+# shared secret and the CSRF key are derived from the 16 byte <data_volume>/secret/keys/secretkey.
+# "prepare" creates all three independently on every instance, so an instance only accepts
+# the tokens it issued itself. In an HA deployment that breaks every request which is issued
+# by one instance and presented to another: the harbor nodes reject each other with 401,
+# which the create-registries step surfaces as HTTP 400 "the registry is unhealthy", and a
+# client that keeps using a token issued before a VIP failover is rejected by the instance
+# that took the VIP over. Harbor's HA guide requires all instances to share the same material,
+# so it is generated once on the controller and pre-placed by roles/image-registry/harbor
+# before prepare runs. IfNotPresent never re-keys a cluster that is already deployed.
+- name: Cert | Generate the shareable Harbor token signing key pair
+  tags: ["image_registry"]
+  when:
+    - .image_registry.type | eq "harbor"
+    - .groups.image_registry | default list | empty | not
+  gen_cert:
+    cn: harbor-token
+    is_ca: true
+    date: "{{ .certs.image_registry.date }}"
+    policy: "{{ .certs.image_registry.gen_cert_policy }}"
+    out_key: >-
+      {{ .work_dir }}/pki/harbor-token.key
+    out_cert: >-
+      {{ .work_dir }}/pki/harbor-token.crt
+
+- name: Cert | Generate the shareable Harbor secret key
+  tags: ["image_registry"]
+  when:
+    - .image_registry.type | eq "harbor"
+    - .groups.image_registry | default list | empty | not
+  command: |
+    if [ ! -s {{ .work_dir }}/pki/harbor-secretkey ]; then
+      head -c 16 /dev/urandom > {{ .work_dir }}/pki/harbor-secretkey
+      chmod 600 {{ .work_dir }}/pki/harbor-secretkey
+    fi
+
 - name: Cert | Set ownership of the PKI directory to the sudo user
   block:
     - name: Cert | Change ownership of the PKI directory to the sudo user
