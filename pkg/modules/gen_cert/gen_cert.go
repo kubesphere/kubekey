@@ -375,13 +375,19 @@ func TryLoadCertChainFromDisk(rootCert string) ([]*x509.Certificate, error) {
 // Valid IP addresses are added to altNames.IPs, and valid DNS names (including wildcards) are added to altNames.DNSNames.
 // Invalid entries are logged as warnings.
 func appendSANsToAltNames(altNames *cgutilcert.AltNames, sans []string) cgutilcert.AltNames {
+	// Copy before appending so the caller provided baseline is never mutated.
+	alt := cgutilcert.AltNames{
+		DNSNames: append([]string(nil), altNames.DNSNames...),
+		IPs:      append([]net.IP(nil), altNames.IPs...),
+	}
+
 	for _, altname := range sans {
 		if ip := netutils.ParseIPSloppy(altname); ip != nil {
-			altNames.IPs = append(altNames.IPs, ip)
+			alt.IPs = append(alt.IPs, ip)
 		} else if len(validation.IsDNS1123Subdomain(altname)) == 0 {
-			altNames.DNSNames = append(altNames.DNSNames, altname)
+			alt.DNSNames = append(alt.DNSNames, altname)
 		} else if len(validation.IsWildcardDNS1123Subdomain(altname)) == 0 {
-			altNames.DNSNames = append(altNames.DNSNames, altname)
+			alt.DNSNames = append(alt.DNSNames, altname)
 		} else {
 			klog.V(4).Infof(
 				"[certificates] WARNING: Failed to add '%s' to the SAN list, as it is not a valid IP or RFC-1123-compliant DNS entry\n",
@@ -390,7 +396,7 @@ func appendSANsToAltNames(altNames *cgutilcert.AltNames, sans []string) cgutilce
 		}
 	}
 
-	return *altNames
+	return alt
 }
 
 // NewSelfSignedCACert creates a new self-signed CA certificate.
