@@ -27,6 +27,12 @@ services:
       - {{ .image_registry.https_port | default 443 }}:5000
 {{- end }}
 {{- $registryHost := .image_registry.auth.registry | splitList "/" | first | splitList ":" | first }}
+{{- /* extra_hosts accepts only one address per hostname: docker compose de-duplicates
+       entries by hostname and keeps the last one (docker/compose#3230, #12088). Only
+       docker compose v2.24.6 and later preserve duplicate hostnames -- older versions,
+       including the v2.20.3 kubekey installs, silently drop the IPv4 entry when the same
+       hostname is also mapped to IPv6. So prefer internal_ipv4 and fall back to
+       internal_ipv6 only for hosts that have no IPv4 address. */}}
 {{- if and ($registryHost | empty | not) ($registryHost | isIP | not) }}
     extra_hosts:
 {{- if .image_registry.ha_vip | empty | not }}
@@ -36,8 +42,7 @@ services:
 {{- $hostname := index $.hostvars . "hostname" }}
 {{- if (index $.hostvars . "internal_ipv4") | empty | not }}
       - "{{ $hostname }}:{{ index $.hostvars . "internal_ipv4" }}"
-{{- end }}
-{{- if (index $.hostvars . "internal_ipv6") | empty | not }}
+{{- else if (index $.hostvars . "internal_ipv6") | empty | not }}
       - "{{ $hostname }}:{{ index $.hostvars . "internal_ipv6" }}"
 {{- end }}
 {{- end }}
