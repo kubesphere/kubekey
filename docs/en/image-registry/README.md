@@ -147,7 +147,7 @@ Inventory field descriptions:
 | `spec.vars.image_registry.https_port` | Integer | No | Image registry HTTPS service port. Derived from `auth.registry` when `plain_http=false`, or `443` if no port is specified; empty when `plain_http=true` |
 | `spec.vars.image_registry.auth` | Object | No | Image registry authentication configuration |
 | `spec.vars.image_registry.auth.plain_http` | Boolean | No | Whether to use plain HTTP (no TLS). Defaults to `false` |
-| `spec.vars.image_registry.auth.registry` | String | No | Image registry access domain name, corresponding to the VIP domain name for external client access. Format `host:port/project`; the port is used to derive image registry listening ports. (The actually deployed Harbor uses inventory_hostname as the internal domain name) |
+| `spec.vars.image_registry.auth.registry` | String | No | Image registry access domain name, corresponding to the VIP domain name for external client access. Format `host:port/project`; the port is used to derive image registry listening ports. (The value is also used as Harbor's `hostname`, the single endpoint every instance advertises, and the token realm is derived from it; see "Token validation across instances" below) |
 
 > **Notes for HA configuration:**
 > - Multiple nodes must be set in the `image_registry` group for multi-instance deployment.
@@ -156,6 +156,51 @@ Inventory field descriptions:
 Execute the following command to create a high-availability Harbor cluster:
 ```shell
 ./kk init registry -i inventory.yaml 
+```
+
+#### Token validation across instances
+
+The registry authenticates with Bearer tokens, and issuing and validating them are two separate processes: `harbor-core` issues a token, `harbor-registry` validates it, and the two do not share a session. Every instance therefore has to hold the same signing material.
+
+| File | Purpose | Requirement |
+|------|---------|-------------|
+| `<data_volume>/secret/core/private_key.pem` | used by `harbor-core` to issue tokens | PEM private key, PKCS#1 or PKCS#8 |
+| `<data_volume>/secret/registry/root.crt` | used by `harbor-registry` to validate tokens, i.e. the `auth.token.rootcertbundle` of the registry configuration | PEM certificate, **only its public key is read** |
+| `<data_volume>/secret/keys/secretkey` | shared secret and CSRF key of core / jobservice | 16 random bytes |
+
+`<data_volume>` is the `data_volume` of `harbor.yml`, `/var/lib/harbor/data` by default.
+
+Harbor's `prepare` only creates a file when it is missing, and it creates it independently on every instance. By default an instance therefore only accepts the tokens it issued itself:
+
+- a request forwarded to another instance is rejected with `401`;
+- `kk init registry` fails while creating the projects with `HTTP 400 ... the registry is unhealthy`;
+- after a VIP failover, a token the client still holds and which has not expired is rejected by the instance that took the VIP over.
+
+kubekey generates the material once on the controller and distributes it to every instance. Generation follows the `IfNotPresent` policy and the copy only happens when the target file is missing, so an instance that is already serving requests is never re-keyed and a node added later uses the same material.
+
+| Generated on the controller | Distributed to the instance |
+|------|------|
+| `{{ .work_dir }}/pki/harbor-token.key` | `<data_volume>/secret/core/private_key.pem` (mode `600`) |
+| `{{ .work_dir }}/pki/harbor-token.crt` | `<data_volume>/secret/registry/root.crt` (mode `644`) |
+| `{{ .work_dir }}/pki/harbor-secretkey` | `<data_volume>/secret/keys/secretkey` (mode `600`) |
+
+> **Shape of the harbor-token certificate**: a self-signed certificate whose `Subject` and `Issuer` are both `O = kubekey, CN = harbor-token`, 4096 bit RSA, `Basic Constraints: critical, CA:TRUE`, without any SAN. Harbor only reads its public key to build the `kid` -> public key trust table: the issuer puts the `kid` into the token header, the validator looks the public key up by that `kid` and verifies the signature directly. Neither the certificate chain nor a hostname is verified, so the SAN / CN / CA attributes take no part in validation. The certificate that does need SANs is the other one, `image_registry`, which is the TLS server certificate of the registry.
+
+##### Verification
+
+```shell
+# 1. Compare the signing material of the instances: two identical lines mean the same material
+for h in <instance-a> <instance-b>; do
+  ssh $h "sudo openssl rsa -in <data_volume>/secret/core/private_key.pem -pubout | sha256sum; \
+          sudo openssl x509 -in <data_volume>/secret/registry/root.crt -pubkey -noout | sha256sum"
+done
+
+# 2. Take an anonymous token from instance A (<instance-a> has to resolve to instance A)
+TOKEN=$(curl -sk "https://<instance-a>/service/token?service=harbor-registry&scope=repository:library/<image>:pull" \
+  | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')
+# 3. Present the same token to the registry of instance B; 200 means the instances validate each other's tokens
+curl -sk -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer $TOKEN" \
+  "https://<instance-b>/v2/library/<image>/manifests/<tag>"
 ```
 
 ## Install Registry

@@ -147,7 +147,7 @@ Inventory 字段解释：
 | `spec.vars.image_registry.https_port` | Integer | 否 | 镜像仓库 HTTPS 服务端口。`plain_http=false` 时默认从 `auth.registry` 派生，未指定端口则为 `443`；`plain_http=true` 时为空 |
 | `spec.vars.image_registry.auth` | Object | 否 | 镜像仓库认证配置 |
 | `spec.vars.image_registry.auth.plain_http` | Boolean | 否 | 是否使用纯 HTTP（不启用 TLS），默认为 `false` |
-| `spec.vars.image_registry.auth.registry` | String | 否 | 镜像仓库访问域名，对应 VIP 的域名，供外部客户端访问使用。格式 `host:port/project`，端口会用于派生镜像仓库监听端口。（实际部署的 Harbor 以 inventory_hostname 作为内部域名）|
+| `spec.vars.image_registry.auth.registry` | String | 否 | 镜像仓库访问域名，对应 VIP 的域名，供外部客户端访问使用。格式 `host:port/project`，端口会用于派生镜像仓库监听端口。（该值同时用作 Harbor 的 `hostname`，即所有实例对外广告的统一 endpoint，token realm 也基于它生成，详见下方「多实例之间的 token 校验」）|
 
 > **高可用配置注意事项：**
 > - `image_registry` 组中需设置多个节点，用于实现多实例部署。
@@ -156,6 +156,51 @@ Inventory 字段解释：
 执行名称创建高可用harbor集群
 ```shell
 ./kk init registry -i inventory.yaml 
+```
+
+#### 多实例之间的 token 校验
+
+harbor 的 registry 使用 Bearer token 鉴权，签发与校验是两个独立进程：`harbor-core` 签发 token，`harbor-registry` 校验 token，两者之间不共享会话。因此每个实例都必须持有同一套签名材料。
+
+| 文件 | 作用 | 要求 |
+|------|------|------|
+| `<data_volume>/secret/core/private_key.pem` | `harbor-core` 用它签发 token | PEM 私钥，PKCS#1 或 PKCS#8 均可 |
+| `<data_volume>/secret/registry/root.crt` | `harbor-registry` 用它校验 token，对应 registry 配置中的 `auth.token.rootcertbundle` | PEM 证书，**只有公钥会被读取** |
+| `<data_volume>/secret/keys/secretkey` | core / jobservice 的共享密钥与 CSRF key | 16 字节随机串 |
+
+`<data_volume>` 即 `harbor.yml` 中的 `data_volume`，默认为 `/var/lib/harbor/data`。
+
+harbor 的 `prepare` 只在文件缺失时生成，且每个实例各自生成。默认情况下每个实例只接受自己签发的 token，于是：
+
+- 请求被转发到另一个实例时返回 `401`；
+- `kk init registry` 在创建仓库阶段报 `HTTP 400 ... the registry is unhealthy`；
+- VIP 漂移后，客户端手上尚未过期的 token 会被接管 VIP 的实例拒绝。
+
+kubekey 在控制节点生成一次，再分发给所有实例。生成遵循 `IfNotPresent` 策略，拷贝也只在目标文件缺失时才执行，因此已部署的实例不会被换钥，扩容的新节点会使用同一套材料。
+
+| 控制节点生成 | 分发到实例 |
+|--------------|------------|
+| `{{ .work_dir }}/pki/harbor-token.key` | `<data_volume>/secret/core/private_key.pem`（权限 `600`） |
+| `{{ .work_dir }}/pki/harbor-token.crt` | `<data_volume>/secret/registry/root.crt`（权限 `644`） |
+| `{{ .work_dir }}/pki/harbor-secretkey` | `<data_volume>/secret/keys/secretkey`（权限 `600`） |
+
+> **harbor-token 证书的形态**：自签证书，`Subject` 与 `Issuer` 均为 `O = kubekey, CN = harbor-token`，4096 位 RSA，`Basic Constraints: critical, CA:TRUE`，不含 SAN。harbor 只读取它的公钥来建立 `kid` → 公钥的信任表（签发端在 token 头里带上 `kid`，校验端按 `kid` 取出公钥后直接验签），既不校验证书链也不校验主机名，因此 SAN / CN / CA 这些属性都不参与校验。需要 SAN 的是另一张 `image_registry` 证书，即 registry 的 TLS 服务端证书。
+
+##### 验证
+
+```shell
+# 1. 比对各实例的签名材料是否一致：两行输出相同即为同一套材料
+for h in <instance-a> <instance-b>; do
+  ssh $h "sudo openssl rsa -in <data_volume>/secret/core/private_key.pem -pubout | sha256sum; \
+          sudo openssl x509 -in <data_volume>/secret/registry/root.crt -pubkey -noout | sha256sum"
+done
+
+# 2. 在实例 A 上取一个匿名 token（<instance-a> 需解析到实例 A）
+TOKEN=$(curl -sk "https://<instance-a>/service/token?service=harbor-registry&scope=repository:library/<image>:pull" \
+  | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')
+# 3. 用同一个 token 访问实例 B 的 registry，返回 200 表示实例间可以互相校验
+curl -sk -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer $TOKEN" \
+  "https://<instance-b>/v2/library/<image>/manifests/<tag>"
 ```
 
 ## 安装 registry
