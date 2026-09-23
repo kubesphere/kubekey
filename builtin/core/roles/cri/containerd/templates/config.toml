@@ -7,7 +7,7 @@
        which this role writes for every configured registry (see tasks/main.yaml). The
        credentials stay in registry.configs because containerd keeps honouring
        configs.<host>.auth when config_path is set. v1 nodes keep the mirrors/configs layout. */}}
-{{- $containerdV2 := or (.cri.containerd_version | default "" | regexMatch "^v?2\\.") (.containerd_install_version.stdout | default "" | regexMatch "containerd/v2") }}
+{{- $containerdV2 := or (.cri.containerd_version | default "" | trimPrefix "v" | hasPrefix "2.") (.containerd_install_version.stdout | default "" | regexMatch "containerd/v2") }}
 
 {{- $mirrors := dict }}
 {{- if not $containerdV2 }}

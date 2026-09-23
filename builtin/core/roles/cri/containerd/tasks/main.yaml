@@ -94,7 +94,7 @@
 # same registry is configured twice, which is the order they had when each of them wrote its
 # own file. The dictionary is turned into a list because a task cannot iterate a mapping.
 - name: Containerd | Write the registry configuration for containerd v2
-  when: or (.cri.containerd_version | default "" | regexMatch "^v?2\\.") (.containerd_install_version.stdout | default "" | regexMatch "containerd/v2")
+  when: or (.cri.containerd_version | default "" | trimPrefix "v" | hasPrefix "2.") (.containerd_install_version.stdout | default "" | regexMatch "containerd/v2")
   loop: >-
     {{- $hosts := dict -}}
     {{- /* cri.registry.mirrors: every mirror is tried before registry-1.docker.io. */ -}}
