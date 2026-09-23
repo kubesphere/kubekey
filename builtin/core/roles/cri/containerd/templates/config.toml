@@ -21,7 +21,7 @@
        switches to it on its own whenever registry.configs or another local-pull-only option is
        set, which is why a colon separated value can look like it works. Reported upstream as
        containerd#12808, fix proposed in containerd#12829 (still open). */}}
-{{- $containerdV2 := or (.cri.containerd_version | default "" | trimPrefix "v" | hasPrefix "2.") (.containerd_install_version.stdout | default "" | regexMatch "containerd/v2") }}
+{{- $containerdV2 := .cri.containerd_version | default "" | hasPrefix "v2." }}
 
 {{- $mirrors := dict }}
 {{- if not $containerdV2 }}
