@@ -6,7 +6,17 @@
        node has to read its registry settings from /etc/containerd/certs.d/<host>/hosts.toml,
        which this role writes for every configured registry (see tasks/main.yaml). The
        credentials stay in registry.configs because containerd keeps honouring
-       configs.<host>.auth when config_path is set. v1 nodes keep the mirrors/configs layout. */}}
+       configs.<host>.auth when config_path is set. v1 nodes keep the mirrors/configs layout.
+
+       config_path must stay a SINGLE directory. The CRI pull path that containerd v2 uses by
+       default is the transfer service, and it passes the whole config_path value to
+       config.HostDirFromRoot() without splitting it on the list separator
+       (core/transfer/registry/registry.go). A colon separated value such as
+       "/etc/containerd/certs.d:/etc/docker/certs.d" therefore resolves to a directory that
+       never exists, every hosts.toml below it is silently ignored, and the node falls back to
+       contacting the upstream registry directly. The alternative pull path
+       (use_local_image_pull = true) does split the value, which is why the difference is easy
+       to miss on the command line. */}}
 {{- $containerdV2 := or (.cri.containerd_version | default "" | trimPrefix "v" | hasPrefix "2.") (.containerd_install_version.stdout | default "" | regexMatch "containerd/v2") }}
 
 {{- $mirrors := dict }}
@@ -69,7 +79,7 @@
 
 {{- $cri := dict "sandbox_image" (printf "%s/%s:%s" .kubernetes.sandbox_image.registry .kubernetes.sandbox_image.repository .kubernetes.sandbox_image.tag) }}
 {{- if $containerdV2 }}
-{{- $registry := dict "config_path" "/etc/containerd/certs.d:/etc/docker/certs.d" }}
+{{- $registry := dict "config_path" "/etc/containerd/certs.d" }}
 {{- if $configs }}{{- $_ := set $registry "configs" $configs }}{{- end }}
 {{- $_ := set $cri "registry" $registry }}
 {{- else if or $mirrors $configs }}
