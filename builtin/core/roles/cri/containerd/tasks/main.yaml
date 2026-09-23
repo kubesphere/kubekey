@@ -100,8 +100,18 @@
 # that templates/hosts.toml renders every hosts.toml of the node. Later sources win when the
 # same registry is configured twice, which is the order they had when each of them wrote its
 # own file. The dictionary is turned into a list because a task cannot iterate a mapping.
+# The v2 layout is written whenever containerd is (re)configured, by the same condition the
+# `Configure containerd` block above uses, so that config.toml and the hosts.toml files it points
+# at are never out of step: a re-run that leaves config.toml alone leaves these files alone too.
+#
+# hosts.toml is always rendered by kk and overwrites whatever the node had before, regardless of
+# `config_policy`. Key-by-key merging is not an option here: a hosts.toml holds one registry and
+# spells its mirrors as [host.<url>] tables, so the two sets would have to be interleaved into a
+# single file. To keep this simple, kk owns the hosts.toml files outright.
 - name: Containerd | Write the registry configuration for containerd v2
-  when: .cri.containerd_version | default "" | hasPrefix "v2."
+  when:
+    - .cri.containerd_version | default "" | hasPrefix "v2."
+    - or (.containerd_install_version.error | empty | not) (.containerd_install_version.stdout | contains (printf " %s " .cri.containerd_version) | not) (.cri.containerd.config_policy | empty | not)
   loop: >-
     {{- $hosts := dict -}}
     {{- /* cri.registry.mirrors: every mirror is tried before registry-1.docker.io. */ -}}

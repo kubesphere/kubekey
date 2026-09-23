@@ -99,6 +99,23 @@
   {{- $err := .containerd_config_existing.error | default "" }}
   {{- if and ($err | empty) ($existing_stdout | empty | not) }}
     {{- $existing := $existing_stdout | fromTOML }}
+    {{- if $containerdV2 }}
+    {{- /* A node that ran v1 keeps registry.mirrors and registry.configs.<host>.tls in its file.
+           containerd v2 refuses such a file as soon as config_path is set ("`mirrors` cannot be
+           set when `config_path` is provided", internal/cri/config/config.go) and no longer knows
+           the `tls` field at all, so the CRI image plugin does not load and the node cannot create
+           containers. On a v2 node this role writes the registry section itself instead: the
+           mirrors, the insecure registries and the TLS material live in
+           /etc/containerd/certs.d/<host>/hosts.toml, and the credentials are rendered below.
+           Merging the old section in would break containerd and duplicate what hosts.toml holds,
+           so it is dropped before the merge. Everything outside the registry section is still
+           merged, with the keys already on the node taking precedence. */}}
+    {{- $existing_plugins := dig "plugins" dict $existing }}
+    {{- $existing_cri := dig "io.containerd.grpc.v1.cri" dict $existing_plugins }}
+    {{- $_ := unset $existing_cri "registry" }}
+    {{- $_ := set $existing_plugins "io.containerd.grpc.v1.cri" $existing_cri }}
+    {{- $_ := set $existing "plugins" $existing_plugins }}
+    {{- end }}
     {{- $config = mergeOverwrite $config $existing }}
   {{- end }}
 {{- end }}
