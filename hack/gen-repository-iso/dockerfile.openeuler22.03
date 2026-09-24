@@ -1,0 +1,45 @@
+FROM openeuler/openeuler:22.03-lts as openeuler2203
+
+ARG TARGETARCH
+ARG DIR=openeuler-22.03-${TARGETARCH}-rpms
+ARG PKGS=".common[],.rpms[]"
+ARG BUILD_TOOLS="createrepo_c genisoimage dnf-plugins-core"
+
+ENV LANG=en_US.UTF-8
+ENV LC_ALL=en_US.UTF-8
+
+RUN rm -f /etc/yum.repos.d/*.repo \
+    && if [ "$TARGETARCH" = "amd64" ]; then \
+       BASEOS="https://repo.openeuler.org/openEuler-22.03-LTS/OS/x86_64/"; \
+    else \
+       BASEOS="https://repo.openeuler.org/openEuler-22.03-LTS/OS/aarch64/"; \
+    fi \
+    && echo "[OS]" > /etc/yum.repos.d/openeuler.repo \
+    && echo "name=openEuler 22.03 LTS OS" >> /etc/yum.repos.d/openeuler.repo \
+    && echo "baseurl=$BASEOS" >> /etc/yum.repos.d/openeuler.repo \
+    && echo "enabled=1" >> /etc/yum.repos.d/openeuler.repo \
+    && echo "gpgcheck=0" >> /etc/yum.repos.d/openeuler.repo \
+    && dnf --disablerepo="*" --enablerepo="OS" clean all \
+    && dnf --disablerepo="*" --enablerepo="OS" makecache
+
+RUN dnf install -y --setopt=tsflags=nodocs --disablerepo="*" --enablerepo="OS" $BUILD_TOOLS \
+    && dnf clean all
+
+WORKDIR /package
+
+COPY packages.yaml .
+COPY --from=mikefarah/yq:4.11.1 /usr/bin/yq /usr/bin/yq
+
+RUN mkdir -p ${DIR} \
+    && yq eval "${PKGS}" packages.yaml | while read pkg; do \
+         if [ -n "$pkg" ]; then \
+             echo "Downloading $pkg..."; \
+             dnf install -y --downloadonly --downloaddir=${DIR} --disablerepo="*" --enablerepo="OS" $pkg || echo "not found: $pkg"; \
+         fi; \
+    done
+
+RUN createrepo_c ${DIR} \
+    && genisoimage -r -o ${DIR}.iso ${DIR}
+
+FROM scratch
+COPY --from=openeuler2203 /package/*.iso /
