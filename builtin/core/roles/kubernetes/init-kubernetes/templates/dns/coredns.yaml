@@ -1,3 +1,43 @@
+{{- $autoHosts := list -}}
+{{- $registryHost := .image_registry.auth.registry | splitList "/" | first | splitList ":" | first -}}
+{{- if and ($registryHost | empty | not) ($registryHost | isIP | not) -}}
+  {{- if .image_registry.ha_vip | empty | not -}}
+    {{- $autoHosts = append $autoHosts (printf "%s %s" .image_registry.ha_vip $registryHost) -}}
+  {{- else if or (.image_registry.type | eq "harbor") (.image_registry.type | eq "docker-registry") -}}
+    {{- if .groups.image_registry | empty | not -}}
+      {{- if (index .hostvars (.groups.image_registry | first) "internal_ipv4") | empty | not -}}
+        {{- $autoHosts = append $autoHosts (printf "%s %s" (index .hostvars (.groups.image_registry | first) "internal_ipv4") $registryHost) -}}
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- range .groups.image_registry | default list -}}
+  {{- $hostname := index $.hostvars . "hostname" -}}
+  {{- if (index $.hostvars . "internal_ipv4") | empty | not -}}
+    {{- $autoHosts = append $autoHosts (printf "%s %s" (index $.hostvars . "internal_ipv4") $hostname) -}}
+  {{- end -}}
+  {{- if (index $.hostvars . "internal_ipv6") | empty | not -}}
+    {{- $autoHosts = append $autoHosts (printf "%s %s" (index $.hostvars . "internal_ipv6") $hostname) -}}
+  {{- end -}}
+{{- end -}}
+{{- $nfsServer := .storage_class.nfs.server | default "" -}}
+{{- if and ($nfsServer | empty | not) ($nfsServer | isIP | not) -}}
+  {{- if .groups.nfs | empty | not -}}
+    {{- if (index .hostvars (.groups.nfs | first) "internal_ipv4") | empty | not -}}
+      {{- $autoHosts = append $autoHosts (printf "%s %s" (index .hostvars (.groups.nfs | first) "internal_ipv4") $nfsServer) -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- range .groups.nfs | default list -}}
+  {{- $hostname := index $.hostvars . "hostname" -}}
+  {{- if (index $.hostvars . "internal_ipv4") | empty | not -}}
+    {{- $autoHosts = append $autoHosts (printf "%s %s" (index $.hostvars . "internal_ipv4") $hostname) -}}
+  {{- end -}}
+  {{- if (index $.hostvars . "internal_ipv6") | empty | not -}}
+    {{- $autoHosts = append $autoHosts (printf "%s %s" (index $.hostvars . "internal_ipv6") $hostname) -}}
+  {{- end -}}
+{{- end -}}
+{{- $allHosts := concat (.dns.coredns.dns_etc_hosts | default list) $autoHosts -}}
 ---
 apiVersion: v1
 kind: Service
@@ -99,17 +139,13 @@ data:
       }
     {{- end }}
 
-    {{- if $.dns.dns_etc_hosts | empty | not }}
-      hosts /etc/coredns/hosts {
+    {{- if $allHosts | empty | not }}
+      hosts {
+      {{- range $allHosts }}
+        {{ . }}
+      {{- end }}
         fallthrough
       }
     {{- end }}
     }
   {{- end }}
-
-{{- if .dns.coredns.dns_etc_hosts | empty | not }}
-  hosts: |
-  {{- range .dns.coredns.dns_etc_hosts }}
-    {{ . }}
-  {{- end }}
-{{- end }}

@@ -91,6 +91,11 @@
   command: |
     cd /opt/harbor/{{ .image_registry.harbor_version }}/harbor && /bin/bash install.sh
 
+# The registry address and the harbor node hostnames must be resolvable inside
+# the harbor containers. The task lives in a separate file because a
+# configuration update has to apply it as well (see tasks/main.yaml).
+- include_tasks: inject-hosts.yaml
+
 - name: Harbor | Disable HTTP port in docker-compose when http_port is empty
   when:
     - .image_registry.http_port | empty

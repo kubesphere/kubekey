@@ -62,6 +62,19 @@
     {{ index $.hostvars . "internal_ipv6" }} {{ index $.hostvars . "hostname" }}
       {{- end }}
     {{- end }}
+    # kubekey nfs server control_plane_endpoint BEGIN
+    {{- $nfsServer := .storage_class.nfs.server | default "" }}
+    {{- if and ($nfsServer | empty | not) ($nfsServer | isIP | not) }}
+      {{- if .groups.nfs | empty | not }}
+        {{- if (index .hostvars (.groups.nfs | first) "internal_ipv4") | empty | not }}
+    {{ index .hostvars (.groups.nfs | first) "internal_ipv4" }} {{ $nfsServer }}
+        {{- end }}
+        {{- if (index .hostvars (.groups.nfs | first) "internal_ipv6") | empty | not }}
+    {{ index .hostvars (.groups.nfs | first) "internal_ipv6" }} {{ $nfsServer }}
+        {{- end }}
+      {{- end }}
+    {{- end }}
+    # kubekey nfs server control_plane_endpoint END
     # kubekey hosts END
     EOF
 

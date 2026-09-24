@@ -15,13 +15,20 @@
         dest: >-
           /opt/harbor/{{ .image_registry.harbor_version }}/harbor/harbor.yml
 
-    - name: Harbor | Apply Harbor configuration and restart service
+    - name: Harbor | Apply Harbor configuration
       command: |
         cd /opt/harbor/{{ .image_registry.harbor_version }}/harbor && /bin/bash prepare
         {{ if .image_registry.http_port | empty }}
         sed -i -E '/^[[:space:]]*- 80:8080$/d' /opt/harbor/{{ .image_registry.harbor_version }}/harbor/docker-compose.yml
         {{ end }}
-        systemctl restart harbor.service
+
+    # "prepare" regenerates docker-compose.yml from its template, which drops the
+    # host mappings that the initial install injected, so they have to be
+    # re-applied before the service is restarted.
+    - include_tasks: inject-hosts.yaml
+
+    - name: Harbor | Restart Harbor service
+      command: systemctl restart harbor.service
 
 - name : Harbor | Check harbor api health
   command: |

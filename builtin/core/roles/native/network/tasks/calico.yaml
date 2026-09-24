@@ -48,7 +48,10 @@
     dest: /etc/systemd/network/20-calico.network
 
 # systemd-networkd does not re-read .network files at runtime automatically.
-# Reload it so the config takes effect now.
+# Reload it so the config takes effect now. Use reload-or-restart because
+# systemd-networkd only supports reload since systemd v246 (e.g. Ubuntu 20.04
+# ships systemd 245, where `systemctl reload systemd-networkd` fails with
+# "Job type reload is not applicable for unit systemd-networkd.service").
 - name: Network | Reload systemd-networkd to apply the configuration
   when: .systemd_networkd_ActiveState.stdout | eq "active"
-  command: systemctl reload systemd-networkd
+  command: systemctl reload-or-restart systemd-networkd

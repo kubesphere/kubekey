@@ -1,0 +1,41 @@
+---
+# In HA mode the registry address must resolve inside the harbor containers.
+# Docker's embedded DNS does not read the host's /etc/hosts, so inject the
+# registry address -> ha_vip mapping and every harbor node's hostname -> IP
+# mapping into every service of docker-compose.yml, mirroring the image registry
+# hosts block in init-os.sh. harbor-registries.sh registers the peer harbors as
+# https://<peer hostname>, so the containers have to resolve those hostnames too.
+#
+# Only one address may be injected per hostname: docker compose de-duplicates
+# extra_hosts entries by hostname and keeps the last one (docker/compose#3230,
+# #12088). This was only fixed in docker compose v2.24.6 -- v2.20.3, which
+# kubekey currently installs, silently drops the IPv4 entry when the same
+# hostname is also mapped to an IPv6 address. The harbor bridge network is
+# IPv4-only, so a container left with just the IPv6 mapping cannot reach its
+# peers ("network is unreachable" -> HTTP 500 while creating the replication
+# registries). Therefore prefer internal_ipv4 and fall back to internal_ipv6
+# only for hosts that have no IPv4 address at all.
+#
+# Include this file right after docker-compose.yml has been generated, both on
+# the initial install (install.yaml) and on every configuration update
+# (main.yaml): "prepare" regenerates docker-compose.yml from its template and
+# would drop the injected entries again.
+- name: Harbor | Inject registry address resolution into docker-compose for HA
+  when:
+    - .image_registry.ha_vip | empty | not
+    - .groups.image_registry | len | lt 1
+    - .image_registry.auth.registry | splitList "/" | first | splitList ":" | first | empty | not
+    - .image_registry.auth.registry | splitList "/" | first | splitList ":" | first | isIP | not
+  command: |
+    {{- $registryHost := .image_registry.auth.registry | splitList "/" | first | splitList ":" | first }}
+    {{- $entries := list (printf "%s:%s" $registryHost .image_registry.ha_vip) }}
+    {{- range .groups.image_registry }}
+      {{- $hostname := index $.hostvars . "hostname" }}
+      {{- if (index $.hostvars . "internal_ipv4") | empty | not }}
+        {{- $entries = append $entries (printf "%s:%s" $hostname (index $.hostvars . "internal_ipv4")) }}
+      {{- else if (index $.hostvars . "internal_ipv6") | empty | not }}
+        {{- $entries = append $entries (printf "%s:%s" $hostname (index $.hostvars . "internal_ipv6")) }}
+      {{- end }}
+    {{- end }}
+    sed -i 's/^    networks:/    extra_hosts:\n{{- range $entries }}      - "{{ . }}"\n{{- end }}    networks:/' /opt/harbor/{{ .image_registry.harbor_version }}/harbor/docker-compose.yml
+    grep -q "extra_hosts:" /opt/harbor/{{ .image_registry.harbor_version }}/harbor/docker-compose.yml || { echo "ERROR: failed to inject extra_hosts into /opt/harbor/{{ .image_registry.harbor_version }}/harbor/docker-compose.yml"; exit 1; }
