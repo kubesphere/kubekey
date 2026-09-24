@@ -1,12 +1,36 @@
 {{- $config := .cri.containerd.config }}
 {{- $_ := set $config "root" (.cri.containerd.data_root | default "/var/lib/containerd") }}
 
+{{- /* containerd v2 dropped the "tls" field of registry.configs.<host> (it is rejected as an
+       unknown key) and refuses to combine registry.mirrors with registry.config_path, so a v2
+       node has to read its registry settings from /etc/containerd/certs.d/<host>/hosts.toml,
+       which this role writes for every configured registry (see tasks/main.yaml). The
+       credentials stay in registry.configs because containerd keeps honouring
+       configs.<host>.auth when config_path is set. v1 nodes keep the mirrors/configs layout.
+
+       config_path must stay a SINGLE directory. The CRI pull path that containerd v2 uses by
+       default is the transfer service: it hands the whole config_path value to
+       config.HostDirFromRoot() without splitting it on the list separator
+       (internal/cri/server/images/image_pull.go passes it to registry.WithHostDir(), which
+       reaches core/transfer/registry/registry.go). A colon separated value such as
+       "/etc/containerd/certs.d:/etc/docker/certs.d" therefore resolves to a directory that
+       never exists, and ConfigureHosts (core/remotes/docker/config/hosts.go) reads the resulting
+       ErrNotFound as "no host configuration": it silently degrades to a single default host and
+       contacts the upstream registry directly, without logging any error or warning. The
+       alternative pull path (use_local_image_pull = true) does call filepath.SplitList, and CRI
+       switches to it on its own whenever registry.configs or another local-pull-only option is
+       set, which is why a colon separated value can look like it works. Reported upstream as
+       containerd#12808, fix proposed in containerd#12829 (still open). */}}
+{{- $containerdV2 := .cri.containerd_version | default "" | hasPrefix "v2." }}
+
 {{- $mirrors := dict }}
+{{- if not $containerdV2 }}
 {{- if .cri.registry.mirrors | empty | not }}
 {{- $_ := set $mirrors "docker.io" (dict "endpoint" .cri.registry.mirrors) }}
 {{- end }}
 {{- range .cri.registry.insecure_registries }}
 {{- $_ := set $mirrors . (dict "endpoint" (list (printf "http://%s" .))) }}
+{{- end }}
 {{- end }}
 
 {{- $configs := dict }}
@@ -16,6 +40,9 @@
   {{- if hasKey .image_registry.auth "skip_tls_verify" }}
   {{- $skip_tls = .image_registry.auth.skip_tls_verify | toBool }}
   {{- end }}
+  {{- $auth := dict "username" .image_registry.auth.username "password" .image_registry.auth.password }}
+  {{- $registryConfig := dict "auth" $auth }}
+  {{- if not $containerdV2 }}
   {{- $tls := dict "insecure_skip_verify" $skip_tls }}
   {{- if printf "/etc/containerd/certs.d/%s/ca.crt" $registry_parts | fileExists }}
   {{- $_ := set $tls "ca_file" (printf "/etc/containerd/certs.d/%s/ca.crt" $registry_parts) }}
@@ -26,8 +53,9 @@
   {{- if printf "/etc/containerd/certs.d/%s/client.key" $registry_parts | fileExists }}
   {{- $_ := set $tls "key_file" (printf "/etc/containerd/certs.d/%s/client.key" $registry_parts) }}
   {{- end }}
-  {{- $auth := dict "username" .image_registry.auth.username "password" .image_registry.auth.password }}
-  {{- $_ := set $configs $registry_parts (dict "auth" $auth "tls" $tls) }}
+  {{- $_ := set $registryConfig "tls" $tls }}
+  {{- end }}
+  {{- $_ := set $configs $registry_parts $registryConfig }}
 {{- end }}
 {{- range .cri.registry.auths | default list }}
   {{- $parts := .registry | splitList "/" | first }}
@@ -35,6 +63,9 @@
   {{- if hasKey . "skip_tls_verify" }}
   {{- $skip_tls = .skip_tls_verify | toBool }}
   {{- end }}
+  {{- $auth := dict "username" .username "password" .password }}
+  {{- $registryConfig := dict "auth" $auth }}
+  {{- if not $containerdV2 }}
   {{- $tls := dict "insecure_skip_verify" $skip_tls }}
   {{- if .ca_file }}
   {{- $_ := set $tls "ca_file" .ca_file }}
@@ -45,12 +76,17 @@
   {{- if .key_file }}
   {{- $_ := set $tls "key_file" .key_file }}
   {{- end }}
-  {{- $auth := dict "username" .username "password" .password }}
-  {{- $_ := set $configs $parts (dict "auth" $auth "tls" $tls) }}
+  {{- $_ := set $registryConfig "tls" $tls }}
+  {{- end }}
+  {{- $_ := set $configs $parts $registryConfig }}
 {{- end }}
 
 {{- $cri := dict "sandbox_image" (printf "%s/%s:%s" .kubernetes.sandbox_image.registry .kubernetes.sandbox_image.repository .kubernetes.sandbox_image.tag) }}
-{{- if or $mirrors $configs }}
+{{- if $containerdV2 }}
+{{- $registry := dict "config_path" "/etc/containerd/certs.d" }}
+{{- if $configs }}{{- $_ := set $registry "configs" $configs }}{{- end }}
+{{- $_ := set $cri "registry" $registry }}
+{{- else if or $mirrors $configs }}
 {{- $registry := dict }}
 {{- if $mirrors }}{{- $_ := set $registry "mirrors" $mirrors }}{{- end }}
 {{- if $configs }}{{- $_ := set $registry "configs" $configs }}{{- end }}
@@ -63,6 +99,23 @@
   {{- $err := .containerd_config_existing.error | default "" }}
   {{- if and ($err | empty) ($existing_stdout | empty | not) }}
     {{- $existing := $existing_stdout | fromTOML }}
+    {{- if $containerdV2 }}
+    {{- /* A node that ran v1 keeps registry.mirrors and registry.configs.<host>.tls in its file.
+           containerd v2 refuses such a file as soon as config_path is set ("`mirrors` cannot be
+           set when `config_path` is provided", internal/cri/config/config.go) and no longer knows
+           the `tls` field at all, so the CRI image plugin does not load and the node cannot create
+           containers. On a v2 node this role writes the registry section itself instead: the
+           mirrors, the insecure registries and the TLS material live in
+           /etc/containerd/certs.d/<host>/hosts.toml, and the credentials are rendered below.
+           Merging the old section in would break containerd and duplicate what hosts.toml holds,
+           so it is dropped before the merge. Everything outside the registry section is still
+           merged, with the keys already on the node taking precedence. */}}
+    {{- $existing_plugins := dig "plugins" dict $existing }}
+    {{- $existing_cri := dig "io.containerd.grpc.v1.cri" dict $existing_plugins }}
+    {{- $_ := unset $existing_cri "registry" }}
+    {{- $_ := set $existing_plugins "io.containerd.grpc.v1.cri" $existing_cri }}
+    {{- $_ := set $existing "plugins" $existing_plugins }}
+    {{- end }}
     {{- $config = mergeOverwrite $config $existing }}
   {{- end }}
 {{- end }}

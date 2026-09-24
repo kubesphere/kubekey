@@ -47,7 +47,10 @@
 - name: Containerd | Synchronize image registry TLS certificates to the remote node
   block:
     - name: Containerd | Copy image registry CA certificate to the remote node
-      when: .image_registry.auth.ca_file | fileExists
+      when:
+      - .image_registry.auth.registry | empty | not
+      - .image_registry.auth.registry | splitList "/" | first | ne "hub.kubesphere.com.cn"
+      - .image_registry.auth.ca_file | fileExists
       copy:
         src: >-
           {{ .image_registry.auth.ca_file }}
@@ -55,6 +58,8 @@
           /etc/containerd/certs.d/{{ .image_registry.auth.registry | splitList "/" | first }}/ca.crt
     - name: Containerd | Copy image registry client certificate to the remote node
       when:
+      - .image_registry.auth.registry | empty | not
+      - .image_registry.auth.registry | splitList "/" | first | ne "hub.kubesphere.com.cn"
       - .image_registry.auth.cert_file | fileExists
       copy:
         src: >-
@@ -63,6 +68,8 @@
           /etc/containerd/certs.d/{{ .image_registry.auth.registry | splitList "/" | first }}/client.crt
     - name: Containerd | Copy image registry client key to the remote node
       when:
+      - .image_registry.auth.registry | empty | not
+      - .image_registry.auth.registry | splitList "/" | first | ne "hub.kubesphere.com.cn"
       - .image_registry.auth.key_file | fileExists
       copy:
         src: >-
@@ -82,6 +89,82 @@
       template:
         src: config.toml
         dest: /etc/containerd/config.toml
+
+# containerd v2 reads the registry settings from /etc/containerd/certs.d/<host>/hosts.toml,
+# because it dropped registry.configs.<host>.tls and refuses to combine registry.mirrors with
+# registry.config_path (see templates/config.toml). The mirrors, the insecure registries and
+# the TLS material are therefore written there as well. A v1 node keeps using the
+# configuration generated above and ignores these files.
+#
+# The four places a registry can be configured in are merged into one item per registry, so
+# that templates/hosts.toml renders every hosts.toml of the node. Later sources win when the
+# same registry is configured twice, which is the order they had when each of them wrote its
+# own file. The dictionary is turned into a list because a task cannot iterate a mapping.
+# The v2 layout is written whenever containerd is (re)configured, by the same condition the
+# `Configure containerd` block above uses, so that config.toml and the hosts.toml files it points
+# at are never out of step: a re-run that leaves config.toml alone leaves these files alone too.
+#
+# hosts.toml is always rendered by kk and overwrites whatever the node had before, regardless of
+# `config_policy`. Key-by-key merging is not an option here: a hosts.toml holds one registry and
+# spells its mirrors as [host.<url>] tables, so the two sets would have to be interleaved into a
+# single file. To keep this simple, kk owns the hosts.toml files outright.
+- name: Containerd | Write the registry configuration for containerd v2
+  when:
+    - .cri.containerd_version | default "" | hasPrefix "v2."
+    - or (.containerd_install_version.error | empty | not) (.containerd_install_version.stdout | contains (printf " %s " .cri.containerd_version) | not) (.cri.containerd.config_policy | empty | not)
+  loop: >-
+    {{- $hosts := dict -}}
+    {{- /* cri.registry.mirrors: every mirror is tried before registry-1.docker.io. */ -}}
+    {{- if .cri.registry.mirrors | empty | not -}}
+    {{- $_ := set $hosts "docker.io" (dict "server" "https://registry-1.docker.io" "mirrors" .cri.registry.mirrors) -}}
+    {{- end -}}
+    {{- /* cri.registry.insecure_registries: these endpoints serve no TLS. */ -}}
+    {{- $insecureScheme := "http" -}}
+    {{- range .cri.registry.insecure_registries -}}
+    {{- $_ := set $hosts . (dict "server" (printf "%s://%s" $insecureScheme .) "skip_verify" true) -}}
+    {{- end -}}
+    {{- /* image_registry: the certificate and key are taken from the registry directory. */ -}}
+    {{- $registryHost := .image_registry.auth.registry | splitList "/" | first -}}
+    {{- if and ($registryHost | empty | not) (ne $registryHost "hub.kubesphere.com.cn") -}}
+    {{- $skipTLS := true -}}
+    {{- if hasKey .image_registry.auth "skip_tls_verify" -}}
+    {{- $skipTLS = .image_registry.auth.skip_tls_verify | toBool -}}
+    {{- end -}}
+    {{- $cfg := dict "server" (printf "%s://%s" (.image_registry.auth.plain_http | default false | ternary "http" "https") $registryHost) "skip_verify" $skipTLS -}}
+    {{- if .image_registry.auth.ca_file | default "" | fileExists -}}
+    {{- $_ := set $cfg "ca" (printf "/etc/containerd/certs.d/%s/ca.crt" $registryHost) -}}
+    {{- end -}}
+    {{- if and (.image_registry.auth.cert_file | default "" | fileExists) (.image_registry.auth.key_file | default "" | fileExists) -}}
+    {{- $_ := set $cfg "client_cert" (printf "/etc/containerd/certs.d/%s/client.crt" $registryHost) -}}
+    {{- $_ := set $cfg "client_key" (printf "/etc/containerd/certs.d/%s/client.key" $registryHost) -}}
+    {{- end -}}
+    {{- $_ := set $hosts $registryHost $cfg -}}
+    {{- end -}}
+    {{- /* cri.registry.auths: the file paths of the entry are reused as they are. */ -}}
+    {{- range .cri.registry.auths | default list -}}
+    {{- $skipTLS := true -}}
+    {{- if hasKey . "skip_tls_verify" -}}
+    {{- $skipTLS = .skip_tls_verify | toBool -}}
+    {{- end -}}
+    {{- $cfg := dict "server" (printf "https://%s" (.registry | splitList "/" | first)) "skip_verify" $skipTLS -}}
+    {{- if .ca_file -}}
+    {{- $_ := set $cfg "ca" .ca_file -}}
+    {{- end -}}
+    {{- if .cert_file -}}
+    {{- $_ := set $cfg "client_cert" .cert_file -}}
+    {{- $_ := set $cfg "client_key" (.key_file | default .cert_file) -}}
+    {{- end -}}
+    {{- $_ := set $hosts (.registry | splitList "/" | first) $cfg -}}
+    {{- end -}}
+    {{- /* leave the dictionary key with the item, it is the destination directory. */ -}}
+    {{- range $host, $cfg := $hosts -}}
+    {{- $_ := set $cfg "host" $host -}}
+    {{- end -}}
+    {{- $hosts | values | toJson -}}
+  template:
+    src: hosts.toml
+    dest: /etc/containerd/certs.d/{{ .item.host }}/hosts.toml
+
 - name: Containerd | Deploy the containerd systemd service file
   when: or (.containerd_install_version.error | empty | not) (.containerd_install_version.stdout | contains (printf " %s " .cri.containerd_version) | not) (.cri.containerd.config_policy | empty | not)
   copy:
