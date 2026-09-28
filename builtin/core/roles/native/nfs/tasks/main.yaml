@@ -10,7 +10,11 @@
     if [ ! -d {{ .item }} ]; then
       mkdir -p {{ .item }}
       chmod -R 0755 {{ .item }}
+      {{- if .os.release.ID_LIKE | eq "debian" }}
+      chown nobody:nogroup {{ .item }}
+      {{- else }}
       chown nobody:nobody {{ .item }}
+      {{- end }}
     fi
 
 - name: NFS | Export share directories and start NFS server service
