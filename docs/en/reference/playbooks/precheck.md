@@ -18,6 +18,17 @@
      - **NFS check**: NFS server node uniqueness.
      - **Image registry check**: whether required software (Docker, Docker Compose) is configured.
 
+## Filtering by category
+
+Precheck supports filtering checks by category (tag), so you can run or skip specific categories:
+
+- **Whitelist (run only the listed categories)**: `kk precheck --tags cri,os` runs only the container-runtime (cri) and OS (os) checks; all other categories are skipped. Positional arguments work too: `kk precheck cri os`.
+- **Blacklist (skip the listed categories)**: `kk precheck --skip-tags cri` runs every category except the container runtime. `--skip-tags` is the recommended way to "turn off one category while keeping the rest".
+
+When no filter is given, `kk precheck` runs all categories. Roles tagged `always` (e.g. `native/root`, `defaults`) always execute regardless of filtering.
+
+Available category tags: `artifact`, `cri`, `cni`, `storageclass`, `os`, `network`, `storage`, `kubernetes`, `etcd`, `nfs`.
+
 ## Notes
 
 - If any check fails, the playbook will stop execution and return the corresponding error message.
