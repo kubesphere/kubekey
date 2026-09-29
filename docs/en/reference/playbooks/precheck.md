@@ -10,11 +10,11 @@
 2. **Load Default Variables and Checks**
    - Load the `defaults` role on all nodes (tag: `always`).
    - Execute the `precheck` role to complete the following sub-item checks:
-     - **OS check**: hostname compliance, supported distributions, system architecture, memory, kernel version.
+     - **OS check**: hostname compliance, supported distributions, system architecture, memory, kernel version, and whether the CPU provides the x86-64-v2 microarchitecture level that Calico requires.
      - **Kubernetes check**: IP address configuration, KubeVIP validity, Kubernetes version compatibility, installed Kubernetes version match.
      - **Network check**: network interfaces, CIDR format, dual-stack support, network plugin validity, available address space.
      - **etcd check**: deployment type validation, disk IO performance, installed etcd detection.
-     - **Container runtime check**: container manager support, containerd minimum version.
+     - **Container runtime check**: container manager support, containerd minimum version, containerd v2 compatibility with the node glibc and kernel (nodes with glibc older than 2.35 must set `cri.containerd.static_binary=true`), runc compatibility with the kernel (runc 1.3.6 and later mask paths with a `nr_blocks=1,nr_inodes=1` tmpfs, which requires kernel 5.15 or later).
      - **NFS check**: NFS server node uniqueness.
      - **Image registry check**: whether required software (Docker, Docker Compose) is configured.
 
