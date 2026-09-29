@@ -84,6 +84,10 @@ type UpgradeClusterOptions struct {
 	// (e.g. "etcd"). It is preset by the top-level `kk upgrade <component>` subcommands
 	// and must NOT be set together with a regular `kk upgrade cluster` invocation.
 	OnlyComponent string
+	// Tags is the tags of playbook which to execute (whitelist).
+	Tags []string
+	// SkipTags is the tags of playbook which skip execute (blacklist).
+	SkipTags []string
 }
 
 // Flags returns the flag sets for UpgradeClusterOptions
@@ -93,6 +97,13 @@ func (o *UpgradeClusterOptions) Flags() cliflag.NamedFlagSets {
 	// Add a flag for specifying the target Kubernetes version
 	kfs.StringVar(&o.Kubernetes, "with-kubernetes", o.Kubernetes, "Specify the target version of kubernetes to upgrade to. If not set, the version from config will be used.")
 	kfs.BoolVar(&o.UpgradeAllComponents, "all", o.UpgradeAllComponents, "Upgrade all related components, including etcd, cni, cri and storage_class. If not set, only kubelet/kubeadm will be upgraded (unless individual components are enabled via --set).")
+
+	// The precheck role is embedded in the upgrade playbook and its sub-roles are tagged by
+	// category. --tags/--skip-tags filter precheck the same way as `kk precheck`. On this full-flow
+	// command --tags is a whitelist over the whole playbook, so prefer --skip-tags to disable one.
+	tfs := fss.FlagSet("tags")
+	tfs.StringArrayVar(&o.Tags, "tags", o.Tags, "the tags of playbook which to execute (whitelist). e.g. --tags cri,os. NOTE: for upgrade this filters the whole playbook, so use --skip-tags to disable one precheck category.")
+	tfs.StringArrayVar(&o.SkipTags, "skip-tags", o.SkipTags, "the tags of playbook which skip execute (blacklist). e.g. --skip-tags cri")
 
 	return fss
 }
@@ -119,6 +130,8 @@ func (o *UpgradeClusterOptions) Complete(cmd *cobra.Command, args []string) (*kk
 	// Set playbook specification
 	playbook.Spec = kkcorev1.PlaybookSpec{
 		Playbook: o.Playbook,
+		Tags:     o.Tags,
+		SkipTags: o.SkipTags,
 	}
 
 	// Complete common options (e.g., config, inventory)

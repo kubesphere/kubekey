@@ -54,6 +54,8 @@ precheck 集群安装前，对集群节点进行检查是否满足集群安装�
 **image_registry_precheck**: 镜像仓库检查，包括：
 - **镜像仓库必要软件检查**: 需检查 `docker_version` 和 `dockercompose_version` 均已配置且不为空。镜像仓库通过 docker_compose 进行安装，缺少必要软件会导致安装失败。
 
+> **按分类跳过 / 筛选 precheck**：`kk create cluster` 同样支持 `--skip-tags` / `--tags` 过滤 precheck 子类别（precheck 角色内嵌于创建流程，其子类按 cri / os / cni 等打标签）。例如 `--skip-tags cri` 跳过容器运行时检查但保留其余检查；`--tags` 为白名单、会限制整个 playbook，因此关闭某一类建议用 `--skip-tags`。详见 [precheck 按分类筛选](precheck.md#按分类筛选检查)。
+
 ## init
 
 init 阶段负责准备和构建集群安装所需的所有资源，包括：

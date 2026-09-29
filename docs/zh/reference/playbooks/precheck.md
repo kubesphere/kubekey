@@ -27,6 +27,8 @@ precheck 支持按分类（tag）对检查项进行筛选，便于只运行或�
 
 不指定任何筛选时，`kk precheck` 会运行全部检查类别。标签为 `always` 的角色（如 `native/root`、`defaults`）始终执行，不受筛选影响。
 
+> **在创建 / 扩缩容 / 升级流程中同样可用**：precheck 角色内嵌于 `kk create cluster`、`kk add nodes`、`kk upgrade` 等流程。对这些命令传入 `--skip-tags` / `--tags` 也会按同样的分类过滤 precheck（例如 `kk create cluster --skip-tags cri` 跳过容器运行时检查但正常安装集群）。注意在这些全流程命令中 `--tags` 是覆盖整个 playbook 的白名单，因此“关闭某一类 precheck”请优先用 `--skip-tags`。
+
 可用的分类标签：`artifact`、`cri`、`cni`、`storageclass`、`os`、`network`、`storage`、`kubernetes`、`etcd`、`nfs`。
 
 ## 说明

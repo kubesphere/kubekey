@@ -27,6 +27,8 @@ Precheck supports filtering checks by category (tag), so you can run or skip spe
 
 When no filter is given, `kk precheck` runs all categories. Roles tagged `always` (e.g. `native/root`, `defaults`) always execute regardless of filtering.
 
+> **Also available inside create / scale / upgrade flows**: the precheck role is embedded in `kk create cluster`, `kk add nodes`, `kk upgrade`, and similar flows. Passing `--skip-tags` / `--tags` to those commands filters precheck by the same categories (e.g. `kk create cluster --skip-tags cri` skips the container-runtime check but still installs the cluster). Note that on these full-flow commands `--tags` is a whitelist over the whole playbook, so to disable a single precheck category prefer `--skip-tags`.
+
 Available category tags: `artifact`, `cri`, `cni`, `storageclass`, `os`, `network`, `storage`, `kubernetes`, `etcd`, `nfs`.
 
 ## Notes
