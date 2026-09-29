@@ -537,9 +537,11 @@ spec:
 		t.Errorf("etcd.backup.etcd_backup_script = %v", got)
 	}
 
-	// dns.dnsEtcHosts -> dns.coredns.dns_etc_hosts
-	if got := getNested(t, cfg, "dns", "coredns", "dns_etc_hosts"); got != "10.0.0.1 example.com" {
-		t.Errorf("dns.coredns.dns_etc_hosts = %v", got)
+	// dns.dnsEtcHosts (string) -> dns.coredns.dns_etc_hosts (normalised to a list)
+	if got := getNested(t, cfg, "dns", "coredns", "dns_etc_hosts"); got == nil {
+		t.Errorf("dns.coredns.dns_etc_hosts is nil, want [\"10.0.0.1 example.com\"]")
+	} else if list, ok := got.([]any); !ok || len(list) != 1 || list[0] != "10.0.0.1 example.com" {
+		t.Errorf("dns.coredns.dns_etc_hosts = %v, want [\"10.0.0.1 example.com\"]", got)
 	}
 }
 

@@ -626,8 +626,10 @@ kubernetes:
         # kube-vip image tag
         tag: v0.7.2
     haproxy:
-      # The IP address on the node's "lo" (loopback) interface
-      address: 127.0.0.1
+      # The local haproxy listens on the loopback address (127.0.0.1 and ::1)
+      # so it only serves the node it runs on. Worker nodes resolve the
+      # control_plane_endpoint to 127.0.0.1/::1 in /etc/hosts and reach the
+      # API server through the local haproxy.
       # HAProxy health check port
       health_port: 8081
       image:
@@ -720,7 +722,6 @@ kubernetes:
 | `kubernetes.control_plane_endpoint.kube_vip.env` | Environment variables passed to the kube-vip container, common to both ARP and BGP modes. |
 | `kubernetes.control_plane_endpoint.kube_vip.env.svc_enable` | Whether kube-vip manages Service (type LoadBalancer) VIPs. Set to `"false"` when using a separate Service VIP manager (e.g. MetalLB) alongside kube-vip. |
 | `kubernetes.control_plane_endpoint.kube_vip.image` | kube-vip container image configuration. |
-| `kubernetes.control_plane_endpoint.haproxy.address` | Address that HAProxy listens on the local loopback interface. |
 | `kubernetes.control_plane_endpoint.haproxy.health_port` | HAProxy health check port. |
 | `kubernetes.control_plane_endpoint.haproxy.image` | HAProxy container image configuration. |
 | `kubernetes.certs.ca_cert` | Custom Kubernetes CA certificate path (leave empty to use kubeadm/kubekey generated). |
@@ -1120,7 +1121,8 @@ dns:
       repository: >-
         coredns
       # tag: v1.11.1
-    # Custom hosts entries
+    # Custom hosts entries (format: IP domain). The cluster automatically merges
+    # image_registry and NFS domain resolution.
     dns_etc_hosts: []
     # DNS zone matching configuration
     zone_configs:
@@ -1186,7 +1188,7 @@ dns:
 | `dns.nodelocaldns.image` | NodeLocalDNS container image configuration. |
 | `dns.coredns.ip` | CoreDNS cluster service IP, usually the 3rd address in the Service CIDR. |
 | `dns.coredns.image` | CoreDNS container image configuration. |
-| `dns.coredns.dns_etc_hosts` | Custom `/etc/hosts` format entries injected into CoreDNS. |
+| `dns.coredns.dns_etc_hosts` | Custom `/etc/hosts` format entries injected into CoreDNS. The cluster automatically merges image_registry and NFS domain resolution. |
 | `dns.coredns.zone_configs` | List of CoreDNS Corefile zone configurations, can define matching domains, cache, rewrite, forwarding, and other rules. |
 | `dns.coredns.zone_configs[].zones` | List of DNS domains and ports matched by this zone rule. |
 | `dns.coredns.zone_configs[].additional_configs` | List of additional CoreDNS plugin directives (e.g., `errors`, `ready`, `prometheus`, `loop`, `reload`, `loadbalance`). |
