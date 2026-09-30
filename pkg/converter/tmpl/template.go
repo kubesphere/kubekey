@@ -47,9 +47,6 @@ func ParseFunc[C ~map[string]any, Output any](ctx C, input string, f func([]byte
 	tl := template.New("kubekey")
 	setupTemplateEngine(tl)
 
-	if err := loadBuiltinIncludeTemplates(tl); err != nil {
-		return f(nil), errors.Wrapf(err, "failed to parse builtin template %q", "tpls/*.tpl")
-	}
 	if err := loadIncludeTemplates(tl, ctx); err != nil {
 		return f(nil), err
 	}
