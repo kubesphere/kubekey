@@ -28,7 +28,7 @@ jobs:
       - name: Setup golang
         uses: actions/setup-go@v7
         with:
-          go-version: '1.25.x'
+          go-version: '1.26.x'
 
       - name: Sync mod
         run: make generate-modules
@@ -36,7 +36,7 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v9
         with:
-          version: v2.7.2
+          version: v2.14.0
 
   verify:
     name: verify
@@ -51,7 +51,7 @@ jobs:
       - name: Setup golang
         uses: actions/setup-go@v7
         with:
-          go-version: '1.25.x'
+          go-version: '1.26.x'
 
       - name: Sync mod
         run: make generate-modules
@@ -72,7 +72,7 @@ jobs:
       - name: Setup golang
         uses: actions/setup-go@v7
         with:
-          go-version: '1.25.x'
+          go-version: '1.26.x'
 
       - name: Sync mod
         run: make generate-modules

@@ -52,7 +52,7 @@ const (
 // The function expects obj to be a struct or a pointer to a struct.
 func GetFieldByJSONTag(obj reflect.Value, filed string) reflect.Value {
 	// If obj is a pointer, get the element it points to
-	if obj.Kind() == reflect.Ptr {
+	if obj.Kind() == reflect.Pointer {
 		obj = obj.Elem()
 	}
 	// If obj is not a struct, return zero Value
