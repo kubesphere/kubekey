@@ -32,6 +32,20 @@ cluster_require:
   require_container_manager: ['docker', 'containerd']
   # Minimum required version of containerd
   containerd_min_version_required: v1.6.0
+  # Minimum glibc version required by the dynamically linked containerd v2 binary.
+  # containerd v2 release assets are built against glibc 2.35 (Ubuntu 22.04); nodes
+  # below this must use the statically linked "containerd-static-*" asset, which is
+  # selected by setting cri.containerd.static_binary to true.
+  containerd_v2_min_glibc_version: 2.35
+  # Minimum kernel version required by containerd v2. The overlayfs snapshotter used
+  # by default relies on features finalized in the 4.x kernel series. The statically
+  # linked binary does not relax this floor.
+  containerd_v2_min_kernel_version: 4.0.0
+  # First Calico minor whose amd64 binaries are built for the x86-64-v2 microarchitecture
+  # level (GOAMD64=v2). Below that level the binaries abort at startup instead of running,
+  # so the precheck rejects such nodes when the selected Calico is at or above this version.
+  # See projectcalico/calico#11352.
+  calico_min_x86_64_v2_version: v3.31.0
   # Supported CPU architectures
   supported_architectures:
     - amd64
