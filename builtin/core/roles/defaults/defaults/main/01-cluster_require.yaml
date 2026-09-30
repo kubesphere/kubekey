@@ -41,14 +41,6 @@ cluster_require:
   # by default relies on features finalized in the 4.x kernel series. The statically
   # linked binary does not relax this floor.
   containerd_v2_min_kernel_version: 4.0.0
-  # First runc version that masks container paths with a read-only tmpfs mounted with
-  # "nr_blocks=1,nr_inodes=1" (opencontainers/runc#5275, released in runc 1.3.6, 1.4.3
-  # and 1.5.0). runc 1.3.5 and earlier mount the same tmpfs without those options.
-  runc_masked_path_min_version: v1.3.6
-  # Minimum kernel version that accepts the runc masked path mount above. Kernels with
-  # a lower bound on nr_inodes (for example the Ubuntu 20.04 5.4 kernel) reject it with
-  # EINVAL, so every pod fails to start. See opencontainers/runc#5348.
-  runc_masked_path_min_kernel_version: 5.15
   # First Calico minor whose amd64 binaries are built for the x86-64-v2 microarchitecture
   # level (GOAMD64=v2). Below that level the binaries abort at startup instead of running,
   # so the precheck rejects such nodes when the selected Calico is at or above this version.

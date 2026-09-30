@@ -93,49 +93,6 @@
           downloads the statically linked "containerd-static-*" release asset, or upgrade the
           operating system.
 
-# Since runc 1.3.6 directories listed in maskedPaths are covered with a read-only
-# tmpfs mounted with "nr_blocks=1,nr_inodes=1" (opencontainers/runc#5275). Kernels
-# that enforce a lower bound on nr_inodes reject that mount with EINVAL, which makes
-# every pod fail to start with
-# "can't mask dir \"/proc/acpi\": ... data=nr_blocks=1,nr_inodes=1: invalid argument"
-# (opencontainers/runc#5348). The mount data is decided by the runc binary, so this
-# is a runtime incompatibility rather than an asset choice: it is reported even when
-# the node already carries its own runc.
-- name: CRI | Fail if runc cannot mask container paths on this kernel
-  when:
-    - .groups.k8s_cluster | default list | has .inventory_hostname
-    - .cri.container_manager | eq "containerd"
-  block:
-    - name: CRI | Detect the installed runc version
-      ignore_errors: true
-      command: runc --version 2>/dev/null | head -1 | awk '{print $3}'
-      register: runc_current_version
-
-    - name: CRI | Determine the runc version that will run on this node
-      set_fact:
-        effective_runc_version: >-
-          {{- if .upgrade.cri -}}
-          {{ .cri.runc_version | default "" }}
-          {{- else if index (.runc_current_version | default dict) "stdout" | default "" | trim | empty | not -}}
-          {{ printf "v%s" (index (.runc_current_version | default dict) "stdout" | trim | trimPrefix "v") }}
-          {{- else -}}
-          {{ .cri.runc_version | default "" }}
-          {{- end -}}
-
-    - name: CRI | Assert the kernel accepts the runc masked path mount
-      when:
-        - .effective_runc_version | empty | not
-        - .effective_runc_version | semverCompare (printf ">=%s" .cluster_require.runc_masked_path_min_version)
-      assert:
-        that: .os.kernel_version | splitList "-" | first | semverCompare (printf ">=%s" .cluster_require.runc_masked_path_min_kernel_version)
-        fail_msg: >-
-          runc {{ .effective_runc_version }} masks container paths with a read-only tmpfs mounted
-          with "nr_blocks=1,nr_inodes=1", which kernels older than
-          {{ .cluster_require.runc_masked_path_min_kernel_version }} reject with EINVAL. Every pod on this
-          node would fail to start with "can't mask dir ... invalid argument" because it runs kernel
-          {{ .os.kernel_version }}. Upgrade the kernel to
-          {{ .cluster_require.runc_masked_path_min_kernel_version }} or later (or move to a newer
-          distribution) before installing this runc version.
 
 - name: CRI | Check Docker live-restore status before upgrading CRI
   when:
