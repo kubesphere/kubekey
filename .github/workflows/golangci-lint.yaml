@@ -28,7 +28,7 @@ jobs:
       - name: Setup golang
         uses: actions/setup-go@v7
         with:
-          go-version: '1.25.x'
+          go-version: '1.26.x'
 
       - name: Sync mod
         run: make generate-modules
@@ -51,7 +51,7 @@ jobs:
       - name: Setup golang
         uses: actions/setup-go@v7
         with:
-          go-version: '1.25.x'
+          go-version: '1.26.x'
 
       - name: Sync mod
         run: make generate-modules
@@ -72,7 +72,7 @@ jobs:
       - name: Setup golang
         uses: actions/setup-go@v7
         with:
-          go-version: '1.25.x'
+          go-version: '1.26.x'
 
       - name: Sync mod
         run: make generate-modules
