@@ -49,6 +49,10 @@ type PreCheckOptions struct {
 	options.CommonOptions
 	// kubernetes version which the cluster will install.
 	Kubernetes string
+	// Tags is the tags of precheck which to execute (whitelist).
+	Tags []string
+	// SkipTags is the tags of precheck which skip execute (blacklist).
+	SkipTags []string
 }
 
 // Flags add to newPreCheckCommand
@@ -56,6 +60,10 @@ func (o *PreCheckOptions) Flags() cliflag.NamedFlagSets {
 	fss := o.CommonOptions.Flags()
 	kfs := fss.FlagSet("config")
 	kfs.StringVar(&o.Kubernetes, "with-kubernetes", o.Kubernetes, fmt.Sprintf("Specify a supported version of kubernetes. default is %s", o.Kubernetes))
+
+	tfs := fss.FlagSet("tags")
+	tfs.StringArrayVar(&o.Tags, "tags", o.Tags, "the tags of precheck which to execute (whitelist). e.g. --tags cri,os")
+	tfs.StringArrayVar(&o.SkipTags, "skip-tags", o.SkipTags, "the tags of precheck which skip execute (blacklist). e.g. --skip-tags cri")
 
 	return fss
 }
@@ -85,7 +93,8 @@ func (o *PreCheckOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1
 
 	playbook.Spec = kkcorev1.PlaybookSpec{
 		Playbook: o.Playbook,
-		Tags:     tags,
+		Tags:     append(tags, o.Tags...),
+		SkipTags: o.SkipTags,
 	}
 
 	if err := o.CommonOptions.Complete(playbook); err != nil {

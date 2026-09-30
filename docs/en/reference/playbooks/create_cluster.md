@@ -54,6 +54,8 @@ The `precheck` phase verifies that cluster nodes meet the installation requireme
 **image_registry_precheck**: Image registry checks, including:
 - **Required software check**: Verify that both `docker_version` and `dockercompose_version` are configured and not empty. The image registry is installed via docker-compose; missing required software will cause installation failure.
 
+> **Skip / filter precheck by category**: `kk create cluster` also supports `--skip-tags` / `--tags` to filter precheck subcategories (the precheck role is embedded in the create flow and its sub-roles are tagged by category such as `cri`, `os`, `cni`). For example `--skip-tags cri` skips the container-runtime check while keeping the rest; `--tags` is a whitelist that restricts the whole playbook, so prefer `--skip-tags` to disable a single category. See [precheck filtering by category](precheck.md#filtering-by-category).
+
 ## init
 
 The `init` phase is responsible for preparing and building all resources required for cluster installation, including:

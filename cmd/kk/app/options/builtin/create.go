@@ -57,6 +57,10 @@ type CreateClusterOptions struct {
 	options.CommonOptions
 	// kubernetes version which the cluster will install.
 	Kubernetes string
+	// Tags is the tags of playbook which to execute (whitelist).
+	Tags []string
+	// SkipTags is the tags of playbook which skip execute (blacklist).
+	SkipTags []string
 }
 
 // Flags add to newCreateClusterCommand
@@ -64,6 +68,14 @@ func (o *CreateClusterOptions) Flags() cliflag.NamedFlagSets {
 	fss := o.CommonOptions.Flags()
 	kfs := fss.FlagSet("config")
 	kfs.StringVar(&o.Kubernetes, "with-kubernetes", o.Kubernetes, fmt.Sprintf("Specify a supported version of kubernetes. default is %s", o.Kubernetes))
+
+	// The precheck role is embedded in the create-cluster playbook and its sub-roles are
+	// tagged by category (cri, os, cni, ...). --tags/--skip-tags let users narrow or skip a
+	// precheck category. For create cluster --tags is a whitelist over the whole playbook, so
+	// prefer --skip-tags to disable a single precheck category without dropping the rest.
+	tfs := fss.FlagSet("tags")
+	tfs.StringArrayVar(&o.Tags, "tags", o.Tags, "the tags of playbook which to execute (whitelist). e.g. --tags cri,os. NOTE: for create cluster this filters the whole playbook, so use --skip-tags to disable one precheck category.")
+	tfs.StringArrayVar(&o.SkipTags, "skip-tags", o.SkipTags, "the tags of playbook which skip execute (blacklist). e.g. --skip-tags cri")
 
 	return fss
 }
@@ -88,6 +100,8 @@ func (o *CreateClusterOptions) Complete(cmd *cobra.Command, args []string) (*kkc
 
 	playbook.Spec = kkcorev1.PlaybookSpec{
 		Playbook: o.Playbook,
+		Tags:     o.Tags,
+		SkipTags: o.SkipTags,
 	}
 	if err := o.CommonOptions.Complete(playbook); err != nil {
 		return nil, err

@@ -18,6 +18,19 @@
      - **NFS 检查**：NFS 服务器节点唯一性。
      - **镜像仓库检查**：必要软件（Docker、Docker Compose）是否已配置。
 
+## 按分类筛选检查
+
+precheck 支持按分类（tag）对检查项进行筛选，便于只运行或跳过特定类别的检查：
+
+- **白名单（只跑指定的类）**：`kk precheck --tags cri,os` 仅执行容器运行时（cri）与操作系统（os）检查，其余类别全部跳过；也可用位置参数：`kk precheck cri os`。
+- **黑名单（跳过指定的类）**：`kk precheck --skip-tags cri` 执行除容器运行时以外的所有检查。`--skip-tags` 是“关闭某一类校验、其余照跑”的推荐用法。
+
+不指定任何筛选时，`kk precheck` 会运行全部检查类别。标签为 `always` 的角色（如 `native/root`、`defaults`）始终执行，不受筛选影响。
+
+> **在创建 / 扩缩容 / 升级流程中同样可用**：precheck 角色内嵌于 `kk create cluster`、`kk add nodes`、`kk upgrade` 等流程。对这些命令传入 `--skip-tags` / `--tags` 也会按同样的分类过滤 precheck（例如 `kk create cluster --skip-tags cri` 跳过容器运行时检查但正常安装集群）。注意在这些全流程命令中 `--tags` 是覆盖整个 playbook 的白名单，因此“关闭某一类 precheck”请优先用 `--skip-tags`。
+
+可用的分类标签：`artifact`、`cri`、`cni`、`storageclass`、`os`、`network`、`storage`、`kubernetes`、`etcd`、`nfs`。
+
 ## 说明
 
 - 任何一项检查未通过，playbook 将停止执行，并返回对应的错误信息。

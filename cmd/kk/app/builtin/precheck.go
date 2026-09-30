@@ -36,9 +36,9 @@ func NewPreCheckCommand() *cobra.Command {
 	o := builtin.NewPreCheckOptions()
 
 	cmd := &cobra.Command{
-		Use:   "precheck tags...",
+		Use:   "precheck [flags]",
 		Short: "Check if the nodes is eligible for cluster deployment.",
-		Long:  "the tags can specify check items. support: etcd, os, network, cri, nfs.",
+		Long:  "Precheck supports per-category filtering. Use --tags to run only the listed categories (whitelist), or --skip-tags to run all categories except the listed ones (blacklist). Available categories: artifact, cri, cni, storageclass, os, network, storage, kubernetes, etcd, nfs.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			playbook, err := o.Complete(cmd, append(args, "playbooks/precheck.yaml"))
 			if err != nil {

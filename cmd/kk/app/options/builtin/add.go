@@ -64,6 +64,10 @@ type AddNodeOptions struct {
 	// Override indicates whether to override the inventory file after successful execution.
 	// When set to true, the inventory.yaml file will be updated.
 	Override bool
+	// Tags is the tags of playbook which to execute (whitelist).
+	Tags []string
+	// SkipTags is the tags of playbook which skip execute (blacklist).
+	SkipTags []string
 	// addGroupHosts stores the nodes to be added to each group for later inventory update
 	addGroupHosts map[string][]string
 }
@@ -77,6 +81,13 @@ func (o *AddNodeOptions) Flags() cliflag.NamedFlagSets {
 	kfs.StringVar(&o.Worker, "worker", o.Worker, "Which nodes will be installed as workers. Multiple nodes are supported, separated by commas (e.g., node1, node2, ...)")
 	kfs.StringVar(&o.Etcd, "etcd", o.Etcd, "Which nodes will be installed as etcd. Multiple nodes are supported, separated by commas (e.g., node1, node2, ...)")
 	kfs.BoolVar(&o.Override, "override", o.Override, "Override the inventory file after successful execution")
+
+	// The precheck role is embedded in the add-nodes playbook and its sub-roles are tagged by
+	// category. --tags/--skip-tags filter precheck the same way as `kk precheck`. On this full-flow
+	// command --tags is a whitelist over the whole playbook, so prefer --skip-tags to disable one.
+	tfs := fss.FlagSet("tags")
+	tfs.StringArrayVar(&o.Tags, "tags", o.Tags, "the tags of playbook which to execute (whitelist). e.g. --tags cri,os. NOTE: for add nodes this filters the whole playbook, so use --skip-tags to disable one precheck category.")
+	tfs.StringArrayVar(&o.SkipTags, "skip-tags", o.SkipTags, "the tags of playbook which skip execute (blacklist). e.g. --skip-tags cri")
 
 	return fss
 }
@@ -102,6 +113,8 @@ func (o *AddNodeOptions) Complete(cmd *cobra.Command, args []string) (*kkcorev1.
 
 	playbook.Spec = kkcorev1.PlaybookSpec{
 		Playbook: o.Playbook,
+		Tags:     o.Tags,
+		SkipTags: o.SkipTags,
 	}
 	// override kube_version in config
 	if err := o.CommonOptions.Complete(playbook); err != nil {
