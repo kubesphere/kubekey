@@ -69,13 +69,13 @@ func (m webManager) Run(ctx context.Context) error {
 // logStackOnRecover handles panic recovery and logs the stack trace
 func logStackOnRecover(panicReason any, w http.ResponseWriter) {
 	var buf bytes.Buffer
-	buf.WriteString(fmt.Sprintf("recover from panic: %v\n", panicReason))
+	fmt.Fprintf(&buf, "recover from panic: %v\n", panicReason)
 	for i := 2; ; i++ {
 		_, file, line, ok := runtime.Caller(i)
 		if !ok {
 			break
 		}
-		buf.WriteString(fmt.Sprintf("    %s:%d\n", file, line))
+		fmt.Fprintf(&buf, "    %s:%d\n", file, line)
 	}
 	klog.ErrorS(errors.New(buf.String()), "recovered from panic")
 

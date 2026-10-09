@@ -78,7 +78,7 @@ func templateToRegularExpression(template string) (string, int, []string, int, [
 				if paramExpr == "*" { // special case
 					buffer.WriteString("(.*)")
 				} else {
-					buffer.WriteString(fmt.Sprintf("(%s)", paramExpr)) // between colon and closing moustache
+					fmt.Fprintf(&buffer, "(%s)", paramExpr) // between colon and closing moustache
 				}
 			} else {
 				// plain var
