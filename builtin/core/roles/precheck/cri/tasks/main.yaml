@@ -1,9 +1,9 @@
 ---
 # The following checks validate cluster-wide CRI configuration and should only
 # run once on the localhost. Per-node runtime-state checks (containerd v2 glibc /
-# kernel compatibility, Docker live-restore) live in precheck/os instead, because
-# precheck/cri is scheduled on localhost only (see precheck/meta/main.yaml) while
-# precheck/os runs on every Kubernetes node.
+# kernel compatibility, Docker live-restore) also live in this role because
+# precheck/cri is scheduled on both localhost and every Kubernetes node (see
+# precheck/meta/main.yaml).
 - name: CRI | Fail if container manager is not docker or containerd
   when: .inventory_hostname | eq "localhost"
   assert:
@@ -21,3 +21,85 @@
     that: .cri.containerd_version | semverCompare (printf ">=%s" .cluster_require.containerd_min_version_required)
     fail_msg: >-
       The specified containerd version ({{ .cri.containerd_version }}) is below the minimum required version: {{ .cluster_require.containerd_min_version_required }}.
+
+# The following checks inspect the actual container runtime state on each
+# Kubernetes node.
+# containerd v2 release assets are built against glibc 2.35 (Ubuntu 22.04). On a
+# node with an older glibc the dynamically linked binary fails at startup, and
+# KubeKey must download the statically linked "containerd-static-*" asset instead
+# (cri.containerd.static_binary). The statically linked binary does not relax
+# containerd v2's own kernel floor (the overlayfs snapshotter needs a 4.x
+# kernel), so the kernel is checked separately: below that floor there is no
+# asset that works and the node has to be upgraded.
+- name: CRI | Fail if containerd v2 is incompatible with this node
+  when:
+    - .groups.k8s_cluster | default list | has .inventory_hostname
+    - .cri.container_manager | eq "containerd"
+  block:
+    - name: CRI | Determine the containerd version that will be installed on this node
+      set_fact:
+        effective_containerd_version: >-
+          {{ .cri.containerd_version | default "" }}
+
+    - name: CRI | Detect the glibc version of this node
+      ignore_errors: true
+      command: getconf GNU_LIBC_VERSION 2>/dev/null | awk '{print $2}'
+      register: glibc_version
+
+    - name: CRI | Fail if containerd v2 runs on a kernel older than its minimum
+      when:
+        - .effective_containerd_version | empty | not
+        - .effective_containerd_version | semverCompare ">=v2.0.0"
+      assert:
+        that: .os.kernel_version | splitList "-" | first | semverCompare (printf ">=%s" .cluster_require.containerd_v2_min_kernel_version)
+        fail_msg: >-
+          Containerd {{ .effective_containerd_version }} requires kernel
+          {{ .cluster_require.containerd_v2_min_kernel_version }} or later, but this node runs kernel
+          {{ .os.kernel_version }}. The statically linked containerd binary does not remove this
+          requirement, so upgrade the kernel or use a newer distribution before installing
+          containerd v2.
+
+    # The glibc probe returns empty on non-glibc (e.g. musl) systems, where the
+    # version cannot be compared; skip the check instead of guessing.
+    - name: CRI | Fail if containerd v2 needs the statically linked binary on this node
+      when:
+        - .effective_containerd_version | empty | not
+        - .effective_containerd_version | semverCompare ">=v2.0.0"
+        - index (.glibc_version | default dict) "stdout" | default "" | trim | empty | not
+      assert:
+        that: or (.cri.containerd.static_binary | default false) (index (.glibc_version | default dict) "stdout" | trim | semverCompare (printf ">=%s" .cluster_require.containerd_v2_min_glibc_version))
+        fail_msg: >-
+          The dynamically linked containerd {{ .effective_containerd_version }} binary requires glibc
+          {{ .cluster_require.containerd_v2_min_glibc_version }} or later, but this node reports glibc
+          {{ .glibc_version.stdout | trim }}. Set "cri.containerd.static_binary" to true so KubeKey
+          downloads the statically linked "containerd-static-*" release asset, or upgrade the
+          operating system.
+
+
+- name: CRI | Check Docker live-restore status before upgrading CRI
+  when:
+    - .groups.k8s_cluster | default list | has .inventory_hostname
+    - .cri.container_manager | eq "docker"
+    - .upgrade.cri
+  block:
+    - name: CRI | Detect live-restore in Docker daemon.json
+      ignore_errors: true
+      command: |
+        if [ -f /etc/docker/daemon.json ] && grep -qE '"live-restore"[[:space:]]*:[[:space:]]*true' /etc/docker/daemon.json; then
+          echo "enabled"
+        else
+          echo "disabled"
+        fi
+      register: docker_live_restore_status
+
+    - name: CRI | Warn if Docker live-restore is disabled
+      when:
+        - .docker_live_restore_status.error | empty
+        - .docker_live_restore_status.stdout | eq "disabled"
+      debug:
+        msg: >-
+          WARNING: Docker live-restore is not enabled on this node.
+          When upgrade.cri=true, the Docker daemon will be restarted and running
+          containers may be interrupted. To reduce the risk, enable
+          "live-restore": true in /etc/docker/daemon.json, or ensure workload
+          replicas are distributed across worker nodes.

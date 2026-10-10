@@ -11,6 +11,7 @@ dependencies:
 
   - role: precheck/cri
     tags: ["cri"]
+    when: or (.inventory_hostname | eq "localhost") (.groups.k8s_cluster | default list | has .inventory_hostname)
 
   - role: precheck/cni
     tags: ["cni"]
