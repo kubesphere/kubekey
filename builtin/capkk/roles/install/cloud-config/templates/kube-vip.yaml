@@ -15,7 +15,7 @@ spec:
     - name: vip_arp
       value: "true"
     - name: port
-      value: "6443"
+      value: "{{ .kubernetes.control_plane_endpoint.port }}"
     - name: vip_cidr
       value: "32"
     - name: cp_enable
@@ -37,7 +37,7 @@ spec:
     - name: lb_enable
       value: "true"
     - name: lb_port
-      value: "6443"
+      value: "{{ .kubernetes.control_plane_endpoint.port }}"
     image: {{ .kubernetes.control_plane_endpoint.kube_vip.image.registry }}/{{ .kubernetes.control_plane_endpoint.kube_vip.image.repository }}:{{ .kubernetes.control_plane_endpoint.kube_vip.image.tag }}
     imagePullPolicy: IfNotPresent
     name: kube-vip
