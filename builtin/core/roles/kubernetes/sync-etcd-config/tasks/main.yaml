@@ -52,8 +52,8 @@
 - name: AddNodes | Wait for kube-apiserver to be ready on current node
   shell: |
     for i in $(seq 1 30); do
-      if nc -z localhost 6443 2>/dev/null || \
-         curl -sk https://localhost:6443/healthz 2>/dev/null | grep -q "ok"; then
+      if nc -z localhost {{ .kubernetes.apiserver.port }} 2>/dev/null || \
+         curl -sk https://localhost:{{ .kubernetes.apiserver.port }}/healthz 2>/dev/null | grep -q "ok"; then
         echo "✅ kube-apiserver is ready"
         exit 0
       fi
