@@ -1,9 +1,10 @@
 ---
 # The following checks validate cluster-wide CRI configuration and should only
 # run once on the localhost. Per-node runtime-state checks (containerd v2 glibc /
-# kernel compatibility, Docker live-restore) also live in this role because
-# precheck/cri is scheduled on both localhost and every Kubernetes node (see
-# precheck/meta/main.yaml).
+# kernel compatibility, Docker live-restore) also live in this role. The role is
+# scheduled on every target host (no `when` in precheck/meta/main.yaml, matching
+# upstream main), and each task's own `when` scopes it to localhost or the
+# relevant Kubernetes node.
 - name: CRI | Fail if container manager is not docker or containerd
   when: .inventory_hostname | eq "localhost"
   assert:
