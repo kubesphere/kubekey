@@ -36,6 +36,10 @@
 {{- $configs := dict }}
 {{- if and (.image_registry.auth.registry | empty | not) (ne (.image_registry.auth.registry | splitList "/" | first) "hub.kubesphere.com.cn") }}
   {{- $registry_parts := .image_registry.auth.registry | splitList "/" | first }}
+  {{- if and (not $containerdV2) (.image_registry.auth.plain_http | default false) }}
+  {{- $plainScheme := "http" }}
+  {{- $_ := set $mirrors $registry_parts (dict "endpoint" (list (printf "%s://%s" $plainScheme $registry_parts))) }}
+  {{- end }}
   {{- $skip_tls := true }}
   {{- if hasKey .image_registry.auth "skip_tls_verify" }}
   {{- $skip_tls = .image_registry.auth.skip_tls_verify | toBool }}
