@@ -37,11 +37,6 @@
     - .groups.k8s_cluster | default list | has .inventory_hostname
     - .cri.container_manager | eq "containerd"
   block:
-    - name: CRI | Determine the containerd version that will be installed on this node
-      set_fact:
-        effective_containerd_version: >-
-          {{ .cri.containerd_version | default "" }}
-
     - name: CRI | Detect the glibc version of this node
       ignore_errors: true
       command: getconf GNU_LIBC_VERSION 2>/dev/null | awk '{print $2}'
@@ -49,12 +44,12 @@
 
     - name: CRI | Fail if containerd v2 runs on a kernel older than its minimum
       when:
-        - .effective_containerd_version | empty | not
-        - .effective_containerd_version | semverCompare ">=v2.0.0"
+        - .cri.containerd_version | empty | not
+        - .cri.containerd_version | semverCompare ">=v2.0.0"
       assert:
         that: .os.kernel_version | splitList "-" | first | semverCompare (printf ">=%s" .cluster_require.containerd_v2_min_kernel_version)
         fail_msg: >-
-          Containerd {{ .effective_containerd_version }} requires kernel
+          Containerd {{ .cri.containerd_version }} requires kernel
           {{ .cluster_require.containerd_v2_min_kernel_version }} or later, but this node runs kernel
           {{ .os.kernel_version }}. The statically linked containerd binary does not remove this
           requirement, so upgrade the kernel or use a newer distribution before installing
@@ -64,13 +59,13 @@
     # version cannot be compared; skip the check instead of guessing.
     - name: CRI | Fail if containerd v2 needs the statically linked binary on this node
       when:
-        - .effective_containerd_version | empty | not
-        - .effective_containerd_version | semverCompare ">=v2.0.0"
+        - .cri.containerd_version | empty | not
+        - .cri.containerd_version | semverCompare ">=v2.0.0"
         - index (.glibc_version | default dict) "stdout" | default "" | trim | empty | not
       assert:
         that: or (.cri.containerd.static_binary | default false) (index (.glibc_version | default dict) "stdout" | trim | semverCompare (printf ">=%s" .cluster_require.containerd_v2_min_glibc_version))
         fail_msg: >-
-          The dynamically linked containerd {{ .effective_containerd_version }} binary requires glibc
+          The dynamically linked containerd {{ .cri.containerd_version }} binary requires glibc
           {{ .cluster_require.containerd_v2_min_glibc_version }} or later, but this node reports glibc
           {{ .glibc_version.stdout | trim }}. Set "cri.containerd.static_binary" to true so KubeKey
           downloads the statically linked "containerd-static-*" release asset, or upgrade the
