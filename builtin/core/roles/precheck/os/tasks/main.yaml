@@ -64,3 +64,50 @@
           cgroup v1 hierarchy. Kubernetes v1.35 removed cgroup v1 support, so the kubelet will
           fail to start. Migrate the node to a distribution with the cgroup v2 unified hierarchy
           enabled before installing or upgrading to Kubernetes v1.35 or later.
+
+# From v3.31 onwards the amd64 Calico binaries are built for the x86-64-v2
+# microarchitecture level (GOAMD64=v2). On a CPU below that level they abort before
+# running any Calico code, printing either "This program can only be run on AMD64
+# processors with v2 microarchitecture support" (Go runtime check) or "Fatal glibc
+# error: CPU does not support x86-64-v2" (glibc). calico-node stays in Init:Error and
+# no pod ever gets a network, while the rest of the control plane looks healthy.
+# See projectcalico/calico#11352.
+# x86-64-v2 requires CMPXCHG16B (cx16), LAHF/SAHF (lahf_lm), POPCNT (popcnt), SSE3
+# (pni on Linux), SSSE3 (ssse3), SSE4.1 (sse4_1) and SSE4.2 (sse4_2).
+- name: OS | Fail if Calico needs x86-64-v2 but this CPU does not provide it
+  when:
+    - .groups.k8s_cluster | default list | has .inventory_hostname
+    - .cni.type | default "" | eq "calico"
+    - or (.os.architecture | default "" | eq "amd64") (.os.architecture | default "" | eq "x86_64")
+    - .cni.calico_version | default "" | empty | not
+    - .cni.calico_version | semverCompare (printf ">=%s" .cluster_require.calico_min_x86_64_v2_version)
+  block:
+    - name: OS | Read the CPU feature flags of this node
+      ignore_errors: true
+      command: grep -m1 "^flags" /proc/cpuinfo || true
+      register: cpu_flags
+
+    # Without the feature flags the level cannot be determined; skip rather than guess.
+    - name: OS | Assert the CPU supports the x86-64-v2 microarchitecture level
+      when: .cpu_flags.stdout | default "" | empty | not
+      assert:
+        that: >-
+          and
+          (.cpu_flags.stdout | splitList " " | has "cx16")
+          (.cpu_flags.stdout | splitList " " | has "lahf_lm")
+          (.cpu_flags.stdout | splitList " " | has "popcnt")
+          (or (.cpu_flags.stdout | splitList " " | has "pni") (.cpu_flags.stdout | splitList " " | has "sse3"))
+          (.cpu_flags.stdout | splitList " " | has "ssse3")
+          (.cpu_flags.stdout | splitList " " | has "sse4_1")
+          (.cpu_flags.stdout | splitList " " | has "sse4_2")
+        fail_msg: >-
+          Calico {{ .cni.calico_version }} ships amd64 binaries built for the x86-64-v2
+          microarchitecture level, but the CPU on this node does not provide that level
+          (reported architecture "{{ .os.architecture }}"). The Calico binaries abort at
+          startup with "This program can only be run on AMD64 processors with v2
+          microarchitecture support" or "Fatal glibc error: CPU does not support x86-64-v2",
+          calico-node never becomes ready and no pod gets a network. On virtual machines this
+          is usually the hypervisor CPU model: libvirt and KVM default to "qemu64", which is
+          x86-64-v1 only, so set the guest CPU model to host-model or host-passthrough and
+          reboot the node. On bare metal, or when the CPU model cannot be changed, install a
+          Calico version older than {{ .cluster_require.calico_min_x86_64_v2_version }}.

@@ -44,6 +44,8 @@ cri:
     # Download the statically linked containerd binary instead of the default dynamically linked one.
     # Useful on older distros (e.g. Rocky Linux 8) whose glibc predates what recent containerd releases require.
     # Only set this for a containerd_version that publishes a "containerd-static-*" release asset.
+    # The precheck role fails when containerd v2 targets a node whose glibc is older than
+    # cluster_require.containerd_v2_min_glibc_version and this is not enabled.
     static_binary: false
     config:
       root: "{{ .cri.containerd.data_root | default \"/var/lib/containerd\" }}"
