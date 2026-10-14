@@ -9,7 +9,11 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # dump system package list
 RUN dpkg --get-selections | grep -v deinstall | cut -f1 | cut -d ':' -f1 > packages.list
-RUN ARCH=$(dpkg --print-architecture) \
+# Debian 11 (bullseye) reached EOL on 2026-08-31; its packages were moved from
+# deb.debian.org to archive.debian.org, so point apt at the archive mirror.
+RUN sed -i 's|deb.debian.org|archive.debian.org|g' /etc/apt/sources.list \
+    && echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99no-check-valid-until \
+    && ARCH=$(dpkg --print-architecture) \
     && apt update -qq \
     && apt install -y --no-install-recommends $BUILD_TOOLS \
     && if [ "$TARGETARCH" = "amd64" ]; then \
