@@ -16,6 +16,13 @@ cluster_require:
     - '"kylin"'
     - rocky
     - '"rocky"'
+    # ISO offline-repo supported distributions
+    - almalinux
+    - '"almalinux"'
+    - anolis
+    - '"anolis"'
+    - openEuler
+    - '"openEuler"'
   # Required network plugins
   require_network_plugin: ['none', 'calico', 'flannel', 'cilium', 'kubeovn']
   # Minimum supported Kubernetes version

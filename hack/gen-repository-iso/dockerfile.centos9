@@ -1,0 +1,52 @@
+FROM quay.io/centos/centos:stream9 as centos9
+
+ARG TARGETARCH
+ARG DIR=centos-9-${TARGETARCH}-rpms
+ARG PKGS=".common[],.rpms[]"
+ARG BUILD_TOOLS="createrepo_c genisoimage dnf-plugins-core"
+
+ENV LANG=en_US.UTF-8
+ENV LC_ALL=en_US.UTF-8
+
+RUN rm -f /etc/yum.repos.d/*.repo \
+    && if [ "$TARGETARCH" = "amd64" ]; then \
+       BASEOS="https://mirror.stream.centos.org/9-stream/BaseOS/x86_64/os/"; \
+       APPSTREAM="https://mirror.stream.centos.org/9-stream/AppStream/x86_64/os/"; \
+    else \
+       BASEOS="https://mirror.stream.centos.org/9-stream/BaseOS/aarch64/os/"; \
+       APPSTREAM="https://mirror.stream.centos.org/9-stream/AppStream/aarch64/os/"; \
+    fi \
+    && echo "[BaseOS]" > /etc/yum.repos.d/centos9-stream.repo \
+    && echo "name=CentOS Stream 9 BaseOS" >> /etc/yum.repos.d/centos9-stream.repo \
+    && echo "baseurl=$BASEOS" >> /etc/yum.repos.d/centos9-stream.repo \
+    && echo "enabled=1" >> /etc/yum.repos.d/centos9-stream.repo \
+    && echo "gpgcheck=0" >> /etc/yum.repos.d/centos9-stream.repo \
+    && echo "[AppStream]" >> /etc/yum.repos.d/centos9-stream.repo \
+    && echo "name=CentOS Stream 9 AppStream" >> /etc/yum.repos.d/centos9-stream.repo \
+    && echo "baseurl=$APPSTREAM" >> /etc/yum.repos.d/centos9-stream.repo \
+    && echo "enabled=1" >> /etc/yum.repos.d/centos9-stream.repo \
+    && echo "gpgcheck=0" >> /etc/yum.repos.d/centos9-stream.repo \
+    && dnf --disablerepo="*" --enablerepo="BaseOS,AppStream" clean all \
+    && dnf --disablerepo="*" --enablerepo="BaseOS,AppStream" makecache
+
+RUN dnf install -y --setopt=tsflags=nodocs --disablerepo="*" --enablerepo="BaseOS,AppStream" $BUILD_TOOLS \
+    && dnf clean all
+
+WORKDIR /package
+
+COPY packages.yaml .
+COPY --from=mikefarah/yq:4.11.1 /usr/bin/yq /usr/bin/yq
+
+RUN mkdir -p ${DIR} \
+    && yq eval "${PKGS}" packages.yaml | while read pkg; do \
+         if [ -n "$pkg" ]; then \
+             echo "Downloading $pkg..."; \
+             dnf install -y --downloadonly --downloaddir=${DIR} --disablerepo="*" --enablerepo="BaseOS,AppStream" $pkg || echo "not found: $pkg"; \
+         fi; \
+    done
+
+RUN createrepo_c ${DIR} \
+    && genisoimage -r -o ${DIR}.iso ${DIR}
+
+FROM scratch
+COPY --from=centos9 /package/*.iso /

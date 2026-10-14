@@ -33,3 +33,9 @@ debs:
   - nfs-common
   - openssh-server
   - software-properties-common
+  # explicit deps of gnupg-agent / software-properties-common that the build
+  # container already satisfies (via BUILD_TOOLS), so print-uris skips them and
+  # the offline ISO lacks them. List them explicitly so --reinstall refetches.
+  - gpg-agent
+  - python3-gi
+  - python3-software-properties
