@@ -46,6 +46,10 @@ jobs:
     if: github.repository == 'kubesphere/kubekey' && (github.event_name == 'push' || github.event.inputs.upload_iso == 'true')
     strategy:
       fail-fast: false
+      # Every job builds amd64 and arm64 in parallel and fetches packages from
+      # the same upstream mirrors. Running all 21 jobs at once made the mirrors
+      # answer with transient error responses, so bound the concurrency.
+      max-parallel: 4
       matrix:
         include:
           - name: almalinux-9.0-rpms
