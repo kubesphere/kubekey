@@ -80,6 +80,30 @@ func TestGetHostnames(t *testing.T) {
 			except: []string{"n1"},
 		},
 		{
+			name:  "group value with surrounding whitespace",
+			hosts: []string{"g1\n"},
+			variable: &variable{
+				value: &value{
+					Inventory: kkcorev1.Inventory{
+						Spec: kkcorev1.InventorySpec{
+							Hosts: map[string]runtime.RawExtension{
+								"n1": {},
+							},
+							Groups: map[string]kkcorev1.InventoryGroup{
+								"g1": {
+									Hosts: []string{"n1"},
+								},
+							},
+						},
+					},
+					Hosts: map[string]host{
+						"n1": {},
+					},
+				},
+			},
+			except: []string{"n1"},
+		},
+		{
 			name:  "group index value",
 			hosts: []string{"g1[0]"},
 			variable: &variable{

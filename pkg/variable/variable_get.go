@@ -37,6 +37,8 @@ var GetHostnames = func(name []string) GetFunc {
 			if pn, err := tmpl.ParseFunc(Extension2Variables(vv.value.Config.Spec), n, tmpl.StringFunc); err == nil {
 				n = pn
 			}
+			// Selectors from YAML block scalars (e.g. "|") carry a trailing newline
+			n = strings.TrimSpace(n)
 			// Add direct hostname if it exists in the hosts map
 			if _, exists := vv.value.Hosts[n]; exists {
 				hs = append(hs, n)
