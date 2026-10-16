@@ -129,7 +129,7 @@ jobs:
             ${{ matrix.name }}.iso.sha256sum.txt
             ${{ matrix.name }}-amd64.iso
             ${{ matrix.name }}-arm64.iso
-          overwrite: true
+          overwrite_files: true
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
@@ -221,7 +221,7 @@ jobs:
           tag_name: iso-latest
           name: iso-latest
           files: config/harbor/*/*harbor-offline-installer*.tgz
-          overwrite: true
+          overwrite_files: true
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
