@@ -19,7 +19,14 @@ COPY --from=mikefarah/yq:4.11.1 /usr/bin/yq /usr/bin/yq
 RUN yq eval "${PKGS}" packages.yaml >> packages.list \
     && sort -u packages.list | xargs -n1 apt-get install --yes --reinstall --print-uris | awk -F "'" '{print $2}' | grep -v '^$' | sort -u > packages.urls \
     && mkdir -p ${DIR} \
-    && wget -q -x -P ${DIR} -i packages.urls \
+    && ( ok=0; i=1; \
+         while [ $i -le 5 ]; do \
+           if wget -nv -c -x -P ${DIR} --tries=3 --waitretry=10 --timeout=60 --retry-connrefused -i packages.urls; then ok=1; break; fi; \
+           echo "### wget attempt $i failed; retrying in $((i * 10))s"; \
+           sleep $((i * 10)); \
+           i=$((i + 1)); \
+         done; \
+         [ "$ok" = "1" ] ) \
     && cd ${DIR} \
     && dpkg-scanpackages ./ /dev/null | gzip -9c > ./Packages.gz
 

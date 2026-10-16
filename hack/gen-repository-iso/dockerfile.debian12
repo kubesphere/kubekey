@@ -32,7 +32,14 @@ RUN yq eval "${PKGS}" packages.yaml >> packages.list \
 RUN cat  packages.urls
 
 RUN mkdir -p ${DIR} \
-    && wget -q -x -P ${DIR} -i packages.urls \
+    && ( ok=0; i=1; \
+         while [ $i -le 5 ]; do \
+           if wget -nv -c -x -P ${DIR} --tries=3 --waitretry=10 --timeout=60 --retry-connrefused -i packages.urls; then ok=1; break; fi; \
+           echo "### wget attempt $i failed; retrying in $((i * 10))s"; \
+           sleep $((i * 10)); \
+           i=$((i + 1)); \
+         done; \
+         [ "$ok" = "1" ] ) \
     && cd ${DIR} \
     && dpkg-scanpackages ./ /dev/null | gzip -9c > ./Packages.gz
 
