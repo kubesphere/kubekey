@@ -43,7 +43,7 @@ cluster_require:
   # containerd v2 release assets are built against glibc 2.35 (Ubuntu 22.04); nodes
   # below this must use the statically linked "containerd-static-*" asset, which is
   # selected by setting cri.containerd.static_binary to true.
-  containerd_v2_min_glibc_version: 2.35
+  containerd_v2_min_glibc_version: "2.35"
   # Minimum kernel version required by containerd v2. The overlayfs snapshotter used
   # by default relies on features finalized in the 4.x kernel series. The statically
   # linked binary does not relax this floor.
