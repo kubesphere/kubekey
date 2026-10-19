@@ -1,6 +1,17 @@
 ---
 - name: NTP | Configure NTP server
   command: |
+    {{- if or (.os.release.ID | eq "ubuntu") (.os.release.ID_LIKE | eq "debian") }}
+    # Ensure chrony is installed before editing its configuration file. The
+    # repository role installs it via native.packages, but guarding here makes a
+    # missing chrony package fail this task loudly instead of letting the sed/echo
+    # below operate on a non-existent /etc/chrony path.
+    dpkg -s chrony >/dev/null 2>&1 || apt-get install -y chrony
+    {{- else }}
+    # Ensure chrony is installed before editing its configuration file (RHEL/CentOS/Kylin).
+    rpm -q chrony >/dev/null 2>&1 || yum install -y chrony
+    {{- end }}
+
     # Determine the correct chrony configuration file based on OS type
     chronyConfigFile={{ if or (.os.release.ID | eq "ubuntu") (.os.release.ID_LIKE | eq "debian") }}"/etc/chrony/chrony.conf"{{ else }}"/etc/chrony.conf"{{ end }}
 
