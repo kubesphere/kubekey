@@ -11,6 +11,7 @@ common:
   - keepalived
   - lvm2
   - net-tools
+  - nftables
   - openssl
   - psmisc
   - socat
@@ -31,6 +32,7 @@ debs:
   - dnsutils
   - gnupg-agent
   - nfs-common
+  - nfs-kernel-server
   - openssh-server
   - software-properties-common
   # explicit deps of gnupg-agent / software-properties-common that the build
