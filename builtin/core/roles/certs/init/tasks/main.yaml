@@ -167,6 +167,10 @@
     out_cert: >-
       {{ .work_dir }}/pki/harbor-token.crt
 
+# Harbor reads <data_volume>/secret/keys/secretkey as text and requires exactly
+# 16 characters (prepare's get_secret_key opens the file in text mode and fails
+# with UnicodeDecodeError on raw random bytes), so the key has to be generated as
+# 16 alphanumeric characters rather than 16 bytes of /dev/urandom.
 - name: Cert | Generate the shareable Harbor secret key
   tags: ["image_registry"]
   when:
@@ -174,7 +178,7 @@
     - .groups.image_registry | default list | empty | not
   command: |
     if [ ! -s {{ .work_dir }}/pki/harbor-secretkey ]; then
-      head -c 16 /dev/urandom > {{ .work_dir }}/pki/harbor-secretkey
+      LC_ALL=C tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 16 > {{ .work_dir }}/pki/harbor-secretkey
       chmod 600 {{ .work_dir }}/pki/harbor-secretkey
     fi
 
