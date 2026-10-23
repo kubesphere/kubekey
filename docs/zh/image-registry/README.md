@@ -166,7 +166,7 @@ harbor 的 registry 使用 Bearer token 鉴权，签发与校验是两个独立�
 |------|------|------|
 | `<data_volume>/secret/core/private_key.pem` | `harbor-core` 用它签发 token | PEM 私钥，PKCS#1 或 PKCS#8 均可 |
 | `<data_volume>/secret/registry/root.crt` | `harbor-registry` 用它校验 token，对应 registry 配置中的 `auth.token.rootcertbundle` | PEM 证书，**只有公钥会被读取** |
-| `<data_volume>/secret/keys/secretkey` | core / jobservice 的共享密钥 | **16 个字符**的字母数字串，不是 16 个裸随机字节，详见下方「secretkey 必须是可解码的文本」 |
+| `<data_volume>/secret/keys/secretkey` | core / jobservice 的共享密钥 | **16 个可打印字符**的文本串（kubekey 默认用字母数字生成），不是 16 个裸随机字节，详见下方「secretkey 必须是可解码的文本」 |
 
 `<data_volume>` 即 `harbor.yml` 中的 `data_volume`，默认为 `/var/lib/harbor/data`。
 
@@ -178,7 +178,7 @@ harbor 的 `prepare` 只在文件缺失时生成，且每个实例各自生成�
 
 kubekey 在控制节点生成一次，再分发给所有实例。生成遵循 `IfNotPresent` 策略，拷贝也只在目标文件缺失时才执行，因此已部署的实例不会被换钥，扩容的新节点会使用同一套材料。
 
-唯一例外是 `secretkey`：它额外做一次格式校验（16 字节且全部为 `[A-Za-z0-9]`），**只有在格式不合规时才覆盖**。一个能被 harbor 读出来的既有文件一定会被保留，包括 harbor 自己生成的那一个；只有旧版本写入的裸随机字节才会被替换，而那种 key 会让 `prepare` 崩溃，harbor 从未真正用过它，替换它不会丢任何数据。
+唯一例外是 `secretkey`：它额外做一次格式校验（恰好 16 个可打印字符，`LC_ALL=C grep -qE '^[[:print:]]{16}$'`），**只有在格式不合规时才覆盖**。一个能被 harbor 读出来的既有文件一定会被保留，包括 harbor 自己生成的、或手工放置的含符号的可打印 key；只有旧版本写入的裸随机字节才会被替换，而那种 key 会让 `prepare` 崩溃，harbor 从未真正用过它，替换它不会丢任何数据。
 
 | 控制节点生成 | 分发到实例 |
 |--------------|------------|
@@ -216,20 +216,20 @@ File "/usr/src/app/utils/cert.py", line 22, in _get_secret
 UnicodeDecodeError: 'utf-8' codec can't decode byte 0xc0 in position 1: invalid start byte
 ```
 
-kubekey 因此用 `[A-Za-z0-9]` 生成这 16 个字符：
+kubekey 因此用 `[A-Za-z0-9]` 生成这 16 个字符（字符集与 harbor 自己的 `generate_random_string()` 一致）：
 
 ```shell
 LC_ALL=C tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 16
 ```
 
-字符集与 harbor 自己的 `generate_random_string()`（`random.SystemRandom().choice(ascii_letters + digits)`）一致，所以 harbor 原生生成的 `secretkey` 同样能通过 kubekey 的校验并被原样保留。
+「是否沿用既有 key」的判定则放宽为任意 16 个可打印字符（`LC_ALL=C grep -qE '^[[:print:]]{16}$'`）：harbor 原生生成的、或手工放置的含 `+ - _ =` 等符号的可打印 key 都属于合规范围，不会被误覆盖；只有真正不可解码的裸随机字节才会被替换。
 
 旧版本已经写入的非法 key 不需要手工清理，重跑一次安装即可修好：`secretkey` 是唯一一个「格式不合规就覆盖」的材料，覆盖用的正是控制节点上那份合规的共享 key。
 
 ```shell
 # 检查现有实例上的 secretkey 是否合规：输出 16 且匹配正则即为正常
 sudo wc -c < <data_volume>/secret/keys/secretkey
-sudo bash -c 'LC_ALL=C grep -qE "^[A-Za-z0-9]{16}$" <data_volume>/secret/keys/secretkey && echo FORMAT=OK || echo FORMAT=BAD'
+sudo bash -c 'LC_ALL=C grep -qE "^[[:print:]]{16}$" <data_volume>/secret/keys/secretkey && echo FORMAT=OK || echo FORMAT=BAD'
 ```
 
 ## 安装 registry

@@ -90,7 +90,7 @@
     # key cannot have been used by a working Harbor, so replace it in place.
     secretkey=${secret_dir}/keys/secretkey
     if [ -s "${secretkey}" ] && [ "$(wc -c < "${secretkey}")" -eq 16 ] \
-       && LC_ALL=C grep -qE '^[A-Za-z0-9]{16}$' "${secretkey}"; then
+       && LC_ALL=C grep -qE '^[[:print:]]{16}$' "${secretkey}"; then
       echo "keep existing ${secretkey}"
     else
       cp ${staging_dir}/secretkey "${secretkey}"

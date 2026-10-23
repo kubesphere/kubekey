@@ -166,7 +166,7 @@ The registry authenticates with Bearer tokens, and issuing and validating them a
 |------|---------|-------------|
 | `<data_volume>/secret/core/private_key.pem` | used by `harbor-core` to issue tokens | PEM private key, PKCS#1 or PKCS#8 |
 | `<data_volume>/secret/registry/root.crt` | used by `harbor-registry` to validate tokens, i.e. the `auth.token.rootcertbundle` of the registry configuration | PEM certificate, **only its public key is read** |
-| `<data_volume>/secret/keys/secretkey` | shared secret of core / jobservice | **16 characters**, not 16 raw bytes — see "The secret key has to be decodable text" below |
+| `<data_volume>/secret/keys/secretkey` | shared secret of core / jobservice | **16 printable characters**, not 16 raw bytes — see "The secret key has to be decodable text" below |
 
 `<data_volume>` is the `data_volume` of `harbor.yml`, `/var/lib/harbor/data` by default.
 
@@ -178,7 +178,7 @@ Harbor's `prepare` only creates a file when it is missing, and it creates it ind
 
 kubekey generates the material once on the controller and distributes it to every instance. Generation follows the `IfNotPresent` policy and the copy only happens when the target file is missing, so an instance that is already serving requests is never re-keyed and a node added later uses the same material.
 
-The single exception is `secretkey`: it gets an extra format check (16 bytes, all of them `[A-Za-z0-9]`) and is **overwritten only when that check fails**. Any key harbor can read is kept, including the one harbor generated itself; only the raw bytes written by an older release are replaced, and such a key made `prepare` abort, so harbor never actually used it and replacing it loses nothing.
+The single exception is `secretkey`: it gets an extra format check (exactly 16 printable characters, `LC_ALL=C grep -qE '^[[:print:]]{16}$'`) and is **overwritten only when that check fails**. Any key harbor can read is kept, including the one harbor generated or a hand-placed printable key with symbols; only the raw bytes written by an older release are replaced, and such a key made `prepare` abort, so harbor never actually used it and replacing it loses nothing.
 
 | Generated on the controller | Distributed to the instance |
 |------|------|
@@ -217,20 +217,20 @@ File "/usr/src/app/utils/cert.py", line 22, in _get_secret
 UnicodeDecodeError: 'utf-8' codec can't decode byte 0xc0 in position 1: invalid start byte
 ```
 
-kubekey therefore generates the 16 characters from `[A-Za-z0-9]`:
+kubekey therefore generates the 16 characters from `[A-Za-z0-9]` (the same alphabet harbor uses itself in `generate_random_string()`):
 
 ```shell
 LC_ALL=C tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 16
 ```
 
-The alphabet is the one harbor uses itself in `generate_random_string()` (`random.SystemRandom().choice(ascii_letters + digits)`), so a `secretkey` that harbor generated passes kubekey's check and is kept untouched.
+The decision whether to keep an existing key is relaxed to any 16 printable characters (`LC_ALL=C grep -qE '^[[:print:]]{16}$'`): a `secretkey` that harbor generated, or a hand-placed printable key containing symbols such as `+ - _ =`, both fall inside the compliant range and are never overwritten by mistake; only genuinely undecodable raw bytes are replaced.
 
 A malformed key written by an older release needs no manual cleanup — re-running the installation repairs it. `secretkey` is the only piece of material that is overwritten when it does not match the expected format, and it is overwritten with the compliant shared key from the controller.
 
 ```shell
 # Check whether the secret key of an existing instance is compliant: 16 plus the regex
 sudo wc -c < <data_volume>/secret/keys/secretkey
-sudo bash -c 'LC_ALL=C grep -qE "^[A-Za-z0-9]{16}$" <data_volume>/secret/keys/secretkey && echo FORMAT=OK || echo FORMAT=BAD'
+sudo bash -c 'LC_ALL=C grep -qE "^[[:print:]]{16}$" <data_volume>/secret/keys/secretkey && echo FORMAT=OK || echo FORMAT=BAD'
 ```
 
 ## Install Registry
