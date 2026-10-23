@@ -85,7 +85,18 @@
     }
     install_secret ${secret_dir}/core/private_key.pem ${staging_dir}/private_key.pem 600
     install_secret ${secret_dir}/registry/root.crt ${staging_dir}/root.crt 644
-    install_secret ${secret_dir}/keys/secretkey ${staging_dir}/secretkey 600
+    # Harbor only accepts a 16 character text key; a key written by an older
+    # release (16 raw bytes) makes prepare abort with UnicodeDecodeError. Such a
+    # key cannot have been used by a working Harbor, so replace it in place.
+    secretkey=${secret_dir}/keys/secretkey
+    if [ -s "${secretkey}" ] && [ "$(wc -c < "${secretkey}")" -eq 16 ] \
+       && LC_ALL=C grep -qE '^[[:print:]]{16}$' "${secretkey}"; then
+      echo "keep existing ${secretkey}"
+    else
+      cp ${staging_dir}/secretkey "${secretkey}"
+      chmod 600 "${secretkey}"
+      echo "installed shared ${secretkey}"
+    fi
 
 - name: Harbor | Install Harbor registry
   command: |
