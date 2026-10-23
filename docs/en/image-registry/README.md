@@ -166,7 +166,7 @@ The registry authenticates with Bearer tokens, and issuing and validating them a
 |------|---------|-------------|
 | `<data_volume>/secret/core/private_key.pem` | used by `harbor-core` to issue tokens | PEM private key, PKCS#1 or PKCS#8 |
 | `<data_volume>/secret/registry/root.crt` | used by `harbor-registry` to validate tokens, i.e. the `auth.token.rootcertbundle` of the registry configuration | PEM certificate, **only its public key is read** |
-| `<data_volume>/secret/keys/secretkey` | shared secret and CSRF key of core / jobservice | 16 random bytes |
+| `<data_volume>/secret/keys/secretkey` | shared secret of core / jobservice | **16 characters**, not 16 raw bytes — see "The secret key has to be decodable text" below |
 
 `<data_volume>` is the `data_volume` of `harbor.yml`, `/var/lib/harbor/data` by default.
 
@@ -177,6 +177,8 @@ Harbor's `prepare` only creates a file when it is missing, and it creates it ind
 - after a VIP failover, a token the client still holds and which has not expired is rejected by the instance that took the VIP over.
 
 kubekey generates the material once on the controller and distributes it to every instance. Generation follows the `IfNotPresent` policy and the copy only happens when the target file is missing, so an instance that is already serving requests is never re-keyed and a node added later uses the same material.
+
+The single exception is `secretkey`: it gets an extra format check (16 bytes, all of them `[A-Za-z0-9]`) and is **overwritten only when that check fails**. Any key harbor can read is kept, including the one harbor generated itself; only the raw bytes written by an older release are replaced, and such a key made `prepare` abort, so harbor never actually used it and replacing it loses nothing.
 
 | Generated on the controller | Distributed to the instance |
 |------|------|
@@ -201,6 +203,34 @@ TOKEN=$(curl -sk "https://<instance-a>/service/token?service=harbor-registry&sco
 # 3. Present the same token to the registry of instance B; 200 means the instances validate each other's tokens
 curl -sk -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer $TOKEN" \
   "https://<instance-b>/v2/library/<image>/manifests/<tag>"
+```
+
+#### The secret key has to be decodable text
+
+Harbor reads `<data_volume>/secret/keys/secretkey` **as text**: in `make/photon/prepare/utils/cert.py`, `_get_secret()` does `open(key_file, 'r')` followed by `f.read()` (default UTF-8, no `errors=` fallback), and `get_secret_key()` then requires the resulting Python string to be exactly 16 characters long. The file content therefore has to be **UTF-8 decodable and exactly 16 characters after decoding**.
+
+Writing 16 raw bytes (`head -c 16 /dev/urandom`) makes `prepare` abort with the exception below: the probability that all 16 bytes land in printable ASCII is about `(95/256)^16 ≈ 1.3e-7`, so a fresh install fails almost every time:
+
+```
+File "/usr/src/app/utils/cert.py", line 22, in _get_secret
+    key = f.read()
+UnicodeDecodeError: 'utf-8' codec can't decode byte 0xc0 in position 1: invalid start byte
+```
+
+kubekey therefore generates the 16 characters from `[A-Za-z0-9]`:
+
+```shell
+LC_ALL=C tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 16
+```
+
+The alphabet is the one harbor uses itself in `generate_random_string()` (`random.SystemRandom().choice(ascii_letters + digits)`), so a `secretkey` that harbor generated passes kubekey's check and is kept untouched.
+
+A malformed key written by an older release needs no manual cleanup — re-running the installation repairs it. `secretkey` is the only piece of material that is overwritten when it does not match the expected format, and it is overwritten with the compliant shared key from the controller.
+
+```shell
+# Check whether the secret key of an existing instance is compliant: 16 plus the regex
+sudo wc -c < <data_volume>/secret/keys/secretkey
+sudo bash -c 'LC_ALL=C grep -qE "^[A-Za-z0-9]{16}$" <data_volume>/secret/keys/secretkey && echo FORMAT=OK || echo FORMAT=BAD'
 ```
 
 ## Install Registry
