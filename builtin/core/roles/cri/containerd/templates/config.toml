@@ -85,19 +85,45 @@
   {{- $_ := set $configs $parts $registryConfig }}
 {{- end }}
 
-{{- $cri := dict "sandbox_image" (printf "%s/%s:%s" .kubernetes.sandbox_image.registry .kubernetes.sandbox_image.repository .kubernetes.sandbox_image.tag) }}
+{{- /* containerd 1.x uses config version 2 with the single `io.containerd.grpc.v1.cri`
+       plugin; containerd 2.x uses config version 3 and splits CRI into
+       `io.containerd.cri.v1.images` (sandbox/pinned images + registry) and
+       `io.containerd.cri.v1.runtime` (runtimes + cni). The sandbox image key moved from
+       `sandbox_image` (flat, under grpc.v1.cri) to `pinned_images.sandbox` (under
+       cri.v1.images). The previous template hard-coded `io.containerd.grpc.v1.cri` for both
+       versions, so on containerd 2.x the sandbox image landed in a plugin id that 2.x no longer
+       reads and the pause image was never set. Emit the version that matches the installed
+       containerd and the matching plugin layout. */}}
+{{- $sandboxImage := printf "%s/%s:%s" .kubernetes.sandbox_image.registry .kubernetes.sandbox_image.repository .kubernetes.sandbox_image.tag }}
 {{- if $containerdV2 }}
+{{- /* containerd 2.x: config version 3 with the split CRI plugins. The default
+       cri.containerd.config ships the v1 layout (version 2 + io.containerd.grpc.v1.cri),
+       so for v2 we rebuild the plugin section instead of merging it in: keep the base
+       settings (root, state, grpc, ...) and replace the plugins with
+       io.containerd.cri.v1.images (sandbox + registry) and
+       io.containerd.cri.v1.runtime (runtimes). The deprecated grpc.v1.cri plugin is dropped. */}}
+{{- $_ := set $config "version" 3 }}
+{{- $plugins := dig "plugins" dict $config }}
+{{- $_ := unset $plugins "io.containerd.grpc.v1.cri" }}
 {{- $registry := dict "config_path" "/etc/containerd/certs.d" }}
 {{- if $configs }}{{- $_ := set $registry "configs" $configs }}{{- end }}
-{{- $_ := set $cri "registry" $registry }}
-{{- else if or $mirrors $configs }}
+{{- $images := dict "pinned_images" (dict "sandbox" $sandboxImage) "registry" $registry }}
+{{- $_ := set $plugins "io.containerd.cri.v1.images" $images }}
+{{- $runtime := dict "containerd" (dict "runtimes" (dict "runc" (dict "runtime_type" "io.containerd.runc.v2" "options" (dict "SystemdCgroup" ((.cri.cgroup_driver | default "systemd") | eq "systemd"))))) }}
+{{- $_ := set $plugins "io.containerd.cri.v1.runtime" $runtime }}
+{{- $_ := set $config "plugins" $plugins }}
+{{- else }}
+{{- /* containerd 1.x: version 2, single CRI plugin */}}
+{{- $cri := dict "sandbox_image" $sandboxImage }}
+{{- if or $mirrors $configs }}
 {{- $registry := dict }}
 {{- if $mirrors }}{{- $_ := set $registry "mirrors" $mirrors }}{{- end }}
 {{- if $configs }}{{- $_ := set $registry "configs" $configs }}{{- end }}
 {{- $_ := set $cri "registry" $registry }}
 {{- end }}
 {{- $plugins := dict "io.containerd.grpc.v1.cri" $cri }}
-{{- $config = mergeOverwrite (dict "plugins" $plugins) $config }}
+{{- $config = mergeOverwrite (dict "version" 2 "plugins" $plugins) $config }}
+{{- end }}
 {{- if and (.cri.containerd.config_policy | eq "merge") (.containerd_config_existing | default dict) }}
   {{- $existing_stdout := .containerd_config_existing.stdout | default "" }}
   {{- $err := .containerd_config_existing.error | default "" }}
@@ -108,12 +134,19 @@
            containerd v2 refuses such a file as soon as config_path is set ("`mirrors` cannot be
            set when `config_path` is provided", internal/cri/config/config.go) and no longer knows
            the `tls` field at all, so the CRI image plugin does not load and the node cannot create
-           containers. On a v2 node this role writes the registry section itself instead: the
-           mirrors, the insecure registries and the TLS material live in
-           /etc/containerd/certs.d/<host>/hosts.toml, and the credentials are rendered below.
-           Merging the old section in would break containerd and duplicate what hosts.toml holds,
-           so it is dropped before the merge. Everything outside the registry section is still
-           merged, with the keys already on the node taking precedence. */}}
+           containers. Drop the registry section (both the legacy grpc.v1.cri and the new
+           cri.v1.images ids) before the merge; credentials are re-rendered below and everything
+           else is merged with the node's keys taking precedence. */}}
+    {{- $existing_plugins := dig "plugins" dict $existing }}
+    {{- $existing_images := dig "io.containerd.cri.v1.images" dict $existing_plugins }}
+    {{- $_ := unset $existing_images "registry" }}
+    {{- $_ := set $existing_plugins "io.containerd.cri.v1.images" $existing_images }}
+    {{- $existing_cri := dig "io.containerd.grpc.v1.cri" dict $existing_plugins }}
+    {{- $_ := unset $existing_cri "registry" }}
+    {{- $_ := set $existing_plugins "io.containerd.grpc.v1.cri" $existing_cri }}
+    {{- $_ := set $existing "plugins" $existing_plugins }}
+    {{- else }}
+    {{- /* v1: drop the legacy registry section the same way before merging. */}}
     {{- $existing_plugins := dig "plugins" dict $existing }}
     {{- $existing_cri := dig "io.containerd.grpc.v1.cri" dict $existing_plugins }}
     {{- $_ := unset $existing_cri "registry" }}
@@ -121,9 +154,21 @@
     {{- $_ := set $existing "plugins" $existing_plugins }}
     {{- end }}
     {{- $config = mergeOverwrite $config $existing }}
+    {{- if $containerdV2 }}
+    {{- /* a v1 node keeps io.containerd.grpc.v1.cri (deprecated in v2); drop it and
+           pin the version so the merged file is a clean v3 layout. */}}
+    {{- $merged_plugins := dig "plugins" dict $config }}
+    {{- $_ := unset $merged_plugins "io.containerd.grpc.v1.cri" }}
+    {{- $_ := set $config "plugins" $merged_plugins }}
+    {{- $_ := set $config "version" 3 }}
+    {{- end }}
   {{- end }}
 {{- end }}
-{{- $options := dig "plugins" "io.containerd.grpc.v1.cri" "containerd" "runtimes" "runc" "options" dict $config }}
+{{- /* normalize SystemdCgroup to a bool in the runc options, under the plugin id the
+       running containerd actually uses. */}}
+{{- $criPlugin := "io.containerd.grpc.v1.cri" }}
+{{- if $containerdV2 }}{{- $criPlugin = "io.containerd.cri.v1.runtime" }}{{- end }}
+{{- $options := dig "plugins" $criPlugin "containerd" "runtimes" "runc" "options" dict $config }}
 {{- if $options }}
 {{- if hasKey $options "SystemdCgroup" }}
 {{- $_ := set $options "SystemdCgroup" ($options.SystemdCgroup | toBool) }}
