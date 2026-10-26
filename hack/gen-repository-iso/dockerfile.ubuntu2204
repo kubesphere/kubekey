@@ -6,8 +6,6 @@ ARG PKGS=".common[],.debs[]"
 ARG BUILD_TOOLS="apt-transport-https software-properties-common ca-certificates curl wget gnupg dpkg-dev genisoimage"
 ENV DEBIAN_FRONTEND=noninteractive
 
-# dump system package list
-RUN dpkg --get-selections | grep -v deinstall | cut -f1 | cut -d ':' -f1 > packages.list
 RUN apt update -qq \
     && apt install -y --no-install-recommends $BUILD_TOOLS
 
@@ -15,8 +13,17 @@ WORKDIR /package
 COPY packages.yaml .
 
 COPY --from=mikefarah/yq:4.11.1 /usr/bin/yq /usr/bin/yq
-RUN yq eval "${PKGS}" packages.yaml >> packages.list \
-    && sort -u packages.list | xargs apt-get install --yes --reinstall --print-uris | awk -F "'" '{print $2}' | grep -v '^$' | sort -u > packages.urls
+# Expand the manifest into the full dependency closure (Depends + PreDepends) before
+# resolving download URIs. apt-get install --print-uris otherwise prunes any dependency
+# that is already installed in the build container, so the offline ISO silently lacks it
+# and a minimal target node fails (e.g. nftables -> libnftables1 -> libjansson4 (>= 2.14)
+# was dropped from the v4.0.8 ISO). Naming every closure package explicitly makes --reinstall
+# re-fetch all of them regardless of the build container's install state.
+RUN yq eval "${PKGS}" packages.yaml | sort -u > /tmp/want.list \
+    && apt-cache depends --recurse --no-recommends --no-suggests --no-conflicts --no-breaks --no-replaces --no-enhances $(cat /tmp/want.list) \
+       | grep -E '^[a-zA-Z0-9]' | sort -u > /tmp/closure.list \
+    && while read p; do apt-cache policy "$p" | grep -qE 'Candidate: [0-9]' && echo "$p"; done < /tmp/closure.list > packages.list \
+    && apt-get install --yes --reinstall --print-uris $(cat packages.list) | awk -F "'" '{print $2}' | grep -v '^$' | sort -u > packages.urls
 
 RUN mkdir -p ${DIR} \
     && ( ok=0; i=1; \
