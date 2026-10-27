@@ -1,0 +1,31 @@
+{{- /*
+hosts.toml of a single registry, read by containerd v2 from
+/etc/containerd/certs.d/<host>/hosts.toml.
+
+The role renders one of these files per registry it is told about, no matter
+whether the registry comes from cri.registry.mirrors, from
+cri.registry.insecure_registries, from image_registry.auth or from
+cri.registry.auths. Everything that differs between those four is carried by
+.item, which the loop of the "Containerd | Write the registry configuration"
+task builds.
+
+A certificate path is only written when the certificate is present, because
+containerd refuses to load a configuration that points at a missing file. The
+copy tasks of this role place the file under exactly this condition, so the two
+cannot drift apart.
+*/ -}}
+server = "{{ .item.server }}"
+{{- if .item.ca }}
+ca = "{{ .item.ca }}"
+{{- end }}
+{{- if .item.client_cert }}
+client = [["{{ .item.client_cert }}", "{{ .item.client_key }}"]]
+{{- end }}
+{{- if hasKey .item "skip_verify" }}
+skip_verify = {{ .item.skip_verify }}
+{{- end }}
+{{- range .item.mirrors | default list }}
+
+[host."{{ . }}"]
+  capabilities = ["pull", "resolve"]
+{{- end }}
