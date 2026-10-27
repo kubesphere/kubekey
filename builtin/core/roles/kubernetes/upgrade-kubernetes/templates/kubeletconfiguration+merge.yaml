@@ -1,0 +1,1 @@
+{{ .kubernetes.kubelet.managed_configuration | default "" }}
