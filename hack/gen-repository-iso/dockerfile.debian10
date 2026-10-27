@@ -20,17 +20,27 @@ WORKDIR /package
 COPY packages.yaml .
 COPY --from=mikefarah/yq:4.11.1 /usr/bin/yq /usr/bin/yq
 
-# Expand the manifest into the full dependency closure (Depends + PreDepends) before
-# resolving download URIs. apt-get install --print-uris otherwise prunes any dependency
-# that is already installed in the build container, so the offline ISO silently lacks it
-# and a minimal target node fails (e.g. nftables -> libnftables1 -> libjansson4 (>= 2.14)
-# was dropped from the v4.0.8 ISO). Naming every closure package explicitly makes --reinstall
-# re-fetch all of them regardless of the build container's install state.
+# Resolve every member of the manifest's full dependency closure (Depends + PreDepends) to
+# its own download URI. Use `apt-get download` rather than `apt-get install --print-uris`:
+# the latter runs the dependency solver, which has two failure modes here.
+#   1. It prunes any dependency already installed in the build container, so the offline ISO
+#      stays incomplete (e.g. nftables -> libnftables1 -> libjansson4 (>= 2.14) was dropped
+#      from the v4.0.8 ISO).
+#   2. It aborts with "Unable to correct problems, you have held broken packages" as soon as
+#      `apt-cache depends --recurse` has expanded both branches of an alternative dependency
+#      whose members Conflicts with each other - both then exist as explicit install targets.
+#      Real case: libqt5gui5 vs libqt5gui5-gles and mew-bin vs mew-beta-bin, which made every
+#      Debian/Ubuntu ISO resolve to zero packages.
+# `apt-get download` skips the solver altogether: every named package maps to its candidate
+# URI whatever its install state, and mutually conflicting names are accepted. Carrying both
+# branches of an alternative in the offline repository is harmless - apt on the target node
+# still installs only one of them.
 RUN yq eval "${PKGS}" packages.yaml | sort -u > /tmp/want.list \
     && apt-cache depends --recurse --no-recommends --no-suggests --no-conflicts --no-breaks --no-replaces --no-enhances $(cat /tmp/want.list) \
        | grep -E '^[a-zA-Z0-9]' | sort -u > /tmp/closure.list \
     && while read p; do apt-cache policy "$p" | grep -qE 'Candidate: [0-9]' && echo "$p"; done < /tmp/closure.list > packages.list \
-    && apt-get install --yes --reinstall --print-uris $(cat packages.list) | awk -F "'" '{print $2}' | grep -v '^$' | sort -u > packages.urls \
+    && apt-get download --print-uris $(cat packages.list) | awk -F "'" '{print $2}' | grep -v '^$' | sort -u > packages.urls \
+    && { [ -s packages.urls ] || { echo "ERROR: packages.urls is empty, no download URIs were resolved"; exit 1; }; } \
     && mkdir -p ${DIR} \
     && ( ok=0; i=1; \
          while [ $i -le 5 ]; do \
