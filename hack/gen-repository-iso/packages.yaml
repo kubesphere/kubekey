@@ -42,3 +42,21 @@ debs:
   - gpg-agent
   - python3-gi
   - python3-software-properties
+  # Dependencies that installing nftables needs on the target node. Each name is
+  # resolved on its own, so the ones a distribution does not carry are simply
+  # skipped: libnftnl7 is what 18.04 wants where newer releases use libnftnl11,
+  # and nftables links against libedit2 from 22.04 on but libreadline before that.
+  # List them so a target whose base install is smaller than this image can still
+  # install nftables offline - libjansson4 in particular used to be missing.
+  - libnftables1
+  - libjansson4
+  - libmnl0
+  - libnftnl11
+  - libnftnl7
+  - libxtables12
+  - libbsd0
+  - libmd0
+  - libedit2
+  - libreadline8
+  - libreadline7
+  - readline-common
