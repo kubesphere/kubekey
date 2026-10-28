@@ -35,9 +35,10 @@ debs:
   - nfs-kernel-server
   - openssh-server
   - software-properties-common
-  # explicit deps of gnupg-agent / software-properties-common that the build
-  # container already satisfies (via BUILD_TOOLS), so print-uris skips them and
-  # the offline ISO lacks them. List them explicitly so --reinstall refetches.
+  # Dependencies KubeKey needs on the target nodes that also get pulled in by
+  # BUILD_TOOLS here. They are named explicitly so the list never depends on what
+  # happens to be installed in the build container. Any further package a target
+  # node needs belongs in this file.
   - gpg-agent
   - python3-gi
   - python3-software-properties
