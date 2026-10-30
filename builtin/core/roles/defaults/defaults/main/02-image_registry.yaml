@@ -6,6 +6,10 @@ image_registry:
   # If left empty, no image registry will be installed (assumes an existing registry is already available).
   type: ""
   ha_vip: ""
+  # VRRP virtual_router_id (1-255) for Harbor HA keepalived.
+  # Must be unique across every keepalived instance sharing the same L2 network,
+  # otherwise VRRP master election collides and the HA VIP flaps. Defaults to 31.
+  virtual_router_id: 31
   # Image registry authentication settings
   # Note: The 'harbor' section below depends on values computed in this 'auth' section.
   auth:
