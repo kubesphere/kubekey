@@ -14,12 +14,22 @@ services:
       - SETGID
       - SETUID
     volumes:
+      # Config & TLS are persisted on the host: these bind mounts survive a
+      # `docker-compose down`+`up` (e.g. systemctl restart).
       - type: bind
         source: /opt/docker-registry/{{ .image_registry.docker_registry_version }}/ssl/
         target: /etc/registry/ssl/
       - type: bind
         source: /opt/docker-registry/{{ .image_registry.docker_registry_version }}/config.yml
         target: /etc/docker/registry/config.yml
+{{- if .image_registry.docker_registry.storage.filesystem.rootdir | empty | not }}
+      # Persistent data directory: bind the on-host storage rootdir into the
+      # container at /data so pushed images survive a `docker-compose down`+`up`
+      # (e.g. systemctl restart). Mirrors Harbor's data_volume persistence.
+      - type: bind
+        source: {{ .image_registry.docker_registry.storage.filesystem.rootdir }}
+        target: /data
+{{- end }}
     ports:
 {{- if .image_registry.auth.plain_http | default false }}
       - {{ .image_registry.http_port | default 80 }}:5000
