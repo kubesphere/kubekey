@@ -6,6 +6,12 @@
     dest: >-
       /opt/docker-registry/{{ .image_registry.docker_registry_version }}/docker-registry-{{ .image_registry.docker_registry_version }}-linux-{{ .binary_type }}.tgz
 
+- name: DockerRegistry | Ensure registry data directory exists on host
+  command: |
+    mkdir -p {{ .image_registry.docker_registry.storage.filesystem.rootdir }}
+  when:
+    - .image_registry.docker_registry.storage.filesystem.rootdir | empty | not
+
 - name: DockerRegistry | Ensure NFS directory is mounted for registry storage
   command: |
     {{- $internalIPv4 := index .hostvars (.groups.nfs | default list | first) "internal_ipv4" | default "" }}

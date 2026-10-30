@@ -24,7 +24,10 @@ log:
 storage:
 {{- if .image_registry.docker_registry.storage.filesystem.rootdir | empty | not }}
   filesystem:
-    rootdirectory: {{ .image_registry.docker_registry.storage.filesystem.rootdir }}
+    # Container data root. The on-host directory (storage.filesystem.rootdir)
+    # is bind-mounted to /data in docker-compose.yaml so pushed images
+    # survive a `docker-compose down`+`up` (e.g. systemctl restart).
+    rootdirectory: /data
     maxthreads: 100
 {{- end }}
 {{- if .image_registry.docker_registry.storage.azure }}
