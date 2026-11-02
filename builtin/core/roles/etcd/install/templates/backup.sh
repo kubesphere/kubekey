@@ -35,7 +35,7 @@ ETCDCTL_CA_FILE="/etc/ssl/etcd/ssl/ca.crt"
 # sleep 3
 
 {
-export ETCDCTL_API=3;$ETCDCTL_PATH --endpoints="$ENDPOINTS" snapshot save $BACKUP_DIR/snapshot.db \
+export ETCDCTL_API=3;$ETCDCTL_PATH --endpoints="$ETCD_ENDPOINTS" snapshot save $BACKUP_DIR/snapshot.db \
                                    --cacert="$ETCDCTL_CA_FILE" \
                                    --cert="$ETCDCTL_CERT" \
                                    --key="$ETCDCTL_KEY"
