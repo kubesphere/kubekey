@@ -557,6 +557,9 @@ kubernetes:
 
   # kubelet service parameters
   kubelet:
+    # KubeKey aligns the settings below on every node during `kk upgrade` and mirrors
+    # them into the kubelet-config ConfigMap, so manual edits to the same fields in
+    # /var/lib/kubelet/config.yaml are reset to the values configured here.
     # Maximum number of Pods per node
     max_pods: 110
     # PID limit per Pod
@@ -828,7 +831,8 @@ KubeKey supports standard Kubernetes dual-stack networking. A dual-stack cluster
 cri:
   # Container runtime type. Supported: containerd, docker
   container_manager: containerd
-  # Cgroup driver for the container runtime. Supported: systemd, cgroupfs
+  # Cgroup driver for the container runtime. Also drives the kubelet's cgroup
+  # driver. Supported: systemd, cgroupfs.
   cgroup_driver: systemd
     # tag: "3.9"
   # CRI socket endpoint for the selected container runtime
@@ -942,7 +946,7 @@ cri:
 | Parameter | Description |
 |-----------|-------------|
 | `cri.container_manager` | Container runtime manager, optional: `containerd` or `docker`. |
-| `cri.cgroup_driver` | Cgroup driver used by the container runtime, recommended `systemd` (compatible with most modern OS init systems). |
+| `cri.cgroup_driver` | Cgroup driver for the container runtime and the kubelet (`SystemdCgroup` for containerd, `native.cgroupdriver` for docker). Defaults to `systemd`. |
 | `cri.cri_socket` | CRI socket path corresponding to the current container runtime, automatically selected based on `container_manager` and Kubernetes version. |
 | `cri.registry.mirrors` | Image mirror addresses, can be configured with domestic mirror sources to improve pull speed. |
 | `cri.registry.insecure_registries` | List of image registry addresses allowed to access using HTTP (non-HTTPS). |

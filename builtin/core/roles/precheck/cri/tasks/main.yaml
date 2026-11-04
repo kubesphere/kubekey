@@ -99,3 +99,53 @@
           containers may be interrupted. To reduce the risk, enable
           "live-restore": true in /etc/docker/daemon.json, or ensure workload
           replicas are distributed across worker nodes.
+
+# The kubelet and the container runtime must use the same cgroup driver. Both are
+# driven by `cri.cgroup_driver` at init, but an in-place upgrade (in particular
+# `upgrade.cri` with a containerd version bump) re-renders the runtime config to
+# SystemdCgroup while the kubelet config may still carry an older value. The
+# upgrade role reconciles the kubelet to `cri.cgroup_driver` on existing nodes, but
+# a node that was provisioned with a mismatch (containerd systemd, kubelet cgroupfs)
+# makes runc fail with "expected cgroupsPath to be of format slice:prefix:name",
+# taking down kube-vip and then the whole control plane. Warn early if a node is
+# already in that state so the operator can fix it before the upgrade.
+- name: CRI | Detect current kubelet and containerd cgroup drivers on the node
+  when:
+    - .groups.k8s_cluster | default list | has .inventory_hostname
+    - .cri.container_manager | eq "containerd"
+  ignore_errors: true
+  command: |
+    kd=""
+    if [ -f /var/lib/kubelet/config.yaml ]; then
+      kd=$(grep -E '^cgroupDriver:' /var/lib/kubelet/config.yaml | awk '{print $2}')
+    fi
+    cd=""
+    if [ -f /etc/containerd/config.toml ]; then
+      if grep -qE 'SystemdCgroup[[:space:]]*=[[:space:]]*true' /etc/containerd/config.toml; then
+        cd="systemd"
+      elif grep -qE 'SystemdCgroup' /etc/containerd/config.toml; then
+        cd="cgroupfs"
+      fi
+    fi
+    if [ -z "${kd}" ] || [ -z "${cd}" ]; then
+      echo "unknown"
+    elif [ "${kd}" = "${cd}" ]; then
+      echo "match"
+    else
+      echo "mismatch:${kd}/${cd}"
+    fi
+  register: cgroup_current_state
+
+- name: CRI | Warn if a node already has a kubelet/runtime cgroup driver mismatch
+  when:
+    - .cgroup_current_state.error | empty
+    - .cgroup_current_state.stdout | regexMatch "^mismatch:"
+  debug:
+    msg: >-
+      WARNING: node {{ .inventory_hostname }} has kubelet cgroupDriver
+      ({{ .cgroup_current_state.stdout | trimPrefix "mismatch:" | splitList "/" | first }})
+      != containerd SystemdCgroup
+      ({{ .cgroup_current_state.stdout | trimPrefix "mismatch:" | splitList "/" | last }}).
+      KubeKey reconciles the kubelet to "{{ .cri.cgroup_driver }}" during
+      `kk upgrade` (kubernetes/upgrade-kubernetes). If you are not running an upgrade,
+      fix it manually before the mismatch breaks static pods such as kube-vip.

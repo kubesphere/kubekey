@@ -287,6 +287,78 @@
 #   "unable to fetch the kubeadm-config ConfigMap: ... dial tcp ...:6443: connect: connection refused"
 # So: restart the CP kubelet FIRST, then have workers wait for the API server
 # to come back before running `kubeadm upgrade node`.
+# Sync the kubelet configuration onto the node. The CRI role may flip the runtime to
+# SystemdCgroup (e.g. during `upgrade.cri` with a containerd version bump) while the
+# kubelet config kept an older value; left alone this makes runc reject cgroupfs-style
+# paths and takes down static pods such as kube-vip.
+#
+# Model: /var/lib/kubelet/config.yaml is the single source of truth (it is what the
+# kubelet reads at runtime). The in-cluster `kubelet-config` ConfigMap is only a
+# cluster-wide copy that kubeadm re-derives config.yaml from on every future upgrade
+# hop, so it MUST be kept in sync with the file. We therefore (1) align the settings
+# KubeKey manages, then (2) derive the CM from that file -- not patch the CM field by
+# field -- so the two can never drift apart.
+#
+# Only the fields KubeKey itself renders into KubeletConfiguration (see the kubeadm
+# init/join templates) are touched. Everything else is preserved on purpose: kubeadm
+# injects defaults this file depends on (staticPodPath, authentication.x509.clientCAFile,
+# authorization.mode, clusterDNS -- cmd/kubeadm/app/componentconfigs/kubelet.go Default),
+# so rewriting the file wholesale would drop staticPodPath and take the control plane down.
+- name: UpgradeKubernetes | Sync kubelet configuration
+  when: .groups.kube_control_plane | default list | has .inventory_hostname
+  command: |
+    KC=/etc/kubernetes/admin.conf
+    [ -r "$KC" ] || KC=/root/.kube/config
+    [ -r "$KC" ] || KC="$HOME/.kube/config"
+    K=/usr/local/bin/kubectl
+    changed=0
+    f=/var/lib/kubelet/config.yaml
+
+    # (1) Align the settings KubeKey manages: replace when the key already exists,
+    # append when it does not, and skip any setting that is not configured.
+    if [ -f "$f" ]; then
+      while read -r key val; do
+        [ -n "$key" ] || continue
+        [ -n "$val" ] || continue
+        cur=$(awk -v k="$key" '$1 == k":" {print $2; exit}' "$f")
+        if [ "$cur" = "$val" ]; then
+          continue
+        fi
+        if grep -qE "^${key}:" "$f"; then
+          sed -i -E "s|^${key}:.*|${key}: ${val}|" "$f"
+        else
+          printf '%s: %s\n' "$key" "$val" >> "$f"
+        fi
+        changed=1
+      done <<MANAGED
+    cgroupDriver {{ .cri.cgroup_driver }}
+    maxPods {{ .kubernetes.kubelet.max_pods }}
+    podPidsLimit {{ .kubernetes.kubelet.pod_pids_limit }}
+    containerLogMaxSize {{ .kubernetes.kubelet.container_log_max_size }}
+    containerLogMaxFiles {{ .kubernetes.kubelet.container_log_max_files }}
+    MANAGED
+    fi
+
+    # (2) Derive the kubelet-config CM from the (now aligned) file. The `kubelet-config`
+    # ConfigMap carries a single `kubelet` data key (kubeadm source:
+    # cmd/kubeadm/app/phases/kubelet/config.go CreateConfigMap), so re-creating it from
+    # the file is a faithful, field-agnostic conversion -- not a per-field patch. kubeadm
+    # re-derives the node file from this CM on later upgrades, so the CM must equal the file.
+    if [ -n "$(command -v "$K" 2>/dev/null)" ] && [ -f "$f" ]; then
+      cur_cm=$("$K" --kubeconfig="$KC" -n kube-system get cm kubelet-config -o jsonpath='{.data.kubelet}' 2>/dev/null)
+      if [ "$cur_cm" != "$(cat "$f")" ]; then
+        "$K" --kubeconfig="$KC" -n kube-system create configmap kubelet-config \
+          --from-file=kubelet="$f" --dry-run=client -o yaml 2>/dev/null \
+          | "$K" --kubeconfig="$KC" -n kube-system apply -f - >/dev/null 2>&1 && changed=1
+      fi
+    fi
+
+    if [ "$changed" = "1" ]; then
+      echo "✅ synced kubelet configuration on this node (config.yaml + kubelet-config CM)"
+    else
+      echo "ℹ️  kubelet configuration already in sync; nothing to do"
+    fi
+
 - name: UpgradeKubernetes | Restart kubelet on control plane after upgrade
   when: .groups.kube_control_plane | default list | has .inventory_hostname
   command: |
@@ -318,6 +390,61 @@
   when: .groups.kube_worker | default list | has .inventory_hostname
   command: |
     /usr/local/bin/kubeadm upgrade node --ignore-preflight-errors=ImagePull
+
+# Same model as on the control plane: align the settings KubeKey manages in
+# /var/lib/kubelet/config.yaml (source of truth), then derive the `kubelet-config` CM
+# from that file. On workers `kubeadm upgrade node` re-derives the node file from the
+# CM, so keeping the CM in sync makes the values survive into future upgrade hops.
+- name: UpgradeKubernetes | Sync kubelet configuration
+  when: .groups.kube_worker | default list | has .inventory_hostname
+  command: |
+    KC=/etc/kubernetes/admin.conf
+    [ -r "$KC" ] || KC=/root/.kube/config
+    [ -r "$KC" ] || KC="$HOME/.kube/config"
+    K=/usr/local/bin/kubectl
+    changed=0
+    f=/var/lib/kubelet/config.yaml
+
+    # (1) Align the settings KubeKey manages: replace when the key already exists,
+    # append when it does not, and skip any setting that is not configured.
+    if [ -f "$f" ]; then
+      while read -r key val; do
+        [ -n "$key" ] || continue
+        [ -n "$val" ] || continue
+        cur=$(awk -v k="$key" '$1 == k":" {print $2; exit}' "$f")
+        if [ "$cur" = "$val" ]; then
+          continue
+        fi
+        if grep -qE "^${key}:" "$f"; then
+          sed -i -E "s|^${key}:.*|${key}: ${val}|" "$f"
+        else
+          printf '%s: %s\n' "$key" "$val" >> "$f"
+        fi
+        changed=1
+      done <<MANAGED
+    cgroupDriver {{ .cri.cgroup_driver }}
+    maxPods {{ .kubernetes.kubelet.max_pods }}
+    podPidsLimit {{ .kubernetes.kubelet.pod_pids_limit }}
+    containerLogMaxSize {{ .kubernetes.kubelet.container_log_max_size }}
+    containerLogMaxFiles {{ .kubernetes.kubelet.container_log_max_files }}
+    MANAGED
+    fi
+
+    # (2) Derive the kubelet-config CM from the (now aligned) file.
+    if [ -n "$(command -v "$K" 2>/dev/null)" ] && [ -f "$f" ]; then
+      cur_cm=$("$K" --kubeconfig="$KC" -n kube-system get cm kubelet-config -o jsonpath='{.data.kubelet}' 2>/dev/null)
+      if [ "$cur_cm" != "$(cat "$f")" ]; then
+        "$K" --kubeconfig="$KC" -n kube-system create configmap kubelet-config \
+          --from-file=kubelet="$f" --dry-run=client -o yaml 2>/dev/null \
+          | "$K" --kubeconfig="$KC" -n kube-system apply -f - >/dev/null 2>&1 && changed=1
+      fi
+    fi
+
+    if [ "$changed" = "1" ]; then
+      echo "✅ synced kubelet configuration on this node (config.yaml + kubelet-config CM)"
+    else
+      echo "ℹ️  kubelet configuration already in sync; nothing to do"
+    fi
 
 - name: UpgradeKubernetes | Restart kubelet on worker nodes after upgrade
   when: .groups.kube_worker | default list | has .inventory_hostname

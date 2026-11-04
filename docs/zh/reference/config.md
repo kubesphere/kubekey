@@ -553,6 +553,8 @@ kubernetes:
 
   # kubelet 服务参数
   kubelet:
+    # KubeKey 会在 `kk upgrade` 时把下面的设置对齐到每个节点，并同步进 kubelet-config
+    # ConfigMap，因此 /var/lib/kubelet/config.yaml 中同名字段的手工修改会被重置为这里配置的值。
     # 每个节点最大 Pod 数量
     max_pods: 110
     # 每个 Pod 的 PID 限制
@@ -823,7 +825,7 @@ KubeKey 支持标准的 Kubernetes 双栈网络，可按以下步骤配置双栈
 cri:
   # 容器运行时类型。支持：containerd, docker
   container_manager: containerd
-  # 容器运行时的 Cgroup 驱动。支持：systemd, cgroupfs
+  # 容器运行时的 Cgroup 驱动，同时作用于 kubelet。支持：systemd, cgroupfs
   cgroup_driver: systemd
     # tag: "3.9"
   # 所选容器运行时的 CRI socket 端点
@@ -937,7 +939,7 @@ cri:
 | 参数 | 说明 |
 |------|------|
 | `cri.container_manager` | 容器运行时管理器，可选 `containerd` 或 `docker`。 |
-| `cri.cgroup_driver` | 容器运行时使用的 Cgroup 驱动，推荐 `systemd`（与大多数现代操作系统 init 系统兼容）。 |
+| `cri.cgroup_driver` | 容器运行时与 kubelet 的 Cgroup 驱动（containerd 对应 `SystemdCgroup`，docker 对应 `native.cgroupdriver`）。默认为 `systemd`。 |
 | `cri.cri_socket` | 当前容器运行时对应的 CRI socket 路径，会根据 `container_manager` 和 Kubernetes 版本自动选择。 |
 | `cri.registry.mirrors` | 镜像加速地址，可配置国内镜像源以提高拉取速度。 |
 | `cri.registry.insecure_registries` | 允许使用 HTTP（非 HTTPS）访问的镜像仓库地址列表。 |
