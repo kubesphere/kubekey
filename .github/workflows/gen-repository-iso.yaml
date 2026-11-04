@@ -259,6 +259,13 @@ jobs:
           for d in $(ls config/harbor); do
             if [ -d "config/harbor/$d" ]; then
               qsctl -c /usr/local/bin/qsctl-config.yaml cp config/harbor/$d/harbor-offline-installer-"$d".tgz qs://kubekey/github.com/kubesphere/kubekey/releases/download/iso-latest/harbor-offline-installer-"$d".tgz
+
+              # Mirror the official goharbor amd64 offline package: kubekey's
+              # cn-zone downloads resolve amd64 to the goharbor release path on
+              # the same OSS bucket, which is not synced by any other job.
+              GH_TOKEN="${{ secrets.GITHUB_TOKEN }}" gh release download "$d" --repo goharbor/harbor --pattern "harbor-offline-installer-*.tgz" --output "harbor-offline-installer-$d.tgz"
+              qsctl -c /usr/local/bin/qsctl-config.yaml cp harbor-offline-installer-"$d".tgz qs://kubekey/github.com/goharbor/harbor/releases/download/"$d"/harbor-offline-installer-"$d".tgz
+              rm -f harbor-offline-installer-"$d".tgz
             fi
           done
 
