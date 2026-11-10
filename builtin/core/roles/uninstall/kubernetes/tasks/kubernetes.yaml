@@ -14,6 +14,18 @@
     systemctl daemon-reload
     systemctl reset-failed kubelet.service
 
+- name: Kubernetes | Remove k8s-certs-renew timer, service, and renewal script
+  ignore_errors: true
+  when: and (.kubernetes.certs.renew) (.groups.kube_control_plane | default list | has .inventory_hostname)
+  command: |
+    systemctl stop k8s-certs-renew.timer
+    systemctl disable k8s-certs-renew.timer
+    rm /etc/systemd/system/k8s-certs-renew.timer
+    rm -rf /etc/systemd/system/k8s-certs-renew.service*
+    rm /usr/local/bin/kube-scripts/renew_script.sh
+    systemctl daemon-reload
+    systemctl reset-failed k8s-certs-renew.service
+
 - name: Kubernetes | Terminate residual control plane and kubelet processes
   ignore_errors: true
   command: |
