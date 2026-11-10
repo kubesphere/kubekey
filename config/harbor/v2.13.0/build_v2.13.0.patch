@@ -1,0 +1,428 @@
+diff --git a/Makefile b/Makefile
+index 2bbdcfe..d91e66c 100644
+--- a/Makefile
++++ b/Makefile
+@@ -95,6 +95,7 @@ BASEIMAGETAG=dev
+ BUILDBASETARGET=trivy-adapter core db jobservice log nginx portal prepare redis registry registryctl exporter
+ IMAGENAMESPACE=goharbor
+ BASEIMAGENAMESPACE=goharbor
++SAVEIMAGENAMESPACE=goharbor
+ # #input true/false only
+ PULL_BASE_FROM_DOCKERHUB=true
+ 
+@@ -128,6 +129,8 @@ endef
+ 
+ # docker parameters
+ DOCKERCMD=$(shell which docker)
++DOCKER_PLATFORM=linux/amd64
++DOCKER_BUILD_IMAGES=true
+ DOCKERBUILD=$(DOCKERCMD) build
+ DOCKERRMIMAGE=$(DOCKERCMD) rmi
+ DOCKERPULL=$(DOCKERCMD) pull
+@@ -215,6 +218,30 @@ DOCKERIMAGENAME_DB=$(IMAGENAMESPACE)/harbor-db
+ DOCKERIMAGENAME_REGCTL=$(IMAGENAMESPACE)/harbor-registryctl
+ DOCKERIMAGENAME_EXPORTER=$(IMAGENAMESPACE)/harbor-exporter
+ 
++DOCKER_NORMAL_IMAGE_NAME_PREPARE=$(IMAGENAMESPACE)/prepare:$(VERSIONTAG)
++DOCKERNORMALIMAGENAME_PORTAL=$(IMAGENAMESPACE)/harbor-portal:$(VERSIONTAG)
++DOCKERNORMALIMAGENAME_CORE=$(IMAGENAMESPACE)/harbor-core:$(VERSIONTAG)
++DOCKERNORMALIMAGENAME_JOBSERVICE=$(IMAGENAMESPACE)/harbor-jobservice:$(VERSIONTAG)
++DOCKERNORMALIMAGENAME_LOG=$(IMAGENAMESPACE)/harbor-log:$(VERSIONTAG)
++DOCKERNORMALIMAGENAME_DB=$(IMAGENAMESPACE)/harbor-db:$(VERSIONTAG)
++DOCKERNORMALIMAGENAME_REGCTL=$(IMAGENAMESPACE)/harbor-registryctl:$(VERSIONTAG)
++DOCKERNORMALIMAGENAME_EXPORTER=$(IMAGENAMESPACE)/harbor-exporter:$(VERSIONTAG)
++DOCKERNORMALIMAGENAME_REDIS_PHOTON=$(IMAGENAMESPACE)/redis-photon:$(VERSIONTAG)
++DOCKERNORMALIMAGENAME_NGINX_PHOTON=$(IMAGENAMESPACE)/nginx-photon:$(VERSIONTAG)
++DOCKERNORMALIMAGENAME_REGISTRY_PHOTON=$(IMAGENAMESPACE)/registry-photon:$(VERSIONTAG)
++
++DOCKER_SAVE_IMAGE_NAME_PREPARE=$(SAVEIMAGENAMESPACE)/prepare:$(VERSIONTAG)
++DOCKERSAVEIMAGENAME_PORTAL=$(SAVEIMAGENAMESPACE)/harbor-portal:$(VERSIONTAG)
++DOCKERSAVEIMAGENAME_CORE=$(SAVEIMAGENAMESPACE)/harbor-core:$(VERSIONTAG)
++DOCKERSAVEIMAGENAME_JOBSERVICE=$(SAVEIMAGENAMESPACE)/harbor-jobservice:$(VERSIONTAG)
++DOCKERSAVEIMAGENAME_LOG=$(SAVEIMAGENAMESPACE)/harbor-log:$(VERSIONTAG)
++DOCKERSAVEIMAGENAME_DB=$(SAVEIMAGENAMESPACE)/harbor-db:$(VERSIONTAG)
++DOCKERSAVEIMAGENAME_REGCTL=$(SAVEIMAGENAMESPACE)/harbor-registryctl:$(VERSIONTAG)
++DOCKERSAVEIMAGENAME_EXPORTER=$(SAVEIMAGENAMESPACE)/harbor-exporter:$(VERSIONTAG)
++DOCKERSAVEIMAGENAME_REDIS_PHOTON=$(SAVEIMAGENAMESPACE)/redis-photon:$(VERSIONTAG)
++DOCKERSAVEIMAGENAME_NGINX_PHOTON=$(SAVEIMAGENAMESPACE)/nginx-photon:$(VERSIONTAG)
++DOCKERSAVEIMAGENAME_REGISTRY_PHOTON=$(SAVEIMAGENAMESPACE)/registry-photon:$(VERSIONTAG)
++
+ # docker-compose files
+ DOCKERCOMPOSEFILEPATH=$(MAKEPATH)
+ DOCKERCOMPOSEFILENAME=docker-compose.yml
+@@ -250,6 +277,18 @@ DOCKERSAVE_PARA=$(DOCKER_IMAGE_NAME_PREPARE):$(VERSIONTAG) \
+ 		$(IMAGENAMESPACE)/nginx-photon:$(VERSIONTAG) \
+ 		$(IMAGENAMESPACE)/registry-photon:$(VERSIONTAG)
+ 
++DOCKERSAVETAG_PARA=$(DOCKER_SAVE_IMAGE_NAME_PREPARE) \
++		$(DOCKERSAVEIMAGENAME_PORTAL) \
++		$(DOCKERSAVEIMAGENAME_CORE) \
++		$(DOCKERSAVEIMAGENAME_LOG) \
++		$(DOCKERSAVEIMAGENAME_DB) \
++		$(DOCKERSAVEIMAGENAME_JOBSERVICE) \
++		$(DOCKERSAVEIMAGENAME_REGCTL) \
++		$(DOCKERSAVEIMAGENAME_EXPORTER) \
++		$(DOCKERSAVEIMAGENAME_REDIS_PHOTON) \
++		$(DOCKERSAVEIMAGENAME_NGINX_PHOTON) \
++		$(DOCKERSAVEIMAGENAME_REGISTRY_PHOTON)
++
+ PACKAGE_OFFLINE_PARA=-zcvf harbor-offline-installer-$(PKGVERSIONTAG).tgz \
+ 					$(HARBORPKG)/$(DOCKERIMGFILE).$(VERSIONTAG).tar.gz \
+ 					$(HARBORPKG)/prepare \
+@@ -363,7 +402,7 @@ compile: check_environment versions_prepare compile_core compile_jobservice comp
+ 
+ update_prepare_version:
+ 	@echo "substitute the prepare version tag in prepare file..."
+-	@$(SEDCMDI) -e 's/goharbor\/prepare:.*[[:space:]]\+/goharbor\/prepare:$(VERSIONTAG) prepare /' $(MAKEPATH)/prepare ;
++	@$(SEDCMDI) -e 's/goharbor\/prepare:.*[[:space:]]\+/$(subst /,\/,$(SAVEIMAGENAMESPACE))\/prepare:$(VERSIONTAG) prepare /' $(MAKEPATH)/prepare ;
+ 
+ gen_tls:
+ 	@$(DOCKERCMD) run --rm -v /:/hostfs:z $(IMAGENAMESPACE)/prepare:$(VERSIONTAG) gencert -p /etc/harbor/tls/internal
+@@ -376,30 +415,15 @@ prepare: update_prepare_version
+ 	@$(MAKEPATH)/$(PREPARECMD) $(PREPARECMD_PARA)
+ 
+ build:
+-# PUSHBASEIMAGE should not be true if BUILD_BASE is not true
+-	@if [ "$(PULL_BASE_FROM_DOCKERHUB)" != "true" ] && [ "$(PULL_BASE_FROM_DOCKERHUB)" != "false" ] ; then \
+-		echo set PULL_BASE_FROM_DOCKERHUB to true or false.; exit 1; \
++	@if [ "$(DOCKER_BUILD_IMAGES)" == "true" ] ; then \
++	        make -f $(MAKEFILEPATH_PHOTON)/Makefile $(BUILDTARGET) -e BUILD_BASE=$(BUILD_BASE) -e GOBUILDIMAGE=$(GOBUILDIMAGE) \
++	         -e NODEBUILDIMAGE=$(NODEBUILDIMAGE) \
++	         -e REGISTRYVERSION=$(REGISTRYVERSION) -e REGISTRY_SRC_TAG=$(REGISTRY_SRC_TAG) -e DISTRIBUTION_SRC=$(DISTRIBUTION_SRC) \
++	         -e TRIVYFLAG=$(TRIVYFLAG) -e TRIVYVERSION=$(TRIVYVERSION) -e TRIVYADAPTERVERSION=$(TRIVYADAPTERVERSION) \
++	         -e VERSIONTAG=$(VERSIONTAG) \
++	         -e NPM_REGISTRY=$(NPM_REGISTRY) -e BASEIMAGETAG=$(BASEIMAGETAG) -e IMAGENAMESPACE=$(IMAGENAMESPACE) -e BASEIMAGENAMESPACE=$(BASEIMAGENAMESPACE) \
++	         -e BUILD_BASE=$(BUILD_BASE); \
+ 	fi
+-	@if [ "$(BUILD_BASE)" != "true" ]  && [ "$(PUSHBASEIMAGE)" = "true" ] ; then \
+-		echo Do not push base images since no base images built. ; \
+-		exit 1; \
+-	fi
+-# PULL_BASE_FROM_DOCKERHUB should be true if BUILD_BASE is not true
+-	@if [ "$(BUILD_BASE)" != "true" ]  && [ "$(PULL_BASE_FROM_DOCKERHUB)" = "false" ] ; then \
+-		echo Should pull base images from registry in docker configuration since no base images built. ; \
+-		exit 1; \
+-	fi
+-	make -f $(MAKEFILEPATH_PHOTON)/Makefile $(BUILDTARGET) -e DEVFLAG=$(DEVFLAG) -e GOBUILDIMAGE=$(GOBUILDIMAGE) -e NODEBUILDIMAGE=$(NODEBUILDIMAGE) \
+-	 -e REGISTRYVERSION=$(REGISTRYVERSION) -e REGISTRY_SRC_TAG=$(REGISTRY_SRC_TAG)  -e DISTRIBUTION_SRC=$(DISTRIBUTION_SRC)\
+-	 -e TRIVYVERSION=$(TRIVYVERSION) -e TRIVYADAPTERVERSION=$(TRIVYADAPTERVERSION) \
+-	 -e VERSIONTAG=$(VERSIONTAG) \
+-	 -e BUILDREG=$(BUILDREG) -e BUILDTRIVYADP=$(BUILDTRIVYADP) \
+-	 -e NPM_REGISTRY=$(NPM_REGISTRY) -e BASEIMAGETAG=$(BASEIMAGETAG) -e IMAGENAMESPACE=$(IMAGENAMESPACE) -e BASEIMAGENAMESPACE=$(BASEIMAGENAMESPACE) \
+-	 -e REGISTRYURL=$(REGISTRYURL) \
+-	 -e TRIVY_DOWNLOAD_URL=$(TRIVY_DOWNLOAD_URL) -e TRIVY_ADAPTER_DOWNLOAD_URL=$(TRIVY_ADAPTER_DOWNLOAD_URL) \
+-	 -e PULL_BASE_FROM_DOCKERHUB=$(PULL_BASE_FROM_DOCKERHUB) -e BUILD_BASE=$(BUILD_BASE) \
+-	 -e REGISTRYUSER=$(REGISTRYUSER) -e REGISTRYPASSWORD=$(REGISTRYPASSWORD) \
+-	 -e PUSHBASEIMAGE=$(PUSHBASEIMAGE)
+ 
+ build_standalone_db_migrator: compile_standalone_db_migrator
+ 	make -f $(MAKEFILEPATH_PHOTON)/Makefile _build_standalone_db_migrator -e BASEIMAGETAG=$(BASEIMAGETAG) -e VERSIONTAG=$(VERSIONTAG)
+@@ -440,14 +464,32 @@ package_online: update_prepare_version
+ 	@rm -rf $(HARBORPKG)
+ 	@echo "Done."
+ 
+-package_offline: update_prepare_version compile build
++package_offline: update_prepare_version versions_prepare build
+ 
+ 	@echo "packing offline package ..."
+ 	@cp -r make $(HARBORPKG)
+ 	@cp LICENSE $(HARBORPKG)/LICENSE
+ 
++	@echo "pull images for: $(DOCKER_PLATFORM)"
++	@for image in $(DOCKERSAVE_PARA); \
++	do \
++	  $(DOCKERPULL) --platform=$(DOCKER_PLATFORM) $$image; \
++	done
++
++	@$(DOCKERTAG) $(DOCKER_NORMAL_IMAGE_NAME_PREPARE) $(DOCKER_SAVE_IMAGE_NAME_PREPARE)
++	@$(DOCKERTAG) $(DOCKERNORMALIMAGENAME_PORTAL) $(DOCKERSAVEIMAGENAME_PORTAL)
++	@$(DOCKERTAG) $(DOCKERNORMALIMAGENAME_CORE) $(DOCKERSAVEIMAGENAME_CORE)
++	@$(DOCKERTAG) $(DOCKERNORMALIMAGENAME_LOG) $(DOCKERSAVEIMAGENAME_LOG)
++	@$(DOCKERTAG) $(DOCKERNORMALIMAGENAME_DB) $(DOCKERSAVEIMAGENAME_DB)
++	@$(DOCKERTAG) $(DOCKERNORMALIMAGENAME_JOBSERVICE) $(DOCKERSAVEIMAGENAME_JOBSERVICE)
++	@$(DOCKERTAG) $(DOCKERNORMALIMAGENAME_REGCTL) $(DOCKERSAVEIMAGENAME_REGCTL)
++	@$(DOCKERTAG) $(DOCKERNORMALIMAGENAME_EXPORTER) $(DOCKERSAVEIMAGENAME_EXPORTER)
++	@$(DOCKERTAG) $(DOCKERNORMALIMAGENAME_REDIS_PHOTON) $(DOCKERSAVEIMAGENAME_REDIS_PHOTON)
++	@$(DOCKERTAG) $(DOCKERNORMALIMAGENAME_NGINX_PHOTON) $(DOCKERSAVEIMAGENAME_NGINX_PHOTON)
++	@$(DOCKERTAG) $(DOCKERNORMALIMAGENAME_REGISTRY_PHOTON) $(DOCKERSAVEIMAGENAME_REGISTRY_PHOTON)
++
+ 	@echo "saving harbor docker image"
+-	@$(DOCKERSAVE) $(DOCKERSAVE_PARA) > $(HARBORPKG)/$(DOCKERIMGFILE).$(VERSIONTAG).tar
++	@$(DOCKERSAVE) $(DOCKERSAVETAG_PARA) > $(HARBORPKG)/$(DOCKERIMGFILE).$(VERSIONTAG).tar
+ 	@gzip $(HARBORPKG)/$(DOCKERIMGFILE).$(VERSIONTAG).tar
+ 
+ 	@$(TARCMD) $(PACKAGE_OFFLINE_PARA)
+diff --git a/make/photon/Makefile b/make/photon/Makefile
+index 181e6c0..640bb8e 100644
+--- a/make/photon/Makefile
++++ b/make/photon/Makefile
+@@ -18,8 +18,8 @@ TIMESTAMP=$(shell date +"%Y%m%d")
+ 
+ # docker parameters
+ DOCKERCMD=$(shell which docker)
+-DOCKERBUILD=$(DOCKERCMD) build --no-cache
+-DOCKERBUILD_WITH_PULL_PARA=$(DOCKERBUILD) --pull=$(PULL_BASE_FROM_DOCKERHUB)
++DOCKERBUILD=$(DOCKERCMD) buildx build --platform linux/amd64,linux/arm64 --push --no-cache
++DOCKERBUILD_WITH_PULL_PARA=$(DOCKERBUILD)
+ DOCKERRMIMAGE=$(DOCKERCMD) rmi
+ DOCKERIMAGES=$(DOCKERCMD) images
+ IMAGENAMESPACE=goharbor
+@@ -128,13 +128,13 @@ _build_portal:
+ _build_core:
+ 	@$(call _build_base,$(CORE),$(DOCKERFILEPATH_CORE))
+ 	@echo "building core container for photon..."
+-	@$(DOCKERBUILD_WITH_PULL_PARA) --build-arg harbor_base_image_version=$(BASEIMAGETAG) --build-arg harbor_base_namespace=$(BASEIMAGENAMESPACE) -f $(DOCKERFILEPATH_CORE)/$(DOCKERFILENAME_CORE) -t $(DOCKERIMAGENAME_CORE):$(VERSIONTAG) .
++	@$(DOCKERBUILD_WITH_PULL_PARA) --build-arg build_image=$(GOBUILDIMAGE) --build-arg harbor_base_image_version=$(BASEIMAGETAG) --build-arg harbor_base_namespace=$(BASEIMAGENAMESPACE) -f $(DOCKERFILEPATH_CORE)/$(DOCKERFILENAME_CORE) -t $(DOCKERIMAGENAME_CORE):$(VERSIONTAG) .
+ 	@echo "Done."
+ 
+ _build_jobservice:
+ 	@$(call _build_base,$(JOBSERVICE),$(DOCKERFILEPATH_JOBSERVICE))
+ 	@echo "building jobservice container for photon..."
+-	@$(DOCKERBUILD_WITH_PULL_PARA) --build-arg harbor_base_image_version=$(BASEIMAGETAG) --build-arg harbor_base_namespace=$(BASEIMAGENAMESPACE) -f $(DOCKERFILEPATH_JOBSERVICE)/$(DOCKERFILENAME_JOBSERVICE) -t $(DOCKERIMAGENAME_JOBSERVICE):$(VERSIONTAG) .
++	@$(DOCKERBUILD_WITH_PULL_PARA) --build-arg build_image=$(GOBUILDIMAGE) --build-arg harbor_base_image_version=$(BASEIMAGETAG) --build-arg harbor_base_namespace=$(BASEIMAGENAMESPACE) -f $(DOCKERFILEPATH_JOBSERVICE)/$(DOCKERFILENAME_JOBSERVICE) -t $(DOCKERIMAGENAME_JOBSERVICE):$(VERSIONTAG) .
+ 	@echo "Done."
+ 
+ _build_log:
+@@ -146,23 +146,14 @@ _build_log:
+ _build_trivy_adapter:
+ 	@if [ "$(TRIVYFLAG)" = "true" ] ; then \
+ 		$(call _build_base,$(TRIVY_ADAPTER),$(DOCKERFILEPATH_TRIVY_ADAPTER)) ; \
+-		rm -rf $(DOCKERFILEPATH_TRIVY_ADAPTER)/binary && mkdir -p $(DOCKERFILEPATH_TRIVY_ADAPTER)/binary ; \
+-		echo "Downloading Trivy scanner $(TRIVYVERSION)..." ; \
+-		$(call _extract_archive, $(TRIVY_DOWNLOAD_URL), $(DOCKERFILEPATH_TRIVY_ADAPTER)/binary/) ; \
+-		if [ "$(BUILDTRIVYADP)" != "true" ] ; then \
+-			echo "Downloading Trivy adapter $(TRIVYADAPTERVERSION)..." ; \
+-			$(call _extract_archive, $(TRIVY_ADAPTER_DOWNLOAD_URL), $(DOCKERFILEPATH_TRIVY_ADAPTER)/binary/) ; \
+-		else \
+-			echo "Building Trivy adapter $(TRIVYADAPTERVERSION) from sources..." ; \
+-			cd $(DOCKERFILEPATH_TRIVY_ADAPTER) && $(DOCKERFILEPATH_TRIVY_ADAPTER)/builder.sh $(TRIVYADAPTERVERSION) && cd - ; \
+-		fi ; \
+ 		echo "Building Trivy adapter container for photon..." ; \
+ 		$(DOCKERBUILD_WITH_PULL_PARA) --build-arg harbor_base_image_version=$(BASEIMAGETAG) \
+ 			--build-arg harbor_base_namespace=$(BASEIMAGENAMESPACE) \
++			--build-arg trivy_source_version=$(TRIVYVERSION) \
++			--build-arg trivy_adapter_source_version=$(TRIVYADAPTERVERSION) \
+ 			--build-arg trivy_version=$(TRIVYVERSION) \
+ 			-f $(DOCKERFILEPATH_TRIVY_ADAPTER)/$(DOCKERFILENAME_TRIVY_ADAPTER) \
+ 			-t $(DOCKERIMAGENAME_TRIVY_ADAPTER):$(VERSIONTAG) . ; \
+-		rm -rf $(DOCKERFILEPATH_TRIVY_ADAPTER)/binary; \
+ 		echo "Done." ; \
+ 	fi
+ 
+@@ -174,20 +165,14 @@ _build_nginx:
+ 
+ _build_registry:
+ 	@$(call _build_base,$(REGISTRY),$(DOCKERFILEPATH_REG))
+-	@if [ "$(BUILDREG)" != "true" ] ; then \
+-		rm -rf $(DOCKERFILEPATH_REG)/binary && mkdir -p $(DOCKERFILEPATH_REG)/binary && \
+-		$(call _get_binary, $(REGISTRYURL), $(DOCKERFILEPATH_REG)/binary/registry); \
+-	else \
+-		cd $(DOCKERFILEPATH_REG) && $(DOCKERFILEPATH_REG)/builder $(REGISTRY_SRC_TAG) $(DISTRIBUTION_SRC) && cd - ; \
+-	fi
+ 	@echo "building registry container for photon..."
+-	@chmod 655 $(DOCKERFILEPATH_REG)/binary/registry && $(DOCKERBUILD_WITH_PULL_PARA) --build-arg harbor_base_image_version=$(BASEIMAGETAG) --build-arg harbor_base_namespace=$(BASEIMAGENAMESPACE) -f $(DOCKERFILEPATH_REG)/$(DOCKERFILENAME_REG) -t $(DOCKERIMAGENAME_REG):$(VERSIONTAG) .
++	@$(DOCKERBUILD_WITH_PULL_PARA) --build-arg registry_version=$(REGISTRY_SRC_TAG) --build-arg harbor_base_image_version=$(BASEIMAGETAG) --build-arg harbor_base_namespace=$(BASEIMAGENAMESPACE) -f $(DOCKERFILEPATH_REG)/$(DOCKERFILENAME_REG) -t $(DOCKERIMAGENAME_REG):$(VERSIONTAG) .
+ 	@echo "Done."
+ 
+ _build_registryctl:
+ 	@$(call _build_base,$(REGISTRYCTL),$(DOCKERFILEPATH_REGISTRYCTL))
+ 	@echo "building registry controller for photon..."
+-	@$(DOCKERBUILD_WITH_PULL_PARA) --build-arg harbor_base_image_version=$(BASEIMAGETAG) --build-arg harbor_base_namespace=$(BASEIMAGENAMESPACE) -f $(DOCKERFILEPATH_REGISTRYCTL)/$(DOCKERFILENAME_REGISTRYCTL) -t $(DOCKERIMAGENAME_REGISTRYCTL):$(VERSIONTAG) .
++	@$(DOCKERBUILD_WITH_PULL_PARA) --build-arg build_image=$(GOBUILDIMAGE) --build-arg registry_version=$(REGISTRY_SRC_TAG) --build-arg harbor_base_image_version=$(BASEIMAGETAG) --build-arg harbor_base_namespace=$(BASEIMAGENAMESPACE) -f $(DOCKERFILEPATH_REGISTRYCTL)/$(DOCKERFILENAME_REGISTRYCTL) -t $(DOCKERIMAGENAME_REGISTRYCTL):$(VERSIONTAG) .
+ 	@rm -rf $(DOCKERFILEPATH_REG)/binary
+ 	@echo "Done."
+ 
+diff --git a/make/photon/core/Dockerfile b/make/photon/core/Dockerfile
+index da561a8..63d1b05 100644
+--- a/make/photon/core/Dockerfile
++++ b/make/photon/core/Dockerfile
+@@ -1,11 +1,23 @@
+ ARG harbor_base_image_version
+ ARG harbor_base_namespace
++ARG build_image
++
++FROM ${build_image} as base
++
++WORKDIR /build
++
++RUN apt update && apt install git
++
++COPY . .
++
++RUN go build -C src/core -buildvcs=false -tags "include_oss include_gcs" --ldflags "-w -s -X github.com/goharbor/harbor/src/pkg/version.GitCommit=$(git rev-parse --short=8 HEAD) -X github.com/goharbor/harbor/src/pkg/version.ReleaseVersion=$(cat VERSION)"
++
+ FROM ${harbor_base_namespace}/harbor-core-base:${harbor_base_image_version}
+ 
+ HEALTHCHECK CMD curl --fail -s http://localhost:8080/api/v2.0/ping || curl -k --fail -s https://localhost:8443/api/v2.0/ping || exit 1
+ COPY ./make/photon/common/install_cert.sh /harbor/
+ COPY ./make/photon/core/entrypoint.sh /harbor/
+-COPY ./make/photon/core/harbor_core /harbor/
++COPY --from=base /build/src/core/core /harbor/harbor_core
+ COPY ./src/core/views /harbor/views
+ COPY ./make/migrations /harbor/migrations
+ COPY ./icons /harbor/icons
+diff --git a/make/photon/jobservice/Dockerfile b/make/photon/jobservice/Dockerfile
+index accd751..b33bd62 100644
+--- a/make/photon/jobservice/Dockerfile
++++ b/make/photon/jobservice/Dockerfile
+@@ -1,10 +1,20 @@
+ ARG harbor_base_image_version
+ ARG harbor_base_namespace
++ARG build_image
++
++FROM ${build_image} as base
++
++WORKDIR /build
++
++COPY . .
++
++RUN go build -C src/jobservice -buildvcs=false -tags "include_oss include_gcs"
++
+ FROM ${harbor_base_namespace}/harbor-jobservice-base:${harbor_base_image_version}
+ 
+ COPY ./make/photon/common/install_cert.sh /harbor/
+ COPY ./make/photon/jobservice/entrypoint.sh /harbor/
+-COPY ./make/photon/jobservice/harbor_jobservice /harbor/
++COPY --from=base /build/src/jobservice/jobservice /harbor/harbor_jobservice
+ 
+ 
+ RUN chown -R harbor:harbor /etc/pki/tls/certs \
+diff --git a/make/photon/redis/Dockerfile.base b/make/photon/redis/Dockerfile.base
+index 331306b..24f4949 100644
+--- a/make/photon/redis/Dockerfile.base
++++ b/make/photon/redis/Dockerfile.base
+@@ -3,4 +3,7 @@ FROM photon:5.0
+ RUN tdnf install -y shadow >> /dev/null \
+     && groupadd -g 999 redis \
+     && useradd -u 999 -g 999 -c "Redis Database Server" -d /var/lib/redis -s /sbin/nologin -m redis
+-RUN tdnf install -y redis && tdnf clean all
++COPY --from=library/redis:7.2.4 /usr/local/bin/redis-server /usr/bin/redis-server
++COPY --from=library/redis:7.2.4 /usr/local/bin/redis-cli /usr/bin/redis-cli
++# RUN tdnf install -y redis && tdnf clean all
++
+diff --git a/make/photon/registry/Dockerfile b/make/photon/registry/Dockerfile
+index f6565ff..e6cbbc9 100644
+--- a/make/photon/registry/Dockerfile
++++ b/make/photon/registry/Dockerfile
+@@ -1,10 +1,27 @@
+ ARG harbor_base_image_version
+ ARG harbor_base_namespace
++ARG registry_version
++
++FROM golang:1.27.2 as base
++
++WORKDIR /go/src/github.com/docker/
++
++ENV REGISTRY_VERSION=${registry_version}
++
++# v2.13.0 upstream no longer ships make/photon/registry/redis.patch; the
++# goharbor/distribution fork (release/2.8) already contains the redis patch.
++RUN git clone -b $REGISTRY_VERSION https://github.com/goharbor/distribution.git
++
++ENV BUILDTAGS include_oss include_gcs
++ENV GO111MODULE auto
++
++RUN cd distribution && CGO_ENABLED=0 make PREFIX=/go clean binaries
++
+ FROM ${harbor_base_namespace}/harbor-registry-base:${harbor_base_image_version}
+ 
+ COPY ./make/photon/common/install_cert.sh /home/harbor
+ COPY ./make/photon/registry/entrypoint.sh /home/harbor
+-COPY ./make/photon/registry/binary/registry /usr/bin/registry_DO_NOT_USE_GC
++COPY --from=base /go/src/github.com/docker/distribution/bin/registry /usr/bin/registry_DO_NOT_USE_GC
+ 
+ RUN chown -R harbor:harbor /etc/pki/tls/certs \
+     && chown harbor:harbor /home/harbor/entrypoint.sh && chmod u+x /home/harbor/entrypoint.sh \
+diff --git a/make/photon/registryctl/Dockerfile b/make/photon/registryctl/Dockerfile
+index b4733df..863dea3 100644
+--- a/make/photon/registryctl/Dockerfile
++++ b/make/photon/registryctl/Dockerfile
+@@ -1,11 +1,37 @@
+ ARG harbor_base_image_version
+ ARG harbor_base_namespace
++ARG build_image
++ARG registry_version
++
++FROM golang:1.27.2 as registry_base
++
++WORKDIR /go/src/github.com/docker/
++
++ENV REGISTRY_VERSION=${registry_version}
++
++# v2.13.0 upstream no longer ships make/photon/registry/redis.patch; the
++# goharbor/distribution fork (release/2.8) already contains the redis patch.
++RUN git clone -b $REGISTRY_VERSION https://github.com/goharbor/distribution.git
++
++ENV BUILDTAGS include_oss include_gcs
++ENV GO111MODULE auto
++
++RUN cd distribution && CGO_ENABLED=0 make PREFIX=/go clean binaries
++
++FROM ${build_image} as base
++
++WORKDIR /build
++
++COPY . .
++
++RUN go build -C src/registryctl -buildvcs=false -tags "include_oss include_gcs"
++
+ FROM ${harbor_base_namespace}/harbor-registryctl-base:${harbor_base_image_version}
+ 
+ COPY ./make/photon/common/install_cert.sh /home/harbor
+-COPY ./make/photon/registry/binary/registry /usr/bin/registry_DO_NOT_USE_GC
++COPY --from=registry_base /go/src/github.com/docker/distribution/bin/registry /usr/bin/registry_DO_NOT_USE_GC
+ COPY ./make/photon/registryctl/start.sh /home/harbor
+-COPY ./make/photon/registryctl/harbor_registryctl /home/harbor
++COPY --from=base /build/src/registryctl/registryctl /home/harbor/harbor_registryctl
+ 
+ RUN chown -R harbor:harbor /etc/pki/tls/certs \
+     && chown harbor:harbor /home/harbor/harbor_registryctl && chmod u+x /home/harbor/harbor_registryctl \
+diff --git a/make/photon/trivy-adapter/Dockerfile b/make/photon/trivy-adapter/Dockerfile
+index 5379c96..6ccdecb 100644
+--- a/make/photon/trivy-adapter/Dockerfile
++++ b/make/photon/trivy-adapter/Dockerfile
+@@ -1,13 +1,29 @@
+ ARG harbor_base_image_version
+ ARG harbor_base_namespace
++ARG trivy_source_version
++
++FROM ghcr.io/aquasecurity/trivy:${trivy_source_version} as trivy
++
++FROM golang:1.23.8 as trivy_adapter
++
++ARG trivy_adapter_source_version
++
++WORKDIR /go/src/github.com/aquasecurity/
++
++ENV TRIVY_ADAPTER_VERSION=${trivy_adapter_source_version}
++
++RUN git clone -b $TRIVY_ADAPTER_VERSION https://github.com/aquasecurity/harbor-scanner-trivy.git
++
++RUN cd harbor-scanner-trivy && GOOS=linux GO111MODULE=on CGO_ENABLED=0 go build -o scanner-trivy cmd/scanner-trivy/main.go
++
+ FROM ${harbor_base_namespace}/harbor-trivy-adapter-base:${harbor_base_image_version}
+ 
+ ARG trivy_version
+ 
+ COPY ./make/photon/common/install_cert.sh /home/scanner
+ COPY ./make/photon/trivy-adapter/entrypoint.sh /home/scanner
+-COPY ./make/photon/trivy-adapter/binary/trivy /usr/local/bin/trivy
+-COPY ./make/photon/trivy-adapter/binary/scanner-trivy /home/scanner/bin/scanner-trivy
++COPY --from=trivy /usr/local/bin/trivy /usr/local/bin/trivy
++COPY --from=trivy_adapter /go/src/github.com/aquasecurity/harbor-scanner-trivy/scanner-trivy /home/scanner/bin/scanner-trivy
+ 
+ 
+ RUN chown -R scanner:scanner /etc/pki/tls/certs \
+diff --git a/make/prepare b/make/prepare
+index 8742c15..9820c82 100755
+--- a/make/prepare
++++ b/make/prepare
+@@ -64,7 +64,7 @@ docker run --rm -v $input_dir:/input \
+                     -v $config_dir:/config \
+                     -v ${prepare_base_dir}:/hostfs${prepare_base_dir} \
+                     --privileged \
+-                    goharbor/prepare:dev prepare $@
++                    goharbor/prepare:v2.13.0 prepare $@
+ 
+ echo "Clean up the input dir"
+ # Clean up input dir
