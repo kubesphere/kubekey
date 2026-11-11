@@ -1,5 +1,5 @@
 diff --git a/Makefile b/Makefile
-index 609c4004f..356e03b84 100644
+index 609c400..d9e9967 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -94,6 +94,7 @@ BASEIMAGETAG=dev
@@ -10,7 +10,7 @@ index 609c4004f..356e03b84 100644
  # #input true/false only
  PULL_BASE_FROM_DOCKERHUB=true
  
-@@ -124,6 +125,8 @@ endef
+@@ -124,11 +125,19 @@ endef
  
  # docker parameters
  DOCKERCMD=$(shell which docker)
@@ -19,7 +19,18 @@ index 609c4004f..356e03b84 100644
  DOCKERBUILD=$(DOCKERCMD) build
  DOCKERRMIMAGE=$(DOCKERCMD) rmi
  DOCKERPULL=$(DOCKERCMD) pull
-@@ -213,6 +216,30 @@ DOCKERIMAGENAME_DB=$(IMAGENAMESPACE)/harbor-db
+ DOCKERIMAGES=$(DOCKERCMD) images
+ DOCKERSAVE=$(DOCKERCMD) save
++# Docker daemons defaulting to the containerd image store keep the
++# multi-arch index for a tag pulled with --platform, while only the pulled
++# platform blobs are local; a plain "docker save" then fails with
++# "unable to create manifests file: ... content digest ...: not found".
++# Scope the save to the pulled platform when the CLI supports it.
++DOCKERSAVE_PLATFORM=$(shell $(DOCKERCMD) save --help 2>/dev/null | grep -q -- --platform && echo --platform=$(DOCKER_PLATFORM))
+ DOCKERCOMPOSECMD=$(shell which docker-compose)
+ DOCKERTAG=$(DOCKERCMD) tag
+ 
+@@ -213,6 +222,30 @@ DOCKERIMAGENAME_DB=$(IMAGENAMESPACE)/harbor-db
  DOCKERIMAGENAME_REGCTL=$(IMAGENAMESPACE)/harbor-registryctl
  DOCKERIMAGENAME_EXPORTER=$(IMAGENAMESPACE)/harbor-exporter
  
@@ -50,11 +61,10 @@ index 609c4004f..356e03b84 100644
  # docker-compose files
  DOCKERCOMPOSEFILEPATH=$(MAKEPATH)
  DOCKERCOMPOSEFILENAME=docker-compose.yml
-@@ -248,7 +275,19 @@ DOCKERSAVE_PARA=$(DOCKER_IMAGE_NAME_PREPARE):$(VERSIONTAG) \
+@@ -248,6 +281,18 @@ DOCKERSAVE_PARA=$(DOCKER_IMAGE_NAME_PREPARE):$(VERSIONTAG) \
  		$(IMAGENAMESPACE)/nginx-photon:$(VERSIONTAG) \
  		$(IMAGENAMESPACE)/registry-photon:$(VERSIONTAG)
  
--PACKAGE_OFFLINE_PARA=-zcvf harbor-offline-installer-$(PKGVERSIONTAG).tgz \
 +DOCKERSAVETAG_PARA=$(DOCKER_SAVE_IMAGE_NAME_PREPARE) \
 +		$(DOCKERSAVEIMAGENAME_PORTAL) \
 +		$(DOCKERSAVEIMAGENAME_CORE) \
@@ -67,11 +77,10 @@ index 609c4004f..356e03b84 100644
 +		$(DOCKERSAVEIMAGENAME_NGINX_PHOTON) \
 +		$(DOCKERSAVEIMAGENAME_REGISTRY_PHOTON)
 +
-+PACKAGE_OFFLINE_PARA=-zcvf harbor-offline-installer-$(PKGVERSIONTAG).tgz \
+ PACKAGE_OFFLINE_PARA=-zcvf harbor-offline-installer-$(PKGVERSIONTAG).tgz \
  					$(HARBORPKG)/$(DOCKERIMGFILE).$(VERSIONTAG).tar.gz \
  					$(HARBORPKG)/prepare \
- 					$(HARBORPKG)/LICENSE $(HARBORPKG)/install.sh \
-@@ -361,7 +400,7 @@ compile: check_environment versions_prepare compile_core compile_jobservice comp
+@@ -361,7 +406,7 @@ compile: check_environment versions_prepare compile_core compile_jobservice comp
  
  update_prepare_version:
  	@echo "substitute the prepare version tag in prepare file..."
@@ -80,7 +89,7 @@ index 609c4004f..356e03b84 100644
  
  gen_tls:
  	@$(DOCKERCMD) run --rm -v /:/hostfs:z $(IMAGENAMESPACE)/prepare:$(VERSIONTAG) gencert -p /etc/harbor/tls/internal
-@@ -374,30 +413,15 @@ prepare: update_prepare_version
+@@ -374,30 +419,15 @@ prepare: update_prepare_version
  	@$(MAKEPATH)/$(PREPARECMD) $(PREPARECMD_PARA)
  
  build:
@@ -119,7 +128,7 @@ index 609c4004f..356e03b84 100644
  
  build_standalone_db_migrator: compile_standalone_db_migrator
  	make -f $(MAKEFILEPATH_PHOTON)/Makefile _build_standalone_db_migrator -e BASEIMAGETAG=$(BASEIMAGETAG) -e VERSIONTAG=$(VERSIONTAG)
-@@ -438,14 +462,32 @@ package_online: update_prepare_version
+@@ -438,14 +468,32 @@ package_online: update_prepare_version
  	@rm -rf $(HARBORPKG)
  	@echo "Done."
  
@@ -150,17 +159,17 @@ index 609c4004f..356e03b84 100644
 +
  	@echo "saving harbor docker image"
 -	@$(DOCKERSAVE) $(DOCKERSAVE_PARA) > $(HARBORPKG)/$(DOCKERIMGFILE).$(VERSIONTAG).tar
-+	@$(DOCKERSAVE) $(DOCKERSAVETAG_PARA) > $(HARBORPKG)/$(DOCKERIMGFILE).$(VERSIONTAG).tar
++	@$(DOCKERSAVE) $(DOCKERSAVE_PLATFORM) $(DOCKERSAVETAG_PARA) > $(HARBORPKG)/$(DOCKERIMGFILE).$(VERSIONTAG).tar
  	@gzip $(HARBORPKG)/$(DOCKERIMGFILE).$(VERSIONTAG).tar
  
  	@$(TARCMD) $(PACKAGE_OFFLINE_PARA)
-@@ -608,3 +650,4 @@ clean:
+@@ -608,3 +656,4 @@ clean:
  	@echo "  make cleanpackage:		remove online and offline install package"
  
  all: install
 +
 diff --git a/make/photon/Makefile b/make/photon/Makefile
-index c6de67da3..fa7699234 100644
+index c6de67d..0b6a4b0 100644
 --- a/make/photon/Makefile
 +++ b/make/photon/Makefile
 @@ -18,8 +18,8 @@ TIMESTAMP=$(shell date +"%Y%m%d")
@@ -242,7 +251,7 @@ index c6de67da3..fa7699234 100644
  
  define _extract_archive
 diff --git a/make/photon/core/Dockerfile b/make/photon/core/Dockerfile
-index da561a875..63d1b051d 100644
+index da561a8..63d1b05 100644
 --- a/make/photon/core/Dockerfile
 +++ b/make/photon/core/Dockerfile
 @@ -1,11 +1,23 @@
@@ -271,7 +280,7 @@ index da561a875..63d1b051d 100644
  COPY ./make/migrations /harbor/migrations
  COPY ./icons /harbor/icons
 diff --git a/make/photon/jobservice/Dockerfile b/make/photon/jobservice/Dockerfile
-index accd7519d..b33bd6231 100644
+index accd751..b33bd62 100644
 --- a/make/photon/jobservice/Dockerfile
 +++ b/make/photon/jobservice/Dockerfile
 @@ -1,10 +1,20 @@
@@ -297,7 +306,7 @@ index accd7519d..b33bd6231 100644
  
  RUN chown -R harbor:harbor /etc/pki/tls/certs \
 diff --git a/make/photon/redis/Dockerfile.base b/make/photon/redis/Dockerfile.base
-index 331306bd8..24f4949e1 100644
+index 331306b..24f4949 100644
 --- a/make/photon/redis/Dockerfile.base
 +++ b/make/photon/redis/Dockerfile.base
 @@ -3,4 +3,7 @@ FROM photon:5.0
@@ -310,7 +319,7 @@ index 331306bd8..24f4949e1 100644
 +# RUN tdnf install -y redis && tdnf clean all
 +
 diff --git a/make/photon/registry/Dockerfile b/make/photon/registry/Dockerfile
-index f6565ff38..163c36818 100644
+index f6565ff..163c368 100644
 --- a/make/photon/registry/Dockerfile
 +++ b/make/photon/registry/Dockerfile
 @@ -1,10 +1,30 @@
@@ -346,7 +355,7 @@ index f6565ff38..163c36818 100644
  RUN chown -R harbor:harbor /etc/pki/tls/certs \
      && chown harbor:harbor /home/harbor/entrypoint.sh && chmod u+x /home/harbor/entrypoint.sh \
 diff --git a/make/photon/registryctl/Dockerfile b/make/photon/registryctl/Dockerfile
-index b4733df90..526c0ecc6 100644
+index b4733df..526c0ec 100644
 --- a/make/photon/registryctl/Dockerfile
 +++ b/make/photon/registryctl/Dockerfile
 @@ -1,11 +1,38 @@
@@ -391,7 +400,7 @@ index b4733df90..526c0ecc6 100644
  RUN chown -R harbor:harbor /etc/pki/tls/certs \
      && chown harbor:harbor /home/harbor/harbor_registryctl && chmod u+x /home/harbor/harbor_registryctl \
 diff --git a/make/photon/trivy-adapter/Dockerfile b/make/photon/trivy-adapter/Dockerfile
-index 5379c96aa..8c8c5e93c 100644
+index 5379c96..8c8c5e9 100644
 --- a/make/photon/trivy-adapter/Dockerfile
 +++ b/make/photon/trivy-adapter/Dockerfile
 @@ -1,13 +1,29 @@
@@ -427,7 +436,7 @@ index 5379c96aa..8c8c5e93c 100644
  
  RUN chown -R scanner:scanner /etc/pki/tls/certs \
 diff --git a/make/prepare b/make/prepare
-index c0ef48262..528d321d9 100755
+index c0ef482..bc4eaf3 100755
 --- a/make/prepare
 +++ b/make/prepare
 @@ -57,7 +57,7 @@ docker run --rm -v $input_dir:/input \

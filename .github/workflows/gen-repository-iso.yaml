@@ -211,9 +211,11 @@ jobs:
       - name: Build harbor offline installer
         shell: bash
         run: |
+          # Each harbor version is built in its own directory. Use make -C so the
+          # working directory returns to the repo root after every version.
           for d in $(ls config/harbor); do
             if [ -d "config/harbor/$d" ]; then
-              cd "config/harbor/$d" && make build
+              make -C "config/harbor/$d" build
             fi
           done
 
