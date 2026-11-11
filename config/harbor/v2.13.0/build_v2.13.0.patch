@@ -1,5 +1,5 @@
 diff --git a/Makefile b/Makefile
-index 2bbdcfe..d91e66c 100644
+index 2bbdcfe..893a8b3 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -95,6 +95,7 @@ BASEIMAGETAG=dev
@@ -10,7 +10,7 @@ index 2bbdcfe..d91e66c 100644
  # #input true/false only
  PULL_BASE_FROM_DOCKERHUB=true
  
-@@ -128,6 +129,8 @@ endef
+@@ -128,11 +129,19 @@ endef
  
  # docker parameters
  DOCKERCMD=$(shell which docker)
@@ -19,7 +19,18 @@ index 2bbdcfe..d91e66c 100644
  DOCKERBUILD=$(DOCKERCMD) build
  DOCKERRMIMAGE=$(DOCKERCMD) rmi
  DOCKERPULL=$(DOCKERCMD) pull
-@@ -215,6 +218,30 @@ DOCKERIMAGENAME_DB=$(IMAGENAMESPACE)/harbor-db
+ DOCKERIMAGES=$(DOCKERCMD) images
+ DOCKERSAVE=$(DOCKERCMD) save
++# Docker daemons defaulting to the containerd image store keep the
++# multi-arch index for a tag pulled with --platform, while only the pulled
++# platform blobs are local; a plain "docker save" then fails with
++# "unable to create manifests file: ... content digest ...: not found".
++# Scope the save to the pulled platform when the CLI supports it.
++DOCKERSAVE_PLATFORM=$(shell $(DOCKERCMD) save --help 2>/dev/null | grep -q -- --platform && echo --platform=$(DOCKER_PLATFORM))
+ DOCKERCOMPOSECMD=$(shell which docker-compose)
+ DOCKERTAG=$(DOCKERCMD) tag
+ 
+@@ -215,6 +224,30 @@ DOCKERIMAGENAME_DB=$(IMAGENAMESPACE)/harbor-db
  DOCKERIMAGENAME_REGCTL=$(IMAGENAMESPACE)/harbor-registryctl
  DOCKERIMAGENAME_EXPORTER=$(IMAGENAMESPACE)/harbor-exporter
  
@@ -50,7 +61,7 @@ index 2bbdcfe..d91e66c 100644
  # docker-compose files
  DOCKERCOMPOSEFILEPATH=$(MAKEPATH)
  DOCKERCOMPOSEFILENAME=docker-compose.yml
-@@ -250,6 +277,18 @@ DOCKERSAVE_PARA=$(DOCKER_IMAGE_NAME_PREPARE):$(VERSIONTAG) \
+@@ -250,6 +283,18 @@ DOCKERSAVE_PARA=$(DOCKER_IMAGE_NAME_PREPARE):$(VERSIONTAG) \
  		$(IMAGENAMESPACE)/nginx-photon:$(VERSIONTAG) \
  		$(IMAGENAMESPACE)/registry-photon:$(VERSIONTAG)
  
@@ -69,7 +80,7 @@ index 2bbdcfe..d91e66c 100644
  PACKAGE_OFFLINE_PARA=-zcvf harbor-offline-installer-$(PKGVERSIONTAG).tgz \
  					$(HARBORPKG)/$(DOCKERIMGFILE).$(VERSIONTAG).tar.gz \
  					$(HARBORPKG)/prepare \
-@@ -363,7 +402,7 @@ compile: check_environment versions_prepare compile_core compile_jobservice comp
+@@ -363,7 +408,7 @@ compile: check_environment versions_prepare compile_core compile_jobservice comp
  
  update_prepare_version:
  	@echo "substitute the prepare version tag in prepare file..."
@@ -78,7 +89,7 @@ index 2bbdcfe..d91e66c 100644
  
  gen_tls:
  	@$(DOCKERCMD) run --rm -v /:/hostfs:z $(IMAGENAMESPACE)/prepare:$(VERSIONTAG) gencert -p /etc/harbor/tls/internal
-@@ -376,30 +415,15 @@ prepare: update_prepare_version
+@@ -376,30 +421,15 @@ prepare: update_prepare_version
  	@$(MAKEPATH)/$(PREPARECMD) $(PREPARECMD_PARA)
  
  build:
@@ -117,7 +128,7 @@ index 2bbdcfe..d91e66c 100644
  
  build_standalone_db_migrator: compile_standalone_db_migrator
  	make -f $(MAKEFILEPATH_PHOTON)/Makefile _build_standalone_db_migrator -e BASEIMAGETAG=$(BASEIMAGETAG) -e VERSIONTAG=$(VERSIONTAG)
-@@ -440,14 +464,32 @@ package_online: update_prepare_version
+@@ -440,14 +470,32 @@ package_online: update_prepare_version
  	@rm -rf $(HARBORPKG)
  	@echo "Done."
  
@@ -148,7 +159,7 @@ index 2bbdcfe..d91e66c 100644
 +
  	@echo "saving harbor docker image"
 -	@$(DOCKERSAVE) $(DOCKERSAVE_PARA) > $(HARBORPKG)/$(DOCKERIMGFILE).$(VERSIONTAG).tar
-+	@$(DOCKERSAVE) $(DOCKERSAVETAG_PARA) > $(HARBORPKG)/$(DOCKERIMGFILE).$(VERSIONTAG).tar
++	@$(DOCKERSAVE) $(DOCKERSAVE_PLATFORM) $(DOCKERSAVETAG_PARA) > $(HARBORPKG)/$(DOCKERIMGFILE).$(VERSIONTAG).tar
  	@gzip $(HARBORPKG)/$(DOCKERIMGFILE).$(VERSIONTAG).tar
  
  	@$(TARCMD) $(PACKAGE_OFFLINE_PARA)
