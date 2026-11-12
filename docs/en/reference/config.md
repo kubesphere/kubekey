@@ -956,7 +956,7 @@ cri:
 | `cri.docker.daemon.exec-opts` | Docker exec options list, e.g., cgroup driver. |
 | `cri.containerd.config` | containerd configuration, mapped to `/etc/containerd/config.toml`. |
 | `cri.containerd.config_policy` | Policy for updating the containerd config file (`/etc/containerd/config.toml`) and systemd service when the runtime is already installed: empty (default) skips the update; `merge` merges with the existing config (node-side existing keys take precedence); `override` overwrites. Binary installation and certificate sync are not affected by this policy. |
-| `cri.containerd.static_binary` | Whether to download the statically linked containerd binary (`containerd-static-*`) instead of the default dynamically linked one. Useful on older distros whose glibc predates what recent containerd releases require. Requires the target containerd version to actually publish a static release asset. Offline installs use the value stored in the artifact, which is named `containerd-static-<version>-linux-<arch>.tar.gz`, so build the artifact with `kk artifact export` under the same `cri.containerd.static_binary` value; installing a static build from an artifact that only carries the dynamically linked archive fails with an explicit error. |
+| `cri.containerd.static_binary` | Whether to download the statically linked containerd binary (`containerd-static-*`) instead of the default dynamically linked one. Useful on older distros whose glibc predates what recent containerd releases require. Requires the target containerd version to actually publish a static release asset. An offline artifact carries both the dynamically linked and the statically linked archive whenever the version publishes both, so `kk artifact export` does not depend on this value; installing from an artifact that only carries the dynamically linked archive fails with an explicit error. |
 | `cri.docker.daemon_policy` | Same as `cri.containerd.config_policy`, but applies to the Docker daemon (`/etc/docker/daemon.json`) and its systemd service. |
 | `cri.containerd.config.root` | containerd data persistence root directory. |
 | `cri.containerd.config.version` | containerd configuration file version. |
@@ -1306,7 +1306,7 @@ download:
     containerd: >-
       {{- .zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
       github.com/containerd/containerd/releases/download/{{ "{{ .version }}" }}/containerd-
-      {{- .cri.containerd.static_binary | default false | ternary "static-" "" -}}
+      {{- "{{ if .static }}static-{{ end }}" -}}
       {{ "{{ .version | default \"\" | trimPrefix \"v\" }}" }}-linux-{{ "{{ .arch }}" }}.tar.gz
     # runc binary
     runc: >-

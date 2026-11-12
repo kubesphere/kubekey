@@ -951,7 +951,7 @@ cri:
 | `cri.docker.daemon.exec-opts` | Docker exec 选项列表，例如 cgroup 驱动。 |
 | `cri.containerd.config` | containerd 配置，映射为 `/etc/containerd/config.toml`。 |
 | `cri.containerd.config_policy` | 已安装 containerd 时，更新配置文件（/etc/containerd/config.toml）与 systemd 服务的策略：空（默认）跳过更新；`merge` 与现有配置合并（节点侧已有键优先）；`override` 覆盖。该策略不影响二进制安装与证书同步。 |
-| `cri.containerd.static_binary` | 是否下载静态链接的 containerd 二进制包（`containerd-static-*`），而非默认的动态链接版本。适用于 glibc 版本低于最新 containerd 发行版要求的旧发行版。要求目标 containerd 版本确实发布了静态构建的产物。离线安装使用离线包里的那一份，包内文件名为 `containerd-static-<version>-linux-<arch>.tar.gz`，因此需要用同一个 `cri.containerd.static_binary` 值执行 `kk artifact export` 生成离线包；若离线包只带了动态链接的包，安装会明确报错。 |
+| `cri.containerd.static_binary` | 是否下载静态链接的 containerd 二进制包（`containerd-static-*`），而非默认的动态链接版本。适用于 glibc 版本低于最新 containerd 发行版要求的旧发行版。要求目标 containerd 版本确实发布了静态构建的产物。离线包在该版本同时发布两种产物时会同时包含动态与静态包，因此 `kk artifact export` 不依赖该配置项；若离线包只带了动态链接的包，设置该项安装会明确报错。 |
 | `cri.docker.daemon_policy` | 与 `cri.containerd.config_policy` 相同，但作用于 Docker daemon（/etc/docker/daemon.json）及其 systemd 服务。 |
 | `cri.containerd.config.root` | containerd 数据持久化根目录。 |
 | `cri.containerd.config.version` | containerd 配置文件版本。 |
@@ -1300,7 +1300,7 @@ download:
     containerd: >-
       {{- .zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
       github.com/containerd/containerd/releases/download/{{ "{{ .version }}" }}/containerd-
-      {{- .cri.containerd.static_binary | default false | ternary "static-" "" -}}
+      {{- "{{ if .static }}static-{{ end }}" -}}
       {{ "{{ .version | default \"\" | trimPrefix \"v\" }}" }}-linux-{{ "{{ .arch }}" }}.tar.gz
     # runc 二进制
     runc: >-

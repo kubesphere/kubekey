@@ -42,10 +42,12 @@ download:
     cridockerd: >-
       {{- .zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
       github.com/Mirantis/cri-dockerd/releases/download/{{ "{{ .version }}" }}/cri-dockerd-{{ "{{ .version | default \"\" | trimPrefix \"v\" }}" }}.{{ "{{ .arch }}" }}.tgz
+    # The variant lives in the item, next to the version and the architecture, so a
+    # caller can ask for either archive without depending on cri.containerd.static_binary.
     containerd: >-
       {{- .zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
       github.com/containerd/containerd/releases/download/{{ "{{ .version }}" }}/containerd-
-      {{- .cri.containerd.static_binary | default false | ternary "static-" "" -}}
+      {{- "{{ if .static }}static-{{ end }}" -}}
       {{ "{{ .version | default \"\" | trimPrefix \"v\" }}" }}-linux-{{ "{{ .arch }}" }}.tar.gz
     runc: >-
       {{- .zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
