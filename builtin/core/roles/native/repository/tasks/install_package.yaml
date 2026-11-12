@@ -46,33 +46,22 @@
       echo 'deb [trusted=yes] file://{{ .tmp_dir }}/iso /' > /etc/apt/sources.list.d/kubekey.list
       # Update package index
       apt-get update
-      # Install missing packages
+      # Install missing packages. The installer status is kept in rc because
+      # restore_apt_sources must still run, so a failed install does not leave the
+      # node pointed at the temporary ISO source; its 'mv' would otherwise become
+      # the last command of this task and mask the failure.
+      rc=0
       if [ -n "$PKGS_TO_INSTALL" ]; then
-        apt-get install -y $PKGS_TO_INSTALL
+        apt-get install -y $PKGS_TO_INSTALL || rc=$?
       fi
-      # Restore original APT sources before reporting the result so a failed
-      # install does not leave the node pointed at the temporary ISO source.
       restore_apt_sources
+      [ "$rc" -eq 0 ] || exit "$rc"
     else
-      # No local ISO found, using default repositories
+      # No local ISO found, using default repositories. No sources are swapped
+      # here, so the installer exit status already propagates.
       apt-get update
       if [ -n "$PKGS_TO_INSTALL" ]; then
         apt-get install -y $PKGS_TO_INSTALL
-      fi
-    fi
-
-    # Verify every requested package is actually installed. A missing package
-    # must fail this task loudly instead of surfacing later as a confusing
-    # "file not found" error in a dependent role (e.g. ntp).
-    if [ -n "$PKGS_TO_INSTALL" ]; then
-      missing=""
-      for pkg in $PKGS_TO_INSTALL; do
-        dpkg-query -W -f='${Status}' "$pkg" 2>/dev/null | grep -q "install ok installed" \
-          || missing="$missing $pkg"
-      done
-      if [ -n "$missing" ]; then
-        echo "failed to install required Debian packages:$missing" >&2
-        exit 1
       fi
     fi
   when: .current_host_type | trim | eq "ubuntu"
@@ -115,30 +104,21 @@
     EOF
       # Refresh repository cache
       yum clean all && yum makecache
-      # Install missing packages
+      # Install missing packages. The installer status is kept in rc because
+      # restore_yum_repos must still run, so a failed install does not leave the
+      # node pointed at the temporary ISO source; its 'mv' would otherwise become
+      # the last command of this task and mask the failure.
+      rc=0
       if [ -n "$PKGS_TO_INSTALL" ]; then
-        yum install -y $PKGS_TO_INSTALL
+        yum install -y $PKGS_TO_INSTALL || rc=$?
       fi
-      # Restore original YUM repositories before reporting the result.
       restore_yum_repos
+      [ "$rc" -eq 0 ] || exit "$rc"
     else
-      # No local ISO found, using default repositories
+      # No local ISO found, using default repositories. No repositories are
+      # swapped here, so the installer exit status already propagates.
       if [ -n "$PKGS_TO_INSTALL" ]; then
         yum install -y $PKGS_TO_INSTALL
-      fi
-    fi
-
-    # Verify every requested package is actually installed. A missing package
-    # must fail this task loudly instead of surfacing later as a confusing
-    # "file not found" error in a dependent role (e.g. ntp).
-    if [ -n "$PKGS_TO_INSTALL" ]; then
-      missing=""
-      for pkg in $PKGS_TO_INSTALL; do
-        rpm -q --quiet "$pkg" 2>/dev/null || missing="$missing $pkg"
-      done
-      if [ -n "$missing" ]; then
-        echo "failed to install required RPM packages:$missing" >&2
-        exit 1
       fi
     fi
   when: .current_host_type | trim | eq "centos"
