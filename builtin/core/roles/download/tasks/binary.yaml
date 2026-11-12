@@ -171,10 +171,13 @@
   when: 
     - index (.item | default dict) "version" | empty | not
     - (index (.download.cri | default dict) "container_manager" | default (list .cri.container_manager)) | has "containerd"
-    - printf "%s/containerd/%s/%s/containerd-%s-linux-%s.tar.gz" .binary_dir .item.version .item.arch (.item.version | trimPrefix "v") .item.arch | fileExists | not
+    # The archive keeps the upstream "static-" marker when cri.containerd.static_binary
+    # is set, so the variant a node installs is visible from the file name and a cached
+    # dynamically linked archive can never be reused for a static request.
+    - printf "%s/containerd/%s/%s/containerd-%s%s-linux-%s.tar.gz" .binary_dir .item.version .item.arch (.cri.containerd.static_binary | default false | ternary "static-" "") (.item.version | trimPrefix "v") .item.arch | fileExists | not
   http_get_file:
     url: "{{ tpl .download.artifact_url.containerd .item }}"
-    dest: "{{ .binary_dir }}/containerd/{{ .item.version }}/{{ .item.arch }}/containerd-{{ .item.version | trimPrefix \"v\" }}-linux-{{ .item.arch }}.tar.gz"
+    dest: "{{ .binary_dir }}/containerd/{{ .item.version }}/{{ .item.arch }}/containerd-{{ .cri.containerd.static_binary | default false | ternary \"static-\" \"\" }}{{ .item.version | trimPrefix \"v\" }}-linux-{{ .item.arch }}.tar.gz"
     timeout: "{{ .download.timeout }}"
 
 - name: Binary | Ensure runc binary is present

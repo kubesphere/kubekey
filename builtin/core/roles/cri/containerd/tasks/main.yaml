@@ -34,15 +34,35 @@
     - name: Containerd | Install and configure containerd if not present or version mismatch
       when: or (.containerd_install_version.error | empty | not) (.containerd_install_version.stdout | contains (printf " %s " .cri.containerd_version) | not)
       block:
+        # cri.containerd.static_binary selects the upstream "containerd-static-*" asset,
+        # so the archive is looked up under the same name the download and the artifact
+        # packaging used. Both variants therefore live side by side and an offline
+        # artifact is never silently queried for the wrong one.
+        - name: Containerd | Define the containerd archive file name
+          set_fact:
+            containerd_archive: >-
+              containerd-{{ .cri.containerd.static_binary | default false | ternary "static-" "" }}{{ .cri.containerd_version | default "" | trimPrefix "v" }}-linux-{{ .binary_type }}.tar.gz
         - name: Containerd | Copy containerd binary archive to the remote node
+          # ignore_errors keeps the failing copy from stopping the play, so the task
+          # below can explain which archive is missing and why instead of leaving the
+          # bare "src not found" message of the copy module.
+          ignore_errors: true
+          register: containerd_archive_copy
           copy:
             src: >-
-              {{ .binary_dir }}/containerd/{{ .cri.containerd_version }}/{{ .binary_type }}/containerd-{{ .cri.containerd_version | default "" | trimPrefix "v" }}-linux-{{ .binary_type }}.tar.gz
+              {{ .binary_dir }}/containerd/{{ .cri.containerd_version }}/{{ .binary_type }}/{{ .containerd_archive }}
             dest: >-
-              {{ .tmp_dir }}/containerd-{{ .cri.containerd_version | default "" | trimPrefix "v" }}-linux-{{ .binary_type }}.tar.gz
+              {{ .tmp_dir }}/{{ .containerd_archive }}
+        - name: Containerd | Fail when the configured containerd archive is missing
+          when: .containerd_archive_copy.error | empty | not
+          command: |
+            echo "failed to copy {{ .containerd_archive }}: {{ .containerd_archive_copy.error }}" >&2
+            echo "cri.containerd.static_binary is set to {{ .cri.containerd.static_binary | default false | toString }}, so this node installs {{ .containerd_archive }}." >&2
+            echo "When the archive comes from an offline artifact, rebuild the artifact with the same cri.containerd.static_binary value: kk artifact export -c <artifact config>." >&2
+            exit 1
         - name: Containerd | Extract containerd binaries to /usr/local/bin
           command: |
-            tar -xvf {{ .tmp_dir }}/containerd-{{ .cri.containerd_version | default "" | trimPrefix "v" }}-linux-{{ .binary_type }}.tar.gz --strip-components=1 -C /usr/local/bin/
+            tar -xvf {{ .tmp_dir }}/{{ .containerd_archive }} --strip-components=1 -C /usr/local/bin/
 
 - name: Containerd | Synchronize image registry TLS certificates to the remote node
   block:

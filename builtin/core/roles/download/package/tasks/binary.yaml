@@ -157,10 +157,13 @@
   when: 
     - index (.item | default dict) "version" | empty | not
     - .download.cri.container_manager | has "containerd"
-    - printf "%s/kubekey/containerd/%s/%s/containerd-%s-linux-%s.tar.gz" .artifact_dir .item.version .item.arch (.item.version | trimPrefix "v") .item.arch | fileExists | not
+    # The archive keeps the upstream "static-" marker when cri.containerd.static_binary
+    # is set, so the variant a package carries is visible from its name and the two
+    # variants never share a cache entry.
+    - printf "%s/kubekey/containerd/%s/%s/containerd-%s%s-linux-%s.tar.gz" .artifact_dir .item.version .item.arch (.cri.containerd.static_binary | default false | ternary "static-" "") (.item.version | trimPrefix "v") .item.arch | fileExists | not
   copy:
-    src: "{{ .binary_dir }}/containerd/{{ .item.version }}/{{ .item.arch }}/containerd-{{ .item.version | trimPrefix \"v\" }}-linux-{{ .item.arch }}.tar.gz"
-    dest: "{{ .artifact_dir }}/kubekey/containerd/{{ .item.version }}/{{ .item.arch }}/containerd-{{ .item.version | trimPrefix \"v\" }}-linux-{{ .item.arch }}.tar.gz"
+    src: "{{ .binary_dir }}/containerd/{{ .item.version }}/{{ .item.arch }}/containerd-{{ .cri.containerd.static_binary | default false | ternary \"static-\" \"\" }}{{ .item.version | trimPrefix \"v\" }}-linux-{{ .item.arch }}.tar.gz"
+    dest: "{{ .artifact_dir }}/kubekey/containerd/{{ .item.version }}/{{ .item.arch }}/containerd-{{ .cri.containerd.static_binary | default false | ternary \"static-\" \"\" }}{{ .item.version | trimPrefix \"v\" }}-linux-{{ .item.arch }}.tar.gz"
 
 - name: Binary | Ensure runc binary is present
   loop: >
