@@ -608,7 +608,7 @@ download:
     # ========== cni: flannel ==========
     # flannel helm
 {{- if .download.cni.type | has "flannel" }}
-    flannel_version: {{ .download.cni.flannel_version | default (list "v0.27.4") | toJson }}
+    flannel_version: {{ .download.cni.flannel_version | default $default_flannel_version | toJson }}
 {{- else }}
     flannel_version: []
 {{- end }}   
