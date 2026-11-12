@@ -72,6 +72,11 @@
       done
       if [ -n "$missing" ]; then
         echo "failed to install required Debian packages:$missing" >&2
+        if [ -f "{{ .tmp_dir }}/repository.iso" ]; then
+          echo "the offline repository ISO at {{ .tmp_dir }}/repository.iso does not provide them;" >&2
+          echo "the ISO inside the offline artifact predates the packages.yaml that lists them." >&2
+          echo "rebuild the ISO from hack/gen-repository-iso with the current manifest, then rebuild the artifact." >&2
+        fi
         exit 1
       fi
     fi
@@ -138,6 +143,11 @@
       done
       if [ -n "$missing" ]; then
         echo "failed to install required RPM packages:$missing" >&2
+        if [ -f "{{ .tmp_dir }}/repository.iso" ]; then
+          echo "the offline repository ISO at {{ .tmp_dir }}/repository.iso does not provide them;" >&2
+          echo "the ISO inside the offline artifact predates the packages.yaml that lists them." >&2
+          echo "rebuild the ISO from hack/gen-repository-iso with the current manifest, then rebuild the artifact." >&2
+        fi
         exit 1
       fi
     fi
