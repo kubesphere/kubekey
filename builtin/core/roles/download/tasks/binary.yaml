@@ -180,9 +180,10 @@
     dest: "{{ .binary_dir }}/containerd/{{ .item.version }}/{{ .item.arch }}/containerd-{{ .item.version | trimPrefix \"v\" }}-linux-{{ .item.arch }}.tar.gz"
     timeout: "{{ .download.timeout }}"
 
-# Not every containerd release publishes a static asset, so a failing download is
-# tolerated: the artifact then carries the dynamically linked archive only, and an
-# install that asks for the static build reports the missing archive itself.
+# Not every containerd release publishes a static asset: v1.6.0 and older ship none and
+# the first release that does is v1.7.0. The version gate keeps the common case from
+# requesting a URL that is bound to 404, and a failing download is still tolerated so an
+# export spanning several versions never fails on the oldest one.
 - name: Binary | Ensure the statically linked containerd binary is present
   ignore_errors: true
   loop: >
@@ -195,6 +196,10 @@
     {{- $result | toJson }}
   when: 
     - index (.item | default dict) "version" | empty | not
+    # semverCompare raises on a value it cannot parse, and an error in a condition fails
+    # the task instead of skipping it, so the version shape is checked first.
+    - .item.version | default "" | trimPrefix "v" | regexMatch "^[0-9]+\\.[0-9]+\\.[0-9]+"
+    - .item.version | default "" | trimPrefix "v" | semverCompare ">=1.7.0"
     - (index (.download.cri | default dict) "container_manager" | default (list .cri.container_manager)) | has "containerd"
     - printf "%s/containerd/%s/%s/containerd-static-%s-linux-%s.tar.gz" .binary_dir .item.version .item.arch (.item.version | trimPrefix "v") .item.arch | fileExists | not
   http_get_file:

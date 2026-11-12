@@ -149,7 +149,8 @@
 # for modern distributions and, when the release publishes one, the statically linked
 # archive for nodes whose glibc predates what recent containerd requires. One package
 # therefore serves both cases, and cri.containerd.static_binary only decides what a
-# node installs.
+# node installs. Packaging is driven by what the binary directory holds rather than by
+# a version check, so the archive a download could not fetch is simply absent here.
 - name: Binary | Ensure containerd binaries are present in the artifact
   loop: >
     {{- $result := list -}}
