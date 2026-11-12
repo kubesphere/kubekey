@@ -17,3 +17,27 @@
       github.com/kubesphere/kubekey/releases/download/iso-latest/{{ .item.iso }}-{{ .item.arch }}.iso
     dest: "{{ .binary_dir }}/repository/{{ .item.iso }}-{{ .item.arch }}.iso"
     timeout: "{{ .download.timeout }}"
+
+# A download that only produced the genisoimage skeleton (no .deb/.rpm inside) still
+# exits 0, and such an ISO only fails much later on a node with a misleading apt/yum
+# error. The package index alone is far bigger than this floor, so reject it here
+# where the artifact is still being built. The check also covers a reused ISO, which
+# is why it runs after the download task instead of inside it.
+- name: ISO | Verify the ISO carries a package repository
+  loop: >
+    {{- $result := list -}}
+    {{- range $arch := .download.arch }}
+      {{- range $iso := $.download.iso }}
+        {{- $result = append $result (dict "arch" $arch "iso" $iso) -}}
+      {{- end }}
+    {{- end }}
+    {{- $result | toJson }}
+  when:
+    - .download.iso | empty | not
+  command: |
+    iso="{{ .binary_dir }}/repository/{{ .item.iso }}-{{ .item.arch }}.iso"
+    size=$(wc -c < "$iso" | tr -d ' ')
+    if [ "$size" -lt 1048576 ]; then
+      echo "$iso is only ${size} bytes and carries no packages. Rebuild it from hack/gen-repository-iso and drop it into {{ .binary_dir }}/repository/ before exporting the artifact." >&2
+      exit 1
+    fi
