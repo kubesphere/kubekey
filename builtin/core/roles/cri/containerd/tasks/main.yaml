@@ -39,23 +39,15 @@
         # used. Both variants therefore live side by side and an offline artifact is
         # never silently queried for the wrong one.
         - name: Containerd | Copy containerd binary archive to the remote node
-          # ignore_errors keeps the failing copy from stopping the play, so the task
-          # below can explain which archive is missing and why instead of leaving the
-          # bare "src not found" message of the copy module.
+          # An artifact that does not carry the configured variant is reported by the
+          # extraction below, which names the archive it cannot find; ignoring the copy
+          # error only avoids stopping on the less specific message of the copy module.
           ignore_errors: true
-          register: containerd_archive_copy
           copy:
             src: >-
               {{ .binary_dir }}/containerd/{{ .cri.containerd_version }}/{{ .binary_type }}/containerd-{{ .cri.containerd.static_binary | default false | ternary "static-" "" }}{{ .cri.containerd_version | default "" | trimPrefix "v" }}-linux-{{ .binary_type }}.tar.gz
             dest: >-
               {{ .tmp_dir }}/containerd-{{ .cri.containerd.static_binary | default false | ternary "static-" "" }}{{ .cri.containerd_version | default "" | trimPrefix "v" }}-linux-{{ .binary_type }}.tar.gz
-        - name: Containerd | Fail when the configured containerd archive is missing
-          when: .containerd_archive_copy.error | empty | not
-          command: |
-            echo "failed to copy containerd-{{ .cri.containerd.static_binary | default false | ternary "static-" "" }}{{ .cri.containerd_version | default "" | trimPrefix "v" }}-linux-{{ .binary_type }}.tar.gz: {{ .containerd_archive_copy.error }}" >&2
-            echo "cri.containerd.static_binary is set to {{ .cri.containerd.static_binary | default false | toString }}, so this node installs that archive." >&2
-            echo "When the archive comes from an offline artifact, rebuild the artifact with the same cri.containerd.static_binary value: kk artifact export -c <artifact config>." >&2
-            exit 1
         - name: Containerd | Extract containerd binaries to /usr/local/bin
           command: |
             tar -xvf {{ .tmp_dir }}/containerd-{{ .cri.containerd.static_binary | default false | ternary "static-" "" }}{{ .cri.containerd_version | default "" | trimPrefix "v" }}-linux-{{ .binary_type }}.tar.gz --strip-components=1 -C /usr/local/bin/
