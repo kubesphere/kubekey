@@ -39,10 +39,10 @@
         # used. Both variants therefore live side by side and an offline artifact is
         # never silently queried for the wrong one.
         - name: Containerd | Copy containerd binary archive to the remote node
-          # An artifact that does not carry the configured variant is reported by the
-          # extraction below, which names the archive it cannot find; ignoring the copy
-          # error only avoids stopping on the less specific message of the copy module.
-          ignore_errors: true
+          # Exactly the archive cri.containerd.static_binary asks for is copied, and a
+          # failure is fatal: an artifact that does not carry that variant is a broken
+          # package, not a reason to fall back to the other build or to carry on to an
+          # extraction that would fail with a less specific message.
           copy:
             src: >-
               {{ .binary_dir }}/containerd/{{ .cri.containerd_version }}/{{ .binary_type }}/containerd-{{ .cri.containerd.static_binary | default false | ternary "static-" "" }}{{ .cri.containerd_version | default "" | trimPrefix "v" }}-linux-{{ .binary_type }}.tar.gz
