@@ -1306,7 +1306,7 @@ download:
     containerd: >-
       {{- .zone | eq "cn" | ternary (tpl "https://{{ .download.cn_host}}/" .) "https://" -}}
       github.com/containerd/containerd/releases/download/{{ "{{ .version }}" }}/containerd-
-      {{- "{{ if .static }}static-{{ end }}" -}}
+      {{- "{{ .static | default false | ternary \"static-\" \"\" }}" -}}
       {{ "{{ .version | default \"\" | trimPrefix \"v\" }}" }}-linux-{{ "{{ .arch }}" }}.tar.gz
     # runc binary
     runc: >-

@@ -146,49 +146,10 @@
     dest: "{{ .artifact_dir }}/kubekey/cri-dockerd/{{ .item.version }}/{{ .item.arch }}/cri-dockerd-{{ .item.version | trimPrefix \"v\" }}.{{ .item.arch }}.tgz"
 
 # An offline package carries both containerd variants: the dynamically linked archive
-# for modern distributions and the statically linked one for nodes whose glibc predates
-# what recent containerd releases require. One package therefore serves both cases.
-- name: Binary | Download the dynamically linked containerd binary when no cache holds it
-  loop: >
-    {{- $result := list -}}
-    {{- range $arch := .download.arch }}
-      {{- range $version := $.download.cri.containerd_version }}
-        {{- $result = append $result (dict "arch" $arch "version" $version) -}}
-      {{- end }}
-    {{- end }}
-    {{- $result | toJson }}
-  when:
-    - index (.item | default dict) "version" | empty | not
-    - .download.cri.container_manager | has "containerd"
-    - printf "%s/kubekey/containerd/%s/%s/containerd-%s-linux-%s.tar.gz" .artifact_dir .item.version .item.arch (.item.version | trimPrefix "v") .item.arch | fileExists | not
-    - printf "%s/containerd/%s/%s/containerd-%s-linux-%s.tar.gz" .binary_dir .item.version .item.arch (.item.version | trimPrefix "v") .item.arch | fileExists | not
-  http_get_file:
-    url: "{{ tpl .download.artifact_url.containerd .item }}"
-    dest: "{{ .binary_dir }}/containerd/{{ .item.version }}/{{ .item.arch }}/containerd-{{ .item.version | trimPrefix \"v\" }}-linux-{{ .item.arch }}.tar.gz"
-    timeout: "{{ .download.timeout }}"
-
-# Not every containerd release publishes a static asset, so a missing one is reported
-# below instead of failing an export that spans several containerd versions.
-- name: Binary | Download the statically linked containerd binary when no cache holds it
-  ignore_errors: true
-  loop: >
-    {{- $result := list -}}
-    {{- range $arch := .download.arch }}
-      {{- range $version := $.download.cri.containerd_version }}
-        {{- $result = append $result (dict "arch" $arch "version" $version "static" true) -}}
-      {{- end }}
-    {{- end }}
-    {{- $result | toJson }}
-  when:
-    - index (.item | default dict) "version" | empty | not
-    - .download.cri.container_manager | has "containerd"
-    - printf "%s/kubekey/containerd/%s/%s/containerd-static-%s-linux-%s.tar.gz" .artifact_dir .item.version .item.arch (.item.version | trimPrefix "v") .item.arch | fileExists | not
-    - printf "%s/containerd/%s/%s/containerd-static-%s-linux-%s.tar.gz" .binary_dir .item.version .item.arch (.item.version | trimPrefix "v") .item.arch | fileExists | not
-  http_get_file:
-    url: "{{ tpl .download.artifact_url.containerd .item }}"
-    dest: "{{ .binary_dir }}/containerd/{{ .item.version }}/{{ .item.arch }}/containerd-static-{{ .item.version | trimPrefix \"v\" }}-linux-{{ .item.arch }}.tar.gz"
-    timeout: "{{ .download.timeout }}"
-
+# for modern distributions and, when the release publishes one, the statically linked
+# archive for nodes whose glibc predates what recent containerd requires. One package
+# therefore serves both cases, and cri.containerd.static_binary only decides what a
+# node installs.
 - name: Binary | Ensure containerd binaries are present in the artifact
   loop: >
     {{- $result := list -}}
@@ -204,31 +165,13 @@
     - index (.item | default dict) "version" | empty | not
     - .download.cri.container_manager | has "containerd"
     # The archive keeps the upstream "static-" marker, so the variant a package carries
-    # is visible from its name and the two variants never share a cache entry.
+    # is visible from its name and the two variants never share a cache entry. A version
+    # that publishes no static asset simply has nothing to copy for that variant.
     - printf "%s/kubekey/containerd/%s/%s/containerd-%s%s-linux-%s.tar.gz" .artifact_dir .item.version .item.arch (.item.static | ternary "static-" "") (.item.version | trimPrefix "v") .item.arch | fileExists | not
     - printf "%s/containerd/%s/%s/containerd-%s%s-linux-%s.tar.gz" .binary_dir .item.version .item.arch (.item.static | ternary "static-" "") (.item.version | trimPrefix "v") .item.arch | fileExists
   copy:
     src: "{{ .binary_dir }}/containerd/{{ .item.version }}/{{ .item.arch }}/containerd-{{ .item.static | ternary \"static-\" \"\" }}{{ .item.version | trimPrefix \"v\" }}-linux-{{ .item.arch }}.tar.gz"
     dest: "{{ .artifact_dir }}/kubekey/containerd/{{ .item.version }}/{{ .item.arch }}/containerd-{{ .item.static | ternary \"static-\" \"\" }}{{ .item.version | trimPrefix \"v\" }}-linux-{{ .item.arch }}.tar.gz"
-
-- name: Binary | Report containerd versions that publish no static build
-  loop: >
-    {{- $result := list -}}
-    {{- range $arch := .download.arch }}
-      {{- range $version := $.download.cri.containerd_version }}
-        {{- $result = append $result (dict "arch" $arch "version" $version) -}}
-      {{- end }}
-    {{- end }}
-    {{- $result | toJson }}
-  when:
-    - index (.item | default dict) "version" | empty | not
-    - .download.cri.container_manager | has "containerd"
-    - printf "%s/kubekey/containerd/%s/%s/containerd-static-%s-linux-%s.tar.gz" .artifact_dir .item.version .item.arch (.item.version | trimPrefix "v") .item.arch | fileExists | not
-  debug:
-    msg: >-
-      WARNING: containerd {{ .item.version }} publishes no statically linked archive for
-      {{ .item.arch }}, so the offline package carries the dynamically linked one only.
-      cri.containerd.static_binary cannot be used with this version.
 
 - name: Binary | Ensure runc binary is present
   loop: >
