@@ -639,9 +639,10 @@ kubernetes:
   # 是否自动续期 Kubernetes 证书
   certs:
     # 提供 Kubernetes CA 文件有三种方式：
-    # 1. kubeadm：将 ca_cert 和 ca_key 留空，kubeadm 会自动生成。有效期 10 年，不可更改。
-    # 2. kubekey：将 ca_cert 设置为 {{ .work_dir }}/pki/ca.cert，ca_key 设置为 {{ .work_dir }}/pki/ca.key。
-    #    这些证书由 kubekey 生成，有效期 10 年，可通过 cert.ca_date 更新。
+    # 1. kubeadm：将 ca_cert 和 ca_key 留空，kubeadm 会自动生成。有效期 10 年，
+    #    在 Kubernetes >= 1.31 上可通过下方 ca_certificate_validity_period 调整。
+    # 2. kubekey：将 ca_cert 设置为 {{ .work_dir }}/pki/kubernetes.crt，ca_key 设置为 {{ .work_dir }}/pki/kubernetes.key。
+    #    这些证书由 kubekey 生成，有效期由 certs.kubernetes_ca.date 控制（默认 10 年）。
     # 3. 自定义：手动指定 ca_cert 和 ca_key 的绝对路径以使用您自己的 CA 文件。
     #
     # 若要使用自定义 CA 文件，请在下方填写绝对路径。
@@ -653,6 +654,12 @@ kubernetes:
     # 如果留空，则使用默认行为。
     front_proxy_cert: ""
     front_proxy_key: ""
+    # kubeadm 生成的非 CA 证书有效期（duration 格式，如 8760h 表示 1 年）。
+    # 仅 Kubernetes >= 1.31（kubeadm v1beta4）生效；默认与 kubeadm 默认值一致（1 年），置空则省略该字段。
+    certificate_validity_period: 8760h
+    # kubeadm 生成的 CA 证书有效期（duration 格式，如 87600h 表示 10 年）。
+    # 仅 Kubernetes >= 1.31 且 CA 由 kubeadm 自动生成（ca_cert 留空）时生效；默认与 kubeadm 默认值一致（10 年），置空则省略该字段。
+    ca_certificate_validity_period: 87600h
     # 自动续期服务证书（注意：CA 证书不支持自动续期）
     renew: true
 
@@ -723,6 +730,8 @@ kubernetes:
 | `kubernetes.certs.ca_key` | 自定义 Kubernetes CA 私钥路径。 |
 | `kubernetes.certs.front_proxy_cert` | 自定义 front-proxy CA 证书路径。 |
 | `kubernetes.certs.front_proxy_key` | 自定义 front-proxy CA 私钥路径。 |
+| `kubernetes.certs.certificate_validity_period` | kubeadm 生成的非 CA 证书有效期（duration 格式，如 `8760h`）。仅 Kubernetes ≥ 1.31 生效，默认 `8760h`（1 年，与 kubeadm 默认一致），置空则省略该字段。 |
+| `kubernetes.certs.ca_certificate_validity_period` | kubeadm 生成的 CA 证书有效期（duration 格式，如 `87600h`）。仅 Kubernetes ≥ 1.31 且 CA 由 kubeadm 自动生成时生效，默认 `87600h`（10 年，与 kubeadm 默认一致），置空则省略该字段。 |
 | `kubernetes.certs.renew` | 是否自动续期集群中的服务证书（CA 本身不会自动续期）。 |
 | `kubernetes.patches` | 以文件或内联内容方式对 Kubernetes 静态 Pod 或组件配置打补丁。 |
 | `kubernetes.skip_phases` | `kubeadm init` 执行过程中要显式跳过的阶段列表。 |
