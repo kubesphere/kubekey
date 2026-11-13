@@ -31,13 +31,13 @@ func TestTaskStrategy_NamespaceScoped(t *testing.T) {
 }
 
 func TestTaskStrategy_AllowCreateOnUpdate(t *testing.T) {
-	if Strategy.AllowCreateOnUpdate() {
+	if Strategy.AllowCreateOnUpdate(context.Background()) {
 		t.Errorf("Task should not allow create on update")
 	}
 }
 
 func TestTaskStrategy_AllowUnconditionalUpdate(t *testing.T) {
-	if !Strategy.AllowUnconditionalUpdate() {
+	if !Strategy.AllowUnconditionalUpdate(context.Background()) {
 		t.Errorf("Task should allow unconditional update")
 	}
 }

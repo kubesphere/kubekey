@@ -32,13 +32,13 @@ func TestInventoryStrategy_NamespaceScoped(t *testing.T) {
 }
 
 func TestInventoryStrategy_AllowCreateOnUpdate(t *testing.T) {
-	if Strategy.AllowCreateOnUpdate() {
+	if Strategy.AllowCreateOnUpdate(context.Background()) {
 		t.Errorf("Inventory should not allow create on update")
 	}
 }
 
 func TestInventoryStrategy_AllowUnconditionalUpdate(t *testing.T) {
-	if !Strategy.AllowUnconditionalUpdate() {
+	if !Strategy.AllowUnconditionalUpdate(context.Background()) {
 		t.Errorf("Inventory should allow unconditional update")
 	}
 }

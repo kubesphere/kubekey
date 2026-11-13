@@ -60,7 +60,3 @@ type KKMachineTemplateList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []KKMachineTemplate `json:"items"`
 }
-
-func init() {
-	SchemeBuilder.Register(&KKMachineTemplate{}, &KKMachineTemplateList{})
-}
