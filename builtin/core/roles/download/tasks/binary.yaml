@@ -161,50 +161,28 @@
 
 # cri.containerd.static_binary decides what a node installs, not what this directory
 # holds: an offline artifact is assembled from here and has to serve nodes that need
-# either build, so both archives are downloaded.
-- name: Binary | Ensure the dynamically linked containerd binary is present
+# either build, so both archives are downloaded. The static archive only exists from
+# containerd v1.7.0 onwards, so it joins the loop only for versions that publish one:
+# v1.6.0 and older ship none, and asking for one would only produce a 404.
+- name: Binary | Ensure containerd binary is present
   loop: >
     {{- $result := list -}}
     {{- range $arch := .download.arch }}
       {{- range $version := $.download.cri.containerd_version | default (list $.cri.containerd_version) }}
         {{- $result = append $result (dict "arch" $arch "version" $version "static" false) -}}
+        {{- if and ($version | trimPrefix "v" | regexMatch "^[0-9]+\\.[0-9]+\\.[0-9]+") ($version | trimPrefix "v" | semverCompare ">=1.7.0") }}
+          {{- $result = append $result (dict "arch" $arch "version" $version "static" true) -}}
+        {{- end }}
       {{- end }}
     {{- end }}
     {{- $result | toJson }}
   when: 
     - index (.item | default dict) "version" | empty | not
     - (index (.download.cri | default dict) "container_manager" | default (list .cri.container_manager)) | has "containerd"
-    - printf "%s/containerd/%s/%s/containerd-%s-linux-%s.tar.gz" .binary_dir .item.version .item.arch (.item.version | trimPrefix "v") .item.arch | fileExists | not
+    - printf "%s/containerd/%s/%s/containerd-%s%s-linux-%s.tar.gz" .binary_dir .item.version .item.arch (.item.static | ternary "static-" "") (.item.version | trimPrefix "v") .item.arch | fileExists | not
   http_get_file:
     url: "{{ tpl .download.artifact_url.containerd .item }}"
-    dest: "{{ .binary_dir }}/containerd/{{ .item.version }}/{{ .item.arch }}/containerd-{{ .item.version | trimPrefix \"v\" }}-linux-{{ .item.arch }}.tar.gz"
-    timeout: "{{ .download.timeout }}"
-
-# Not every containerd release publishes a static asset: v1.6.0 and older ship none and
-# the first release that does is v1.7.0. The version gate keeps the common case from
-# requesting a URL that is bound to 404, and a failing download is still tolerated so an
-# export spanning several versions never fails on the oldest one.
-- name: Binary | Ensure the statically linked containerd binary is present
-  ignore_errors: true
-  loop: >
-    {{- $result := list -}}
-    {{- range $arch := .download.arch }}
-      {{- range $version := $.download.cri.containerd_version | default (list $.cri.containerd_version) }}
-        {{- $result = append $result (dict "arch" $arch "version" $version "static" true) -}}
-      {{- end }}
-    {{- end }}
-    {{- $result | toJson }}
-  when: 
-    - index (.item | default dict) "version" | empty | not
-    # semverCompare raises on a value it cannot parse, and an error in a condition fails
-    # the task instead of skipping it, so the version shape is checked first.
-    - .item.version | default "" | trimPrefix "v" | regexMatch "^[0-9]+\\.[0-9]+\\.[0-9]+"
-    - .item.version | default "" | trimPrefix "v" | semverCompare ">=1.7.0"
-    - (index (.download.cri | default dict) "container_manager" | default (list .cri.container_manager)) | has "containerd"
-    - printf "%s/containerd/%s/%s/containerd-static-%s-linux-%s.tar.gz" .binary_dir .item.version .item.arch (.item.version | trimPrefix "v") .item.arch | fileExists | not
-  http_get_file:
-    url: "{{ tpl .download.artifact_url.containerd .item }}"
-    dest: "{{ .binary_dir }}/containerd/{{ .item.version }}/{{ .item.arch }}/containerd-static-{{ .item.version | trimPrefix \"v\" }}-linux-{{ .item.arch }}.tar.gz"
+    dest: "{{ .binary_dir }}/containerd/{{ .item.version }}/{{ .item.arch }}/containerd-{{ .item.static | ternary \"static-\" \"\" }}{{ .item.version | trimPrefix \"v\" }}-linux-{{ .item.arch }}.tar.gz"
     timeout: "{{ .download.timeout }}"
 
 - name: Binary | Ensure runc binary is present
