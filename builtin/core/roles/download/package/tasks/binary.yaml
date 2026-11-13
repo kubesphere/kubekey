@@ -145,22 +145,35 @@
     src: "{{ .binary_dir }}/cri-dockerd/{{ .item.version }}/{{ .item.arch }}/cri-dockerd-{{ .item.version | trimPrefix \"v\" }}.{{ .item.arch }}.tgz"
     dest: "{{ .artifact_dir }}/kubekey/cri-dockerd/{{ .item.version }}/{{ .item.arch }}/cri-dockerd-{{ .item.version | trimPrefix \"v\" }}.{{ .item.arch }}.tgz"
 
-- name: Binary | Ensure containerd binary is present
+# An offline package carries both containerd variants: the dynamically linked archive
+# for modern distributions and, when the release publishes one, the statically linked
+# archive for nodes whose glibc predates what recent containerd requires. One package
+# therefore serves both cases, and cri.containerd.static_binary only decides what a
+# node installs. The variants join the loop on the same boundary the download uses, so
+# the archive set packaged here is exactly the one the download could have fetched.
+- name: Binary | Ensure containerd binaries are present in the artifact
   loop: >
     {{- $result := list -}}
     {{- range $arch := .download.arch }}
       {{- range $version := $.download.cri.containerd_version }}
-        {{- $result = append $result (dict "arch" $arch "version" $version) -}}
+        {{- $result = append $result (dict "arch" $arch "version" $version "static" false) -}}
+        {{- if and ($version | trimPrefix "v" | regexMatch "^[0-9]+\\.[0-9]+\\.[0-9]+") ($version | trimPrefix "v" | semverCompare ">=1.7.0") }}
+          {{- $result = append $result (dict "arch" $arch "version" $version "static" true) -}}
+        {{- end }}
       {{- end }}
     {{- end }}
     {{- $result | toJson }}
   when: 
     - index (.item | default dict) "version" | empty | not
     - .download.cri.container_manager | has "containerd"
-    - printf "%s/kubekey/containerd/%s/%s/containerd-%s-linux-%s.tar.gz" .artifact_dir .item.version .item.arch (.item.version | trimPrefix "v") .item.arch | fileExists | not
+    # The archive keeps the upstream "static-" marker, so the variant a package carries
+    # is visible from its name and the two variants never share a cache entry. Only the
+    # destination is checked: an archive the binary directory lacks is a download fault
+    # and the copy reports it, rather than the package silently omitting the variant.
+    - printf "%s/kubekey/containerd/%s/%s/containerd-%s%s-linux-%s.tar.gz" .artifact_dir .item.version .item.arch (.item.static | ternary "static-" "") (.item.version | trimPrefix "v") .item.arch | fileExists | not
   copy:
-    src: "{{ .binary_dir }}/containerd/{{ .item.version }}/{{ .item.arch }}/containerd-{{ .item.version | trimPrefix \"v\" }}-linux-{{ .item.arch }}.tar.gz"
-    dest: "{{ .artifact_dir }}/kubekey/containerd/{{ .item.version }}/{{ .item.arch }}/containerd-{{ .item.version | trimPrefix \"v\" }}-linux-{{ .item.arch }}.tar.gz"
+    src: "{{ .binary_dir }}/containerd/{{ .item.version }}/{{ .item.arch }}/containerd-{{ .item.static | ternary \"static-\" \"\" }}{{ .item.version | trimPrefix \"v\" }}-linux-{{ .item.arch }}.tar.gz"
+    dest: "{{ .artifact_dir }}/kubekey/containerd/{{ .item.version }}/{{ .item.arch }}/containerd-{{ .item.static | ternary \"static-\" \"\" }}{{ .item.version | trimPrefix \"v\" }}-linux-{{ .item.arch }}.tar.gz"
 
 - name: Binary | Ensure runc binary is present
   loop: >

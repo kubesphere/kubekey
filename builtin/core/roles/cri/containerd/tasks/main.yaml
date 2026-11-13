@@ -34,15 +34,23 @@
     - name: Containerd | Install and configure containerd if not present or version mismatch
       when: or (.containerd_install_version.error | empty | not) (.containerd_install_version.stdout | contains (printf " %s " .cri.containerd_version) | not)
       block:
+        # cri.containerd.static_binary selects the upstream "containerd-static-*" asset,
+        # so the archive keeps the very name the download and the artifact packaging
+        # used. Both variants therefore live side by side and an offline artifact is
+        # never silently queried for the wrong one.
         - name: Containerd | Copy containerd binary archive to the remote node
+          # Exactly the archive cri.containerd.static_binary asks for is copied, and a
+          # failure is fatal: an artifact that does not carry that variant is a broken
+          # package, not a reason to fall back to the other build or to carry on to an
+          # extraction that would fail with a less specific message.
           copy:
             src: >-
-              {{ .binary_dir }}/containerd/{{ .cri.containerd_version }}/{{ .binary_type }}/containerd-{{ .cri.containerd_version | default "" | trimPrefix "v" }}-linux-{{ .binary_type }}.tar.gz
+              {{ .binary_dir }}/containerd/{{ .cri.containerd_version }}/{{ .binary_type }}/containerd-{{ .cri.containerd.static_binary | default false | ternary "static-" "" }}{{ .cri.containerd_version | default "" | trimPrefix "v" }}-linux-{{ .binary_type }}.tar.gz
             dest: >-
-              {{ .tmp_dir }}/containerd-{{ .cri.containerd_version | default "" | trimPrefix "v" }}-linux-{{ .binary_type }}.tar.gz
+              {{ .tmp_dir }}/containerd-{{ .cri.containerd.static_binary | default false | ternary "static-" "" }}{{ .cri.containerd_version | default "" | trimPrefix "v" }}-linux-{{ .binary_type }}.tar.gz
         - name: Containerd | Extract containerd binaries to /usr/local/bin
           command: |
-            tar -xvf {{ .tmp_dir }}/containerd-{{ .cri.containerd_version | default "" | trimPrefix "v" }}-linux-{{ .binary_type }}.tar.gz --strip-components=1 -C /usr/local/bin/
+            tar -xvf {{ .tmp_dir }}/containerd-{{ .cri.containerd.static_binary | default false | ternary "static-" "" }}{{ .cri.containerd_version | default "" | trimPrefix "v" }}-linux-{{ .binary_type }}.tar.gz --strip-components=1 -C /usr/local/bin/
 
 - name: Containerd | Synchronize image registry TLS certificates to the remote node
   block:
