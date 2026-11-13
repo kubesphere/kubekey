@@ -125,7 +125,3 @@ func GetHostsFromGroup(inv *Inventory, groupName string, unavailableHosts, unava
 
 	return hosts
 }
-
-func init() {
-	SchemeBuilder.Register(&Inventory{}, &InventoryList{})
-}

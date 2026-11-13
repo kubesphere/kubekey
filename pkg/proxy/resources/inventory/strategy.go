@@ -69,7 +69,7 @@ func (t inventoryStrategy) Canonicalize(runtime.Object) {
 // ===UpdateStrategy===
 
 // AllowCreateOnUpdate always false
-func (t inventoryStrategy) AllowCreateOnUpdate() bool {
+func (t inventoryStrategy) AllowCreateOnUpdate(context.Context) bool {
 	return false
 }
 
@@ -89,7 +89,7 @@ func (t inventoryStrategy) WarningsOnUpdate(context.Context, runtime.Object, run
 }
 
 // AllowUnconditionalUpdate always true
-func (t inventoryStrategy) AllowUnconditionalUpdate() bool {
+func (t inventoryStrategy) AllowUnconditionalUpdate(context.Context) bool {
 	return true
 }
 

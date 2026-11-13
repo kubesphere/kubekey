@@ -133,7 +133,3 @@ type KKMachineList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []KKMachine `json:"items"`
 }
-
-func init() {
-	SchemeBuilder.Register(&KKMachine{}, &KKMachineList{})
-}

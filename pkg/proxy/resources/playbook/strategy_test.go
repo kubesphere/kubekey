@@ -31,13 +31,13 @@ func TestPlaybookStrategy_NamespaceScoped(t *testing.T) {
 }
 
 func TestPlaybookStrategy_AllowCreateOnUpdate(t *testing.T) {
-	if Strategy.AllowCreateOnUpdate() {
+	if Strategy.AllowCreateOnUpdate(context.Background()) {
 		t.Errorf("Playbook should not allow create on update")
 	}
 }
 
 func TestPlaybookStrategy_AllowUnconditionalUpdate(t *testing.T) {
-	if !Strategy.AllowUnconditionalUpdate() {
+	if !Strategy.AllowUnconditionalUpdate(context.Background()) {
 		t.Errorf("Playbook should allow unconditional update")
 	}
 }

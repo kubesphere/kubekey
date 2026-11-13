@@ -80,7 +80,7 @@ func (t taskStrategy) Canonicalize(runtime.Object) {}
 // ===UpdateStrategy===
 
 // AllowCreateOnUpdate always false
-func (t taskStrategy) AllowCreateOnUpdate() bool {
+func (t taskStrategy) AllowCreateOnUpdate(context.Context) bool {
 	return false
 }
 
@@ -111,7 +111,7 @@ func (t taskStrategy) WarningsOnUpdate(context.Context, runtime.Object, runtime.
 }
 
 // AllowUnconditionalUpdate always true
-func (t taskStrategy) AllowUnconditionalUpdate() bool {
+func (t taskStrategy) AllowUnconditionalUpdate(context.Context) bool {
 	return true
 }
 

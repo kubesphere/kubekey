@@ -168,10 +168,6 @@ type KKClusterList struct {
 	Items           []KKCluster `json:"items"`
 }
 
-func init() {
-	SchemeBuilder.Register(&KKCluster{}, &KKClusterList{})
-}
-
 // GetConditions returns the observations of the operational state of the KKCluster resource.
 func (k *KKCluster) GetConditions() clusterv1beta1.Conditions {
 	return k.Status.Conditions

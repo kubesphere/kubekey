@@ -70,7 +70,7 @@ func (t playbookStrategy) Canonicalize(runtime.Object) {
 // ===UpdateStrategy===
 
 // AllowCreateOnUpdate always false
-func (t playbookStrategy) AllowCreateOnUpdate() bool {
+func (t playbookStrategy) AllowCreateOnUpdate(context.Context) bool {
 	return false
 }
 
@@ -104,7 +104,7 @@ func (t playbookStrategy) WarningsOnUpdate(context.Context, runtime.Object, runt
 }
 
 // AllowUnconditionalUpdate always true
-func (t playbookStrategy) AllowUnconditionalUpdate() bool {
+func (t playbookStrategy) AllowUnconditionalUpdate(context.Context) bool {
 	return true
 }
 
