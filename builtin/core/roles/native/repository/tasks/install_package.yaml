@@ -4,7 +4,7 @@
     current_host_type: >-
       {{- if .os.release.ID_LIKE | eq "debian" }}
       ubuntu
-      {{- else if .os.release.ID_LIKE | unquote | eq "rhel fedora" }}
+      {{- else if or (.os.release.ID_LIKE | unquote | eq "rhel centos fedora") (.os.release.ID_LIKE | unquote | eq "rhel fedora") }}
       centos
       {{- else if .os.release.ID | unquote | eq "kylin" }}
       centos

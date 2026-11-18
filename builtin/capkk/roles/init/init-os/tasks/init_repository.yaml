@@ -76,4 +76,4 @@
           # install
           yum install -y openssl socat conntrack ipset ebtables chrony ipvsadm
         fi
-      when: .os.release.ID_LIKE | unquote | eq "rhel fedora"
+      when: or (.os.release.ID_LIKE | unquote | eq "rhel centos fedora") (.os.release.ID_LIKE | unquote | eq "rhel fedora")
