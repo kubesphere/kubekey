@@ -279,6 +279,22 @@ index da561a8..63d1b05 100644
  COPY ./src/core/views /harbor/views
  COPY ./make/migrations /harbor/migrations
  COPY ./icons /harbor/icons
+diff --git a/make/photon/exporter/Dockerfile b/make/photon/exporter/Dockerfile
+index 42f9448..8e50793 100644
+--- a/make/photon/exporter/Dockerfile
++++ b/make/photon/exporter/Dockerfile
+@@ -4,9 +4,10 @@
+ 
+ FROM ${build_image} AS build
+ 
++# Build for the target platform; a fixed GOARCH produces an amd64 binary
++# inside the arm64 image.
+ ENV CGO_ENABLED=0
+ ENV GOOS=linux
+-ENV GOARCH=amd64
+ 
+ COPY src /harbor/src
+ WORKDIR /harbor/src/cmd/exporter
 diff --git a/make/photon/jobservice/Dockerfile b/make/photon/jobservice/Dockerfile
 index accd751..b33bd62 100644
 --- a/make/photon/jobservice/Dockerfile
