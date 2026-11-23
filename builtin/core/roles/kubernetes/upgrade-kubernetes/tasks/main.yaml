@@ -72,6 +72,21 @@
     printf 'KUBELET_KUBEADM_ARGS="--container-runtime-endpoint={{ .cri.cri_socket }}"\n' > /var/lib/kubelet/kubeadm-flags.env
     echo "✅ kubeadm-flags.env -> --container-runtime-endpoint={{ .cri.cri_socket }}"
 
+# Render the KubeletConfiguration patch from the single source of truth
+# (defaults/main/06-kubelet-configuration.yaml -> kubernetes.kubelet.managed_configuration).
+# kubeadm merges this patch into each node's live kubelet configuration during
+# `kubeadm upgrade apply/node --patches`: the on-disk /var/lib/kubelet/config.yaml
+# (or the kubelet-config ConfigMap the node file is derived from) is the base and the
+# managed settings below win, so a kubelet that was created with different settings
+# (e.g. cgroupfs) converges to the configured values on this hop. The patch is a
+# merge patch: managed fields are set, everything else (including kubeadm-injected
+# defaults such as staticPodPath) is preserved.
+- name: UpgradeKubernetes | Render the kubelet configuration patch
+  when: .groups.k8s_cluster | default list | has .inventory_hostname
+  template:
+    src: kubeletconfiguration+merge.yaml
+    dest: "{{ .work_dir }}/kubeadm-kubelet-patches/kubeletconfiguration+merge.yaml"
+
 - name: UpgradeKubernetes | Upgrade Kubernetes cluster on first control plane node
   when:
     - .groups.kube_control_plane | default list | has .inventory_hostname
@@ -176,7 +191,7 @@
     APPTRIES=3
     n=0
     while :; do
-      OUT=$(/usr/local/bin/kubeadm upgrade apply {{ .kubernetes.kube_version }} ${CONFIG_ARG} --yes --ignore-preflight-errors=all 2>&1)
+      OUT=$(/usr/local/bin/kubeadm upgrade apply {{ .kubernetes.kube_version }} ${CONFIG_ARG} --patches={{ .work_dir }}/kubeadm-kubelet-patches --yes --ignore-preflight-errors=all 2>&1)
       RC=$?
       if [ $RC -eq 0 ]; then
         echo "✅ kubeadm upgrade apply to {{ .kubernetes.kube_version }} succeeded"
@@ -274,7 +289,7 @@
     - .groups.kube_control_plane | default list | has .inventory_hostname
     - .init_kubernetes_node | eq .inventory_hostname | not
   command: |
-    /usr/local/bin/kubeadm upgrade node --ignore-preflight-errors=ImagePull
+    /usr/local/bin/kubeadm upgrade node --patches={{ .work_dir }}/kubeadm-kubelet-patches --ignore-preflight-errors=ImagePull
 
 # The control-plane kubelet must be restarted to load the bumped kubelet binary
 # and the regenerated kubeadm-flags.env (kubeadm upgrade apply does NOT restart
@@ -287,6 +302,35 @@
 #   "unable to fetch the kubeadm-config ConfigMap: ... dial tcp ...:6443: connect: connection refused"
 # So: restart the CP kubelet FIRST, then have workers wait for the API server
 # to come back before running `kubeadm upgrade node`.
+# Sync the in-cluster kubelet-config ConfigMap from the patched node file. kubeadm
+# applies --patches only to the on-disk /var/lib/kubelet/config.yaml: on the control
+# plane, `kubeadm upgrade apply` re-creates the kubelet-config ConfigMap from the
+# (unpatched) configuration fetched from the cluster BEFORE writing the patched file
+# (cmd/kubeadm/app/phases/upgrade/postupgrade.go PerformPostUpgradeTasks), so the CM
+# would keep the pre-patch values. The CM is the source kubeadm re-derives the node
+# file from on every later upgrade hop, so it must be brought back in line with the
+# patched file. The CM carries a single `kubelet` data key (cmd/kubeadm/app/phases/
+# kubelet/config.go CreateConfigMap), so re-creating it from the file is a faithful,
+# field-agnostic conversion -- not a per-field patch.
+- name: UpgradeKubernetes | Sync the kubelet-config ConfigMap from the patched node configuration
+  when:
+    - .groups.kube_control_plane | default list | has .inventory_hostname
+    - .init_kubernetes_node | eq .inventory_hostname
+  command: |
+    KC=/etc/kubernetes/admin.conf
+    [ -r "$KC" ] || KC=/root/.kube/config
+    [ -r "$KC" ] || KC="$HOME/.kube/config"
+    K=/usr/local/bin/kubectl
+    f=/var/lib/kubelet/config.yaml
+    if [ -f "$f" ]; then
+      "$K" --kubeconfig="$KC" -n kube-system create configmap kubelet-config \
+        --from-file=kubelet="$f" --dry-run=client -o yaml \
+        | "$K" --kubeconfig="$KC" -n kube-system apply -f - >/dev/null
+      echo "✅ kubelet-config ConfigMap synced from $f"
+    else
+      echo "ℹ️  $f not found; nothing to sync"
+    fi
+
 - name: UpgradeKubernetes | Restart kubelet on control plane after upgrade
   when: .groups.kube_control_plane | default list | has .inventory_hostname
   command: |
@@ -317,7 +361,7 @@
 - name: UpgradeKubernetes | Upgrade node configuration on worker nodes
   when: .groups.kube_worker | default list | has .inventory_hostname
   command: |
-    /usr/local/bin/kubeadm upgrade node --ignore-preflight-errors=ImagePull
+    /usr/local/bin/kubeadm upgrade node --patches={{ .work_dir }}/kubeadm-kubelet-patches --ignore-preflight-errors=ImagePull
 
 - name: UpgradeKubernetes | Restart kubelet on worker nodes after upgrade
   when: .groups.kube_worker | default list | has .inventory_hostname

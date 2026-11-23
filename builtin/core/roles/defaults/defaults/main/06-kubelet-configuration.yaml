@@ -1,0 +1,63 @@
+# The KubeletConfiguration block KubeKey manages, kept here as the single source
+# of truth. Two render paths consume it and MUST stay in lockstep:
+#
+#   1. the kubeadm init configuration (roles/kubernetes/init-kubernetes templates),
+#      which embeds it into the kubeadm config at cluster creation;
+#   2. the upgrade patch (roles/kubernetes/upgrade-kubernetes), which is fed to
+#      `kubeadm upgrade apply/node --patches` so every upgrade hop merges these
+#      settings into each node's live kubelet configuration.
+#
+# Defaults files are parsed with the host variables as context, in lexical file
+# order, and each parsed scalar is written back into that context, so values from
+# the earlier files in this directory (03-kubernetes.yaml, 04-cri.yaml, 05-dns.yaml)
+# are available here. The value is rendered ONCE at defaults time into final YAML
+# text; consumers insert it verbatim.
+kubernetes:
+  kubelet:
+    managed_configuration: |
+      clusterDomain: {{ .dns.domain }}
+      clusterDNS:
+      {{- if .dns.nodelocaldns.enabled }}
+        - {{ .dns.nodelocaldns.ip }}
+      {{- else }}
+        - {{ .dns.coredns.ip }}
+      {{- end }}
+      maxPods: {{ .kubernetes.kubelet.max_pods }}
+      podPidsLimit: {{ .kubernetes.kubelet.pod_pids_limit }}
+      rotateCertificates: true
+      kubeReserved:
+        cpu: 200m
+        memory: 250Mi
+      systemReserved:
+        cpu: 200m
+        memory: 250Mi
+      evictionHard:
+        memory.available: 5%
+        pid.available: 10%
+      evictionSoft:
+        memory.available: 10%
+      evictionSoftGracePeriod:
+        memory.available: 2m
+      evictionMaxPodGracePeriod: 120
+      evictionPressureTransitionPeriod: 30s
+      {{- if .security_enhancement }}
+      readOnlyPort: 0
+      protectKernelDefaults: true
+      eventRecordQPS: 1
+      streamingConnectionIdleTimeout: 5m
+      makeIPTablesUtilChains: true
+      tlsCipherSuites:
+        - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+        - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+        - TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
+      {{- end }}
+      {{- if .kubernetes.kubelet.feature_gates | empty | not }}
+      featureGates:
+      {{ .kubernetes.kubelet.feature_gates | toYaml | indent 2 }}
+      {{- end }}
+      cgroupDriver: {{ .cri.cgroup_driver }}
+      containerLogMaxSize: {{ .kubernetes.kubelet.container_log_max_size }}
+      containerLogMaxFiles: {{ .kubernetes.kubelet.container_log_max_files }}
+      {{- if .kubernetes.kubelet.extra_config | empty | not }}
+      {{ .kubernetes.kubelet.extra_config | toYaml }}
+      {{- end }}
