@@ -1,3 +1,4 @@
-nfs:
-  share_dir:
-    - /share/
+native:
+  nfs:
+    share_dir:
+      - /share/
