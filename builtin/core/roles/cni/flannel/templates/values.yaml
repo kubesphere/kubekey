@@ -12,8 +12,12 @@ podCidrv6: {{ if $hasIPv6 }}{{ $ipv6PodCIDR }}{{ end }}
 flannel:
   image:
     repository: {{ .image_registry.ghcrio_registry }}/flannel-io/flannel
+  # Older charts read image_cni and newer charts read flannel_cni.image.
   image_cni:
     repository: {{ .image_registry.ghcrio_registry }}/flannel-io/flannel-cni-plugin
+  flannel_cni:
+    image:
+      repository: {{ .image_registry.ghcrio_registry }}/flannel-io/flannel-cni-plugin
   # support "vxlan" and "host-gw"
   #backend: vxlan
 

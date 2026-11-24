@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"sigs.k8s.io/yaml"
 )
 
@@ -244,6 +245,43 @@ func TestContainerdArtifactURLStaticBinary(t *testing.T) {
 			assert.NoError(t, err)
 
 			assert.Equal(t, tc.expected, string(final))
+		})
+	}
+}
+
+func TestFlannelValuesUseConfiguredCNIRegistry(t *testing.T) {
+	raw, err := os.ReadFile("../../../builtin/core/roles/cni/flannel/templates/values.yaml")
+	require.NoError(t, err)
+
+	for _, registry := range []string{"ghcr.io", "hub.kubesphere.com.cn"} {
+		t.Run(registry, func(t *testing.T) {
+			vars := map[string]any{
+				"cni": map[string]any{"pod_cidr": "10.244.0.0/16"},
+				"image_registry": map[string]any{
+					"ghcrio_registry": registry,
+					"k8sio_registry":  "registry.k8s.io",
+				},
+			}
+			rendered, err := Parse(vars, string(raw))
+			require.NoError(t, err)
+
+			var values struct {
+				Flannel struct {
+					ImageCNI struct {
+						Repository string
+					} `json:"image_cni"`
+					FlannelCNI struct {
+						Image struct {
+							Repository string
+						}
+					} `json:"flannel_cni"`
+				}
+			}
+			require.NoError(t, yaml.Unmarshal(rendered, &values))
+
+			expected := registry + "/flannel-io/flannel-cni-plugin"
+			assert.Equal(t, expected, values.Flannel.ImageCNI.Repository, "legacy chart repository")
+			assert.Equal(t, expected, values.Flannel.FlannelCNI.Image.Repository, "current chart repository")
 		})
 	}
 }
