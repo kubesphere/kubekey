@@ -126,14 +126,19 @@
     - .image_registry.ha_vip | empty | not
     - .groups.image_registry | len | lt 1
   block:
+    # Every harbor node runs this task. Each must wait for its own harbor-core,
+    # not the shared registry address (VIP): the VIP answers from whichever node
+    # holds it, so a node whose core is still starting would pass on another
+    # node's 200 and the following registry-creation task would hit a 502 there.
     - name: Harbor | Wait for Harbor service to become ready
       command: |
-        {{- $registryHost := .image_registry.auth.registry | splitList "/" | first | splitList ":" | first }}
+        {{- $selfHost := .internal_ipv4 | default .inventory_hostname }}
+        {{- $plainScheme := "http" }}
         {{- if .image_registry.auth.plain_http | default false }}
-        HARBOR_URL="http://{{ $registryHost }}:{{ .image_registry.http_port | default 80 }}/api/v2.0/health"
+        HARBOR_URL="{{ $plainScheme }}://{{ $selfHost }}:{{ .image_registry.http_port | default 80 }}/api/v2.0/health"
         curl_opts=""
         {{- else }}
-        HARBOR_URL="https://{{ $registryHost }}:{{ .image_registry.https_port | default 443 }}/api/v2.0/health"
+        HARBOR_URL="https://{{ $selfHost }}:{{ .image_registry.https_port | default 443 }}/api/v2.0/health"
         curl_opts="-k"
         {{- end }}
         MAX_WAIT_SECONDS=300
