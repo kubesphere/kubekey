@@ -78,6 +78,10 @@ spec:
           operator: "Exists"
         - key: "CriticalAddonsOnly"
           operator: "Exists"
+{{- if .dns.nodelocaldns.affinity | empty | not }}
+      affinity:
+{{ .dns.nodelocaldns.affinity | toYaml | indent 8 }}
+{{- end }}
       containers:
       - name: node-cache
         image: {{ .dns.nodelocaldns.image.registry }}/{{ .dns.nodelocaldns.image.repository }}:{{ .dns.nodelocaldns.image.tag }}
