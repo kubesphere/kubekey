@@ -15,6 +15,16 @@ dns:
       repository: >-
         dns/k8s-dns-node-cache
       # tag: 1.24.0
+    # Affinity for the NodeLocalDNS DaemonSet pods.
+    # affinity:
+    #   nodeAffinity:
+    #     requiredDuringSchedulingIgnoredDuringExecution:
+    #       nodeSelectorTerms:
+    #         - matchExpressions:
+    #             - key: kubernetes.io/os
+    #               operator: In
+    #               values:
+    #                 - linux
 
   # CoreDNS pod configuration
   coredns:
