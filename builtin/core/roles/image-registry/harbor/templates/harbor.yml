@@ -14,7 +14,7 @@
 # Keep the function form of "lt": in the pipeline form (.groups.image_registry | len | lt 1)
 # the piped value is passed as the last argument, so it evaluates to "1 < len" and silently
 # selects the hostname branch for HA deployments.
-hostname: {{if lt (.groups.image_registry | len) 1}}{{ .inventory_hostname }}{{else}}{{ .image_registry.auth.registry | splitList "/" | first | splitList ":" | first }}{{ end }}
+hostname: {{if lt (.groups.image_registry | len) 1}}{{ .inventory_hostname | toJson }}{{else}}{{ .image_registry.auth.registry | splitList "/" | first | splitList ":" | first | toJson }}{{ end }}
 
 # http related config
 http:
@@ -27,8 +27,8 @@ https:
   # https port for harbor, default is 443
   port: {{ .image_registry.https_port | default 443 }}
   # The path of cert and key files for nginx
-  certificate: /opt/harbor/{{ .image_registry.harbor_version }}/ssl/server.crt
-  private_key: /opt/harbor/{{ .image_registry.harbor_version }}/ssl/server.key
+  certificate: {{ printf "/opt/harbor/%s/ssl/server.crt" .image_registry.harbor_version | toJson }}
+  private_key: {{ printf "/opt/harbor/%s/ssl/server.key" .image_registry.harbor_version | toJson }}
   # enable strong ssl ciphers (default: false)
   # strong_ssl_ciphers: false
 {{ end -}}
@@ -48,7 +48,7 @@ https:
 # The initial password of Harbor admin
 # It only works in first time to install harbor
 # Remember Change the admin password from UI after launching Harbor.
-harbor_admin_password: {{ .image_registry.auth.password }}
+harbor_admin_password: {{ .image_registry.auth.password | toJson }}
 
 # Harbor DB configuration
 database:
@@ -67,7 +67,7 @@ database:
   conn_max_idle_time: 0
 
 # The default data volume
-data_volume: {{ .image_registry.harbor.data_dir }}
+data_volume: {{ .image_registry.harbor.data_dir | toJson }}
 
 # Harbor Storage settings by default is using /data dir on local filesystem
 # Uncomment storage_service setting If you want to using external storage

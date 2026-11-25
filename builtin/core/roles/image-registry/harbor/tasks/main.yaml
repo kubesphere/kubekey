@@ -30,14 +30,18 @@
     - name: Harbor | Restart Harbor service
       command: systemctl restart harbor.service
 
+# Probe the node's own harbor-core rather than the shared registry address:
+# in HA the VIP answers from whichever node holds it and masks a BACKUP node
+# whose core is still starting.
 - name : Harbor | Check harbor api health
   command: |
-    {{- $registryHost := .image_registry.auth.registry | splitList "/" | first | splitList ":" | first }}
+    {{- $selfHost := .internal_ipv4 | default .inventory_hostname }}
+    {{- $plainScheme := "http" }}
     {{- if .image_registry.auth.plain_http | default false }}
-    HARBOR_URL="http://{{ $registryHost }}:{{ .image_registry.http_port | default 80 }}/api/v2.0/health"
+    HARBOR_URL="{{ $plainScheme }}://{{ $selfHost }}:{{ .image_registry.http_port | default 80 }}/api/v2.0/health"
     curl_opts=""
     {{- else }}
-    HARBOR_URL="https://{{ $registryHost }}:{{ .image_registry.https_port | default 443 }}/api/v2.0/health"
+    HARBOR_URL="https://{{ $selfHost }}:{{ .image_registry.https_port | default 443 }}/api/v2.0/health"
     curl_opts="-k"
     {{- end }}
     MAX_WAIT_SECONDS=300
