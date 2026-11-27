@@ -17,8 +17,8 @@
     curl_opts="-k"
     {{ end -}}
     if [ -n "$base_project" ]; then
-      resp=$(curl -u "{{ .image_registry.auth.username }}:{{ .image_registry.auth.password }}" $curl_opts -X GET "${scheme}://${registry_host}:${harbor_port}/api/v2.0/projects/${base_project}")
-      if echo "$resp" | grep -q '"code":"NOT_FOUND"'; then
+      status_code=$(curl -u "{{ .image_registry.auth.username }}:{{ .image_registry.auth.password }}" $curl_opts -s -o /dev/null -w "%{http_code}" -X GET "${scheme}://${registry_host}:${harbor_port}/api/v2.0/projects/${base_project}")
+      if [ "$status_code" = "404" ] || [ "$status_code" = "403" ]; then
         curl -u "{{ .image_registry.auth.username }}:{{ .image_registry.auth.password }}" $curl_opts -X POST \
           -H "Content-Type: application/json" \
           "${scheme}://${registry_host}:${harbor_port}/api/v2.0/projects" \
@@ -39,8 +39,8 @@
           project=$(basename "$project_dir")
 
           # Check if the Harbor project exists; create it if it does not
-          resp=$(curl -u "{{ .image_registry.auth.username }}:{{ .image_registry.auth.password }}" $curl_opts -X GET "${scheme}://${registry_host}:${harbor_port}/api/v2.0/projects/${project}")
-          if echo "$resp" | grep -q '"code":"NOT_FOUND"'; then
+          status_code=$(curl -u "{{ .image_registry.auth.username }}:{{ .image_registry.auth.password }}" $curl_opts -s -o /dev/null -w "%{http_code}" -X GET "${scheme}://${registry_host}:${harbor_port}/api/v2.0/projects/${project}")
+          if [ "$status_code" = "404" ] || [ "$status_code" = "403" ]; then
             curl -u "{{ .image_registry.auth.username }}:{{ .image_registry.auth.password }}" $curl_opts -X POST \
               -H "Content-Type: application/json" \
               "${scheme}://${registry_host}:${harbor_port}/api/v2.0/projects" \
